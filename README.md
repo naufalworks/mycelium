@@ -120,6 +120,7 @@ Quick commands:
 make install-daemon
 make deploy-daemon
 make status-daemon
+make test-daemon-offline
 make test-daemon-e2e
 ```
 

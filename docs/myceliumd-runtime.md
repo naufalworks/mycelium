@@ -59,6 +59,12 @@ Status:
 bash scripts/status-myceliumd.sh
 ```
 
+Offline regression test for pairing logic:
+
+```bash
+pytest tests/test_myceliumd.py -q
+```
+
 Full E2E smoke test:
 
 ```bash

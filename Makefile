@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 ROOT := $(CURDIR)
 
-.PHONY: install-daemon deploy-daemon status-daemon test-daemon-e2e verify runtime-verify resume patterns
+.PHONY: install-daemon deploy-daemon status-daemon test-daemon-e2e test-daemon-offline verify runtime-verify resume patterns
 
 install-daemon:
 	bash scripts/install-myceliumd.sh
@@ -14,6 +14,9 @@ status-daemon:
 
 test-daemon-e2e:
 	bash scripts/test-myceliumd-e2e.sh
+
+test-daemon-offline:
+	pytest tests/test_myceliumd.py -q
 
 verify:
 	python3 scripts/mycelium.py verify
