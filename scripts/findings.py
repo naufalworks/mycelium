@@ -39,6 +39,15 @@ def get_findings(entries):
     return [e for e in entries if e.get("type") == "finding" and e.get("finding")]
 
 
+def normalize_finding(finding):
+    finding = dict(finding or {})
+    if not finding.get("severity"):
+        finding["severity"] = "info"
+    if not finding.get("detail"):
+        finding["detail"] = finding.get("result", "")
+    return finding
+
+
 def get_dead_ends(entries):
     return [e for e in entries if e.get("type") == "dead-end"]
 
@@ -51,7 +60,7 @@ def cmd_list(entries):
     print(f"{'Turn':>5} {'Severity':10s} {'Type':18s} {'Target':30s} {'Detail'}")
     print("-" * 90)
     for e in sorted(findings, key=lambda x: x.get("ts", "")):
-        f = e.get("finding", {})
+        f = normalize_finding(e.get("finding", {}))
         turn = e.get("turn", "?")
         sev = f.get("severity", "?")[:10]
         typ = f.get("type", "?")[:18]
@@ -133,8 +142,9 @@ def cmd_report(entries, target=None):
 
         by_sev = {"critical": [], "high": [], "medium": [], "low": [], "info": [], "?": []}
         for e in tgt_findings:
-            sev = e["finding"].get("severity", "?").lower()
-            by_sev.setdefault(sev, []).append(e)
+            f = normalize_finding(e["finding"])
+            sev = f.get("severity", "?").lower()
+            by_sev.setdefault(sev, []).append((e, f))
 
         for sev in ["critical", "high", "medium", "low", "info", "?"]:
             items = by_sev.get(sev, [])
@@ -142,8 +152,7 @@ def cmd_report(entries, target=None):
                 continue
             print(f"### {sev.title()}")
             print()
-            for e in items:
-                f = e["finding"]
+            for e, f in items:
                 print(f"- **Type:** {f.get('type', '?')}")
                 if f.get("endpoint"):
                     print(f"  **Endpoint:** `{f.get('endpoint')}`")
@@ -182,9 +191,10 @@ def cmd_stats(entries):
     print()
 
     if findings:
-        type_counts = Counter(e["finding"]["type"] for e in findings if e["finding"].get("type"))
-        sev_counts = Counter(e["finding"].get("severity", "?") for e in findings)
-        targets = set(e["finding"].get("target", "?") for e in findings)
+        normalized_findings = [normalize_finding(e["finding"]) for e in findings]
+        type_counts = Counter(f["type"] for f in normalized_findings if f.get("type"))
+        sev_counts = Counter(f.get("severity", "?") for f in normalized_findings)
+        targets = set(f.get("target", "?") for f in normalized_findings)
 
         print(f"Targets: {len(targets)}")
         for t in sorted(targets):
