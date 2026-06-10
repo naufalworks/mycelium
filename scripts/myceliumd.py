@@ -112,7 +112,7 @@ def fetch_new_pairs(after_assistant_id):
                      SELECT 1 FROM messages mid
                      WHERE mid.session_id = a.session_id
                        AND mid.id > u.id AND mid.id < a.id
-                       AND mid.role = 'assistant'
+                       AND mid.role = 'user'
                    )
                  ORDER BY u.id DESC LIMIT 1
                ) AS user_id,
@@ -127,7 +127,7 @@ def fetch_new_pairs(after_assistant_id):
                        SELECT 1 FROM messages mid
                        WHERE mid.session_id = a.session_id
                          AND mid.id > u2.id AND mid.id < a.id
-                         AND mid.role = 'assistant'
+                         AND mid.role = 'user'
                      )
                    ORDER BY u2.id DESC LIMIT 1
                  )
@@ -137,6 +137,21 @@ def fetch_new_pairs(after_assistant_id):
           AND a.id > ?
           AND a.content IS NOT NULL
           AND trim(a.content) != ''
+          AND NOT EXISTS (
+            SELECT 1 FROM messages a2
+            WHERE a2.session_id = a.session_id
+              AND a2.role = 'assistant'
+              AND a2.id > a.id
+              AND a2.content IS NOT NULL
+              AND trim(a2.content) != ''
+              AND NOT EXISTS (
+                SELECT 1 FROM messages u3
+                WHERE u3.session_id = a.session_id
+                  AND u3.role = 'user'
+                  AND u3.id > a.id
+                  AND u3.id < a2.id
+              )
+          )
         ORDER BY a.id ASC
         """,
         (after_assistant_id,),

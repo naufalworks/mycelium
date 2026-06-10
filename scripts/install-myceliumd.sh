@@ -6,6 +6,66 @@ RUNTIME_DIR="$HOME/.hermes/myceliumd/runtime"
 SCRIPTS_DIR="$RUNTIME_DIR/scripts"
 PLIST_PATH="$HOME/Library/LaunchAgents/com.naufal.myceliumd.plist"
 PYTHON_BIN="/usr/bin/python3"
+BACKUP_DIR="$HOME/.hermes/myceliumd/migration-backups"
+
+backup_conflict() {
+  local src="$1"
+  local kind="$2"
+  local stamp rel out
+
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  rel="${src#$ROOT/}"
+  out="$BACKUP_DIR/$stamp/$rel"
+  mkdir -p "$(dirname "$out")"
+
+  if [ "$kind" = dir ]; then
+    cp -R "$src" "$out"
+  else
+    cp "$src" "$out"
+  fi
+
+  echo "Backed up divergent source copy: $src -> $out"
+}
+
+same_content() {
+  local a="$1"
+  local b="$2"
+
+  if [ -d "$a" ] && [ -d "$b" ]; then
+    diff -qr "$a" "$b" >/dev/null 2>&1
+  else
+    cmp -s "$a" "$b"
+  fi
+}
+
+link_runtime_data() {
+  local src="$1"
+  local dst="$2"
+
+  mkdir -p "$(dirname "$dst")"
+
+  if [ -L "$src" ]; then
+    ln -sfn "$dst" "$src"
+    return
+  fi
+
+  if [ -e "$src" ]; then
+    if [ ! -e "$dst" ]; then
+      mv "$src" "$dst"
+    else
+      if ! same_content "$src" "$dst"; then
+        if [ -d "$src" ]; then
+          backup_conflict "$src" dir
+        else
+          backup_conflict "$src" file
+        fi
+      fi
+      rm -rf "$src"
+    fi
+  fi
+
+  ln -sfn "$dst" "$src"
+}
 
 mkdir -p "$SCRIPTS_DIR" "$RUNTIME_DIR/archive" "$HOME/.hermes/myceliumd"
 
@@ -13,9 +73,9 @@ install -m 755 "$ROOT/scripts/myceliumd.py" "$SCRIPTS_DIR/myceliumd.py"
 install -m 755 "$ROOT/scripts/append.py" "$SCRIPTS_DIR/append.py"
 install -m 755 "$ROOT/scripts/mycelium.py" "$SCRIPTS_DIR/mycelium.py"
 
-[ -f "$ROOT/log.jsonl" ] && cp "$ROOT/log.jsonl" "$RUNTIME_DIR/log.jsonl" || true
-[ -f "$ROOT/index.db" ] && cp "$ROOT/index.db" "$RUNTIME_DIR/index.db" || true
-[ -d "$ROOT/archive" ] && mkdir -p "$RUNTIME_DIR/archive" && cp -R "$ROOT/archive/." "$RUNTIME_DIR/archive/" || true
+link_runtime_data "$ROOT/log.jsonl" "$RUNTIME_DIR/log.jsonl"
+link_runtime_data "$ROOT/index.db" "$RUNTIME_DIR/index.db"
+link_runtime_data "$ROOT/archive" "$RUNTIME_DIR/archive"
 
 /usr/bin/python3 - <<'PY'
 from pathlib import Path

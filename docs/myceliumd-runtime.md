@@ -24,10 +24,15 @@ State/logs:
 - `~/.hermes/myceliumd/launchd.stdout.log`
 - `~/.hermes/myceliumd/launchd.stderr.log`
 
-Runtime data snapshot:
+Canonical runtime data:
 - `~/.hermes/myceliumd/runtime/log.jsonl`
 - `~/.hermes/myceliumd/runtime/index.db`
 - `~/.hermes/myceliumd/runtime/archive/`
+
+Source-path compatibility links:
+- `~/Documents/mycelium/log.jsonl` → runtime `log.jsonl`
+- `~/Documents/mycelium/index.db` → runtime `index.db`
+- `~/Documents/mycelium/archive` → runtime `archive/`
 
 ## Why runtime lives outside Documents
 
@@ -54,6 +59,12 @@ Status:
 bash scripts/status-myceliumd.sh
 ```
 
+Full E2E smoke test:
+
+```bash
+bash scripts/test-myceliumd-e2e.sh
+```
+
 Make targets:
 
 ```bash
@@ -75,6 +86,7 @@ make runtime-verify
 
 The runtime copy is an installed artifact, not the development source.
 Edits in `~/Documents/mycelium` do not go live until `install-myceliumd.sh` or `deploy-myceliumd.sh` runs.
+If install sees divergent ignored data already present in both source and runtime, it keeps runtime canonical, backs up the source copy under `~/.hermes/myceliumd/migration-backups/`, then replaces source path with a symlink.
 
 ## Verification expectations
 

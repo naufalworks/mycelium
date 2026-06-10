@@ -112,6 +112,7 @@ Dead-end logging so you never retry failed approaches.
 
 Development source stays in `~/Documents/mycelium`.
 Installed launchd/runtime lives in `~/.hermes/myceliumd/runtime` to avoid macOS TCC blocking `~/Documents`.
+Ignored data files under `~/Documents/mycelium` are symlinked back to the runtime store so source tools and launchd share one canonical brain.
 
 Quick commands:
 
@@ -119,9 +120,11 @@ Quick commands:
 make install-daemon
 make deploy-daemon
 make status-daemon
+make test-daemon-e2e
 ```
 
 Docs: `docs/myceliumd-runtime.md`
+Audit: `docs/audits/myceliumd-e2e-audit.md`
 
 ---
 
