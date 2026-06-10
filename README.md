@@ -14,14 +14,22 @@ mycelium/
 ├── index.db               ← SQLite index (auto-built, queries)
 ├── archive/               ← compacted old sessions (never deleted)
 ├── scripts/
-│   ├── mycelium.py        ← unified CLI (status, resume, search, verify, archive)
-│   ├── detect-patterns.py ← Phase 1: Skill Garden
-│   ├── branch.py          ← Phase 2: Conversation Tree
-│   └── findings.py        ← Phase 3: Vuln Hunter Notebook
-├── branches/              ← conversation branches (Phase 2)
-└── garden/                ← skill auto-grow (Phase 1)
-    ├── patterns.json      ← recurring patterns detected
-    └── state.json         ← offered/accepted/dormant skills
+│   ├── mycelium.py            ← unified CLI (status, resume, search, verify, archive)
+│   ├── append.py              ← single-turn append
+│   ├── myceliumd.py           ← safety-net daemon importing from Hermes state.db
+│   ├── mycelium-start         ← session-start wrapper
+│   ├── install-myceliumd.sh   ← install runtime outside Documents for launchd
+│   ├── deploy-myceliumd.sh    ← install + verify deploy
+│   ├── status-myceliumd.sh    ← inspect launchd/log/state
+│   ├── detect-patterns.py     ← Phase 1: Skill Garden
+│   ├── branch.py              ← Phase 2: Conversation Tree
+│   └── findings.py            ← Phase 3: Vuln Hunter Notebook
+├── docs/
+│   └── myceliumd-runtime.md   ← dev source vs installed runtime workflow
+├── branches/                  ← conversation branches (Phase 2)
+└── garden/                    ← skill auto-grow (Phase 1)
+    ├── patterns.json          ← recurring patterns detected
+    └── state.json             ← offered/accepted/dormant skills
 ```
 
 ---
@@ -97,6 +105,23 @@ Tagged findings with type/target/severity/evidence/remediation.
 CLI: `scripts/findings.py` — list, by-target, by-type, by-severity, report, dead-ends, stats, timeline.
 `findings report [target]` → markdown report skeleton ready for client.
 Dead-end logging so you never retry failed approaches.
+
+---
+
+## myceliumd runtime install
+
+Development source stays in `~/Documents/mycelium`.
+Installed launchd/runtime lives in `~/.hermes/myceliumd/runtime` to avoid macOS TCC blocking `~/Documents`.
+
+Quick commands:
+
+```bash
+make install-daemon
+make deploy-daemon
+make status-daemon
+```
+
+Docs: `docs/myceliumd-runtime.md`
 
 ---
 

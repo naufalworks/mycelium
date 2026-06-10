@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+if [ -x "$ROOT/install-myceliumd.sh" ]; then
+  echo "🍄 Ensuring myceliumd runtime"
+  bash "$ROOT/install-myceliumd.sh" >/dev/null
+else
+  echo "🍄 install-myceliumd.sh missing — skipping runtime refresh"
+fi
+
+echo
+echo "🍄 Resume"
+python3 "$ROOT/mycelium.py" resume
+
+echo
+echo "🍄 Pattern scan"
+python3 "$ROOT/detect-patterns.py"
+
+echo
+echo "🍄 Daemon state"
+cat "$HOME/.hermes/myceliumd/state.json" 2>/dev/null || echo "state missing"
+echo
