@@ -122,6 +122,8 @@ def detect(entries):
     for rule_id, rule in PATTERN_RULES.items():
         count = 0
         for entry in all_entries:
+            if count >= rule["threshold"]:
+                break  # short-circuit — no need to count beyond threshold
             if rule["match"](entry):
                 count += 1
 

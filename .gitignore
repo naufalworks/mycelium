@@ -2,7 +2,10 @@
 # This is a persistent brain, not code.
 # Ignore runtime data — only track structure + tooling.
 
-# Log data (user's brain — personal, not shared)
+# SQLite index (auto-rebuilt, no reason to track)
+index.db
+index.db-shm
+index.db-wal
 log.jsonl
 
 # Branches (ephemeral exploration data)

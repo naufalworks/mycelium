@@ -1,16 +1,20 @@
-# 🍄 Mycelium — Your Persistent Brain
+# 🍄 Mycelium — Your Persistent Brain v2
 
-Every conversation, every finding, every idea — saved forever in a single file.
-Survives crashes, session loss, `/new`, anything.
+Every conversation, every finding, every idea — saved forever with integrity chain,
+importance tiers, and entity indexing. Never loses data. Never deleted — only archived.
+Any AI agent opens the repo and knows exactly what to do (see `AGENTS.md`).
 
-**One project. Three features. Zero new infra.**
+**One project. Three features. Zero new infra. v2 upgrades: integrity, speed, recall.**
 
 ```
 mycelium/
 ├── README.md              ← project overview
 ├── AGENTS.md              ← AI agent instructions (Hermes, Claude Code, etc.)
-├── log.jsonl              ← the brain — every turn ever
+├── log.jsonl              ← the brain — v2 tiered + hashed + entities
+├── index.db               ← SQLite index (auto-built, queries)
+├── archive/               ← compacted old sessions (never deleted)
 ├── scripts/
+│   ├── mycelium.py        ← unified CLI (status, resume, search, verify, archive)
 │   ├── detect-patterns.py ← Phase 1: Skill Garden
 │   ├── branch.py          ← Phase 2: Conversation Tree
 │   └── findings.py        ← Phase 3: Vuln Hunter Notebook
@@ -25,6 +29,12 @@ mycelium/
 ## How it works
 
 Every turn (your prompt + my response) → appended to `log.jsonl` immediately.
+**v2 upgrades:**
+- **Tiered** (S/A/B/C) — important entries surface first, noise sinks
+- **Entity-indexed** — projects, tools, domains extracted per turn, stored in SQLite
+- **Integrity chain** — each entry hashes the previous, tampering detectable
+- **Archival** — old sessions → summary + `archive/` (never deleted)
+
 Plain JSONL. One object per line. Readable by anything.
 
 | Tool | How to query |
