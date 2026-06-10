@@ -1,0 +1,38 @@
+# Mycelium — Root files to ignore
+# This is a persistent brain, not code.
+# Ignore runtime data — only track structure + tooling.
+
+# Log data (user's brain — personal, not shared)
+log.jsonl
+
+# Branches (ephemeral exploration data)
+branches/
+
+# Garden state (auto-generated, session-specific)
+garden/patterns.json
+garden/state.json
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Editors
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Git
+*.orig
