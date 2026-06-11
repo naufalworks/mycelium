@@ -250,6 +250,15 @@ button, input, select {
   place-items: center;
   padding: 24px;
   z-index: 1000;
+  animation: fadeIn 160ms ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalSlide {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .modal-shell {
   width: min(760px, 100%);
@@ -260,6 +269,7 @@ button, input, select {
   padding: 22px;
   display: grid;
   gap: 16px;
+  animation: modalSlide 180ms ease;
 }
 .result-grid {
   display: grid;
@@ -327,16 +337,17 @@ button, input, select {
   background: rgba(255,255,255,0.022);
   color: var(--text-2);
 }
-.graph-card {
-  overflow: hidden;
-}
 .graph-svg {
   width: 100%;
   height: 500px;
   margin-top: 16px;
+  cursor: grab;
+  user-select: none;
 }
+.graph-svg:active { cursor: grabbing; }
 .graph-link {
   stroke: rgba(188, 205, 223, 0.20);
+  transition: stroke-opacity 200ms;
 }
 .graph-link.session-entity {
   stroke: rgba(104, 213, 200, 0.22);
@@ -344,10 +355,20 @@ button, input, select {
 .graph-link.entity-entity {
   stroke: rgba(142, 197, 255, 0.18);
 }
+.graph-link.highlight {
+  stroke-opacity: 0.9;
+  stroke-width: 3;
+}
 .graph-node {
   cursor: pointer;
   stroke: rgba(255,255,255,0.15);
   stroke-width: 2;
+  transition: filter 200ms, transform 200ms;
+}
+.graph-node:hover {
+  filter: drop-shadow(0 0 10px rgba(104, 213, 200, 0.5));
+  transform: scale(1.15);
+  stroke: rgba(255,255,255,0.35);
 }
 .graph-node.session {
   fill: rgba(104, 213, 200, 0.78);
@@ -355,9 +376,71 @@ button, input, select {
 .graph-node.entity {
   fill: rgba(142, 197, 255, 0.70);
 }
+.graph-node.faded {
+  opacity: 0.18;
+}
 .graph-label {
   fill: var(--text-2);
   font-size: 12px;
+  pointer-events: none;
+  transition: opacity 200ms;
+}
+.graph-tooltip {
+  position: absolute;
+  max-width: 300px;
+  border: 1px solid rgba(188, 205, 223, 0.12);
+  border-radius: 14px;
+  background: rgba(16, 18, 24, 0.94);
+  backdrop-filter: blur(16px);
+  padding: 14px 16px;
+  display: grid;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 500;
+  font-size: 13px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  white-space: nowrap;
+}
+.graph-tooltip .tooltip-head {
+  font-weight: 600;
+  color: var(--text-1);
+}
+.graph-tooltip .tooltip-detail {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.graph-zoom-row {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0 0;
+}
+.graph-zoom-btn {
+  border: 1px solid rgba(188, 205, 223, 0.10);
+  background: rgba(255,255,255,0.035);
+  color: var(--text-2);
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: 140ms ease;
+}
+.graph-zoom-btn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(188, 205, 223, 0.16);
+}
+.graph-filter-input {
+  border: 1px solid rgba(188, 205, 223, 0.10);
+  background: rgba(255,255,255,0.035);
+  color: var(--text-1);
+  padding: 8px 12px;
+  border-radius: 12px;
+  outline: none;
+  font-size: 13px;
+  min-width: 180px;
+}
+.graph-filter-input:focus {
+  border-color: rgba(142, 197, 255, 0.26);
+  box-shadow: 0 0 0 3px rgba(142, 197, 255, 0.07);
 }
 .pre {
   white-space: pre-wrap;
