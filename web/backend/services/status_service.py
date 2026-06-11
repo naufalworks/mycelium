@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import json
-import sqlite3
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -93,13 +92,15 @@ def recent_sessions(entries: List[Dict[str, Any]], max_sessions: int = 8) -> Lis
         if session in seen:
             continue
         seen.add(session)
-        out.append({
-            "session": session,
-            "last_ts": entry.get("ts"),
-            "last_type": entry.get("type"),
-            "last_tier": entry.get("tier", "B"),
-            "entities": entry.get("entities", [])[:5],
-        })
+        out.append(
+            {
+                "session": session,
+                "last_ts": entry.get("ts"),
+                "last_type": entry.get("type"),
+                "last_tier": entry.get("tier", "B"),
+                "entities": entry.get("entities", [])[:5],
+            }
+        )
         if len(out) >= max_sessions:
             break
     return out
@@ -199,14 +200,104 @@ def get_stream(
 def get_session_detail(session_name: str) -> Dict[str, Any]:
     entries = [e for e in load_entries() if e.get("session") == session_name]
     entity_counts = Counter()
+    type_counts = Counter()
+    tier_counts = Counter()
     for entry in entries:
+        type_counts[entry.get("type", "talk")] += 1
+        tier_counts[entry.get("tier", "B")] += 1
         for ent in entry.get("entities", []):
             entity_counts[ent] += 1
     return {
         "session": session_name,
         "total": len(entries),
+        "first_ts": entries[0].get("ts") if entries else None,
+        "last_ts": entries[-1].get("ts") if entries else None,
+        "types": dict(type_counts),
+        "tiers": dict(tier_counts),
         "entities": [{"name": k, "count": v} for k, v in entity_counts.most_common(20)],
         "items": entries,
+    }
+
+
+def get_connections(limit: int = 80) -> Dict[str, Any]:
+    entries = load_entries(limit=limit)
+    session_entities: dict[str, Counter] = defaultdict(Counter)
+    entity_sessions: dict[str, set[str]] = defaultdict(set)
+    pair_weights: Counter = Counter()
+    session_meta: dict[str, dict[str, Any]] = {}
+
+    for entry in entries:
+        session = entry.get("session", "unknown")
+        entities = list(dict.fromkeys(entry.get("entities", [])[:8]))
+        session_meta[session] = {
+            "last_ts": entry.get("ts"),
+            "last_tier": entry.get("tier", "B"),
+            "last_type": entry.get("type", "talk"),
+        }
+        for ent in entities:
+            session_entities[session][ent] += 1
+            entity_sessions[ent].add(session)
+        for i, left in enumerate(entities):
+            for right in entities[i + 1 :]:
+                key = tuple(sorted((left, right)))
+                pair_weights[key] += 1
+
+    top_sessions = sorted(session_entities.items(), key=lambda kv: sum(kv[1].values()), reverse=True)[:10]
+    top_entities = sorted(entity_sessions.items(), key=lambda kv: (len(kv[1]), kv[0]), reverse=True)[:18]
+
+    nodes: List[Dict[str, Any]] = []
+    session_names = {name for name, _ in top_sessions}
+    entity_names = {name for name, _ in top_entities}
+
+    for session, counter in top_sessions:
+        nodes.append(
+            {
+                "id": f"session:{session}",
+                "kind": "session",
+                "label": session,
+                "weight": sum(counter.values()),
+                **session_meta.get(session, {}),
+            }
+        )
+    for entity, sessions in top_entities:
+        nodes.append(
+            {
+                "id": f"entity:{entity}",
+                "kind": "entity",
+                "label": entity,
+                "weight": len(sessions),
+            }
+        )
+
+    links: List[Dict[str, Any]] = []
+    for session, counter in top_sessions:
+        for entity, weight in counter.most_common(5):
+            if entity in entity_names:
+                links.append(
+                    {
+                        "source": f"session:{session}",
+                        "target": f"entity:{entity}",
+                        "weight": weight,
+                        "kind": "session-entity",
+                    }
+                )
+    for (left, right), weight in pair_weights.most_common(16):
+        if left in entity_names and right in entity_names:
+            links.append(
+                {
+                    "source": f"entity:{left}",
+                    "target": f"entity:{right}",
+                    "weight": weight,
+                    "kind": "entity-entity",
+                }
+            )
+
+    return {
+        "ok": True,
+        "nodes": nodes,
+        "links": links,
+        "sessions_considered": len(session_names),
+        "entities_considered": len(entity_names),
     }
 
 

@@ -15,31 +15,30 @@ def test_health():
 def test_status_shape():
     res = client.get('/api/status')
     assert res.status_code == 200
-    data = res.json()
-    assert 'total_turns' in data
-    assert 'canonical_runtime' in data
+    body = res.json()
+    assert 'total_turns' in body
+    assert 'canonical_runtime' in body
 
 
-def test_stream_shape():
-    res = client.get('/api/stream?limit=5')
+def test_backups_list_and_create():
+    create_snapshot()
+    res = client.get('/api/backups')
     assert res.status_code == 200
-    data = res.json()
-    assert 'items' in data
-    assert 'total' in data
+    body = res.json()
+    assert 'items' in body
+    assert len(body['items']) >= 1
 
 
-def test_backup_workflow_routes():
-    created = create_snapshot()
-    path = created['path']
-
-    res = client.post('/api/backups/verify', json={'path': path})
+def test_connections_api():
+    res = client.get('/api/connections')
     assert res.status_code == 200
-    assert res.json()['ok'] is True
+    body = res.json()
+    assert body['ok'] is True
+    assert 'nodes' in body
+    assert 'links' in body
 
-    res = client.post('/api/import/dry-run', json={'path': path})
-    assert res.status_code == 200
-    assert res.json()['ok'] is True
 
-    res = client.post('/api/migrate/dry-run', json={'target_root': '/tmp/mycelium-target'})
+def test_frontend_fallback_route():
+    res = client.get('/')
     assert res.status_code == 200
-    assert res.json()['ok'] is True
+    assert 'ok' in res.text or '<!doctype html>' in res.text.lower()

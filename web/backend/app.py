@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .services.backup_service import (
     create_snapshot,
@@ -15,10 +18,17 @@ from .services.backup_service import (
     restore_snapshot,
     verify_snapshot,
 )
-from .services.status_service import get_daemon_state, get_findings, get_session_detail, get_status, get_stream
+from .services.status_service import (
+    get_connections,
+    get_daemon_state,
+    get_findings,
+    get_session_detail,
+    get_status,
+    get_stream,
+)
 from .services.verify_service import run_verify
 
-app = FastAPI(title="Mycelium Web", version="0.2.0")
+app = FastAPI(title="Mycelium Web", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,6 +36,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
 
 @app.get("/api/health")
@@ -68,6 +82,11 @@ def api_sessions():
 @app.get("/api/sessions/{session_name}")
 def api_session_detail(session_name: str):
     return get_session_detail(session_name)
+
+
+@app.get("/api/connections")
+def api_connections(limit: int = 80):
+    return get_connections(limit=limit)
 
 
 @app.get("/api/findings")
@@ -121,3 +140,11 @@ def api_migrate_execute(payload: dict):
         payload.get("target_root", ""),
         bool(payload.get("overwrite", False)),
     )
+
+
+@app.get("/{full_path:path}")
+def frontend_fallback(full_path: str):
+    index_path = FRONTEND_DIST / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"ok": False, "message": "frontend build missing", "hint": "run: cd web/frontend && npm run build"}

@@ -7,28 +7,33 @@ Important architecture:
 - separate app surface inside `web/`
 - reads the existing Mycelium brain + runtime data
 - runs alongside `myceliumd`, not instead of it
+- backend can now serve the built frontend directly on `8421`
 
 So:
 - `myceliumd` = ingestion / safety-net daemon
-- web backend = local API over Mycelium data
-- web frontend = browser UI
+- web backend = local API over Mycelium data + static app host
+- web frontend = browser UI source during development
 
 User-friendly commands
-- `make web` → starts backend + frontend together
-- `make web-status` → shows both states
+- `make web` → starts observatory backend
+- `make web-status` → shows state
 - `make web-open` → opens browser UI
-- `make web-stop` → stops both
-- `make web-restart` → restarts both
+- `make web-stop` → stops backend
+- `make web-restart` → restarts backend
 - `make web-logs` → tails recent logs
 - `make web-build` → production frontend build
 - `make web-test` → backend tests
 - `make install-cli` → installs `mycelium` command into `~/.local/bin`
+- `make web-install-service` → install launchd service
+- `make web-service-status` → check launchd + backend state
+- `make web-uninstall-service` → remove launchd service
 
 Integrated entrypoint
 - `bash scripts/mycelium web start`
 - `bash scripts/mycelium web status`
 - `bash scripts/mycelium web open`
 - `bash scripts/mycelium web stop`
+- `bash scripts/mycelium web install-service`
 
 Installable command
 - run: `make install-cli`
@@ -38,21 +43,18 @@ Installable command
   - `mycelium web status`
   - `mycelium web open`
   - `mycelium web stop`
-
-Direct commands
-- launcher: `bash scripts/mycelium-web start`
-- backend only: `make web-backend`
-- frontend only: `make web-frontend`
+  - `mycelium web install-service`
 
 URLs
-- frontend: `http://127.0.0.1:8420`
-- backend: `http://127.0.0.1:8421`
+- unified app: `http://127.0.0.1:8421`
 - backend health: `http://127.0.0.1:8421/api/health`
+- dev frontend only: `http://127.0.0.1:8420`
 
 Launcher runtime files
 - pid/log root: `~/.hermes/myceliumd/web`
 - backend log: `~/.hermes/myceliumd/web/logs/backend.log`
-- frontend log: `~/.hermes/myceliumd/web/logs/frontend.log`
+- service log: `~/.hermes/myceliumd/web/logs/service.log`
+- launchd plist: `~/Library/LaunchAgents/com.naufalworks.mycelium-observatory.plist`
 
 Vault features
 - create snapshot
@@ -65,6 +67,13 @@ Vault features
 - frontend confirmation modal for restore/migrate execute
 - Esc / backdrop click cancel support
 - typed confirmation required
+
+Observability features
+- dashboard
+- stream
+- prettier session inspector
+- branch / connections graph
+- findings notebook
 
 This web app reads local Mycelium runtime data only. No outbound sync/cloud.
 

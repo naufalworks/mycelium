@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
-type View = 'dashboard' | 'stream' | 'vault' | 'findings'
+type View = 'dashboard' | 'stream' | 'graph' | 'vault' | 'findings'
 
 type Status = {
   total_turns: number
@@ -22,14 +22,20 @@ type VerifyResponse = { ok: boolean; output: string; checked_at: string }
 type BackupList = { backup_root: string; items: Array<any> }
 type ActionResult = { ok: boolean; message?: string; data?: any }
 type DangerousAction = 'restore' | 'migrate' | null
+type GraphData = { ok: boolean; nodes: Array<any>; links: Array<any>; sessions_considered: number; entities_considered: number }
 
-const API = 'http://127.0.0.1:8421'
+const API = ''
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
   if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
+function ellipse(text: string, n = 180) {
+  if (!text) return ''
+  return text.length > n ? `${text.slice(0, n)}…` : text
 }
 
 async function post(path: string, body: any) {
@@ -67,6 +73,39 @@ function summarizeResult(result: ActionResult | null) {
   ].filter(Boolean) as Array<{ label: string; value: string }>
 }
 
+function sessionSummary(detail: any) {
+  if (!detail?.items?.length) return { decisions: [], findings: [], actions: [] }
+  const decisions = detail.items.filter((item: any) => item.tier === 'S' || item.type === 'decision').slice(-4)
+  const findings = detail.items.filter((item: any) => item.type === 'finding').slice(-4)
+  const actions = detail.items.filter((item: any) => /todo|fix|build|implement|deploy|verify/i.test(`${item.user} ${item.assistant}`)).slice(-4)
+  return { decisions, findings, actions }
+}
+
+function graphPositions(nodes: Array<any>) {
+  const sessions = nodes.filter(n => n.kind === 'session')
+  const entities = nodes.filter(n => n.kind === 'entity')
+  const positions: Record<string, { x: number; y: number }> = {}
+  const centerX = 420
+  const centerY = 250
+  const sessionRadius = 180
+  const entityRadius = 300
+  sessions.forEach((node, idx) => {
+    const angle = (Math.PI * 2 * idx) / Math.max(sessions.length, 1)
+    positions[node.id] = {
+      x: centerX + Math.cos(angle) * sessionRadius,
+      y: centerY + Math.sin(angle) * sessionRadius,
+    }
+  })
+  entities.forEach((node, idx) => {
+    const angle = (Math.PI * 2 * idx) / Math.max(entities.length, 1)
+    positions[node.id] = {
+      x: centerX + Math.cos(angle) * entityRadius,
+      y: centerY + Math.sin(angle) * entityRadius,
+    }
+  })
+  return positions
+}
+
 export default function App() {
   const [view, setView] = useState<View>('dashboard')
   const [query, setQuery] = useState('')
@@ -75,6 +114,7 @@ export default function App() {
   const [daemon, setDaemon] = useState<DaemonResponse | null>(null)
   const [verify, setVerify] = useState<VerifyResponse | null>(null)
   const [backups, setBackups] = useState<BackupList | null>(null)
+  const [graph, setGraph] = useState<GraphData | null>(null)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [sessionDetail, setSessionDetail] = useState<any>(null)
   const [selectedBackupPath, setSelectedBackupPath] = useState('')
@@ -86,16 +126,18 @@ export default function App() {
   const confirmInputRef = useRef<HTMLInputElement | null>(null)
 
   const loadAll = async () => {
-    const [s, st, d, b] = await Promise.all([
+    const [s, st, d, b, g] = await Promise.all([
       fetch(`${API}/api/status`).then(r => r.json()),
       fetch(`${API}/api/stream?limit=40&q=${encodeURIComponent(query)}`).then(r => r.json()),
       fetch(`${API}/api/daemon`).then(r => r.json()),
       fetch(`${API}/api/backups`).then(r => r.json()),
+      fetch(`${API}/api/connections`).then(r => r.json()),
     ])
     setStatus(s)
     setStream(st)
     setDaemon(d)
     setBackups(b)
+    setGraph(g)
     if (!selectedBackupPath && b?.items?.[0]?.path) setSelectedBackupPath(b.items[0].path)
     if (!targetRoot && s?.canonical_runtime?.path) setTargetRoot(s.canonical_runtime.path)
   }
@@ -128,7 +170,7 @@ export default function App() {
       window.clearTimeout(timer)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [confirmAction])
+  }, [confirmAction, busy])
 
   const runVerify = async () => {
     const res = await fetch(`${API}/api/verify`, { method: 'POST' }).then(r => r.json())
@@ -221,6 +263,8 @@ export default function App() {
 
   const resultSummary = summarizeResult(actionResult)
   const latestBackup = backups?.items?.[0]
+  const positions = useMemo(() => graphPositions(graph?.nodes || []), [graph])
+  const sessionMeta = sessionSummary(sessionDetail)
 
   return (
     <>
@@ -231,7 +275,7 @@ export default function App() {
             <br />clean local continuity layer
           </div>
           <div className="nav-list">
-            {(['dashboard', 'stream', 'vault', 'findings'] as View[]).map(v => (
+            {(['dashboard', 'stream', 'graph', 'vault', 'findings'] as View[]).map(v => (
               <button key={v} className={`nav-btn ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>{v}</button>
             ))}
           </div>
@@ -295,8 +339,8 @@ export default function App() {
                         <strong>{item.session}</strong>
                         <span className="muted">#{item.turn} · {item.type} · {item.ts}</span>
                       </div>
-                      <div style={{ marginTop: 10 }}><span className="muted">User:</span> {item.user}</div>
-                      <div style={{ marginTop: 8 }}><span className="muted">Assistant:</span> {item.assistant}</div>
+                      <div style={{ marginTop: 10 }}><span className="muted">User:</span> {ellipse(item.user || '', 160)}</div>
+                      <div style={{ marginTop: 8 }}><span className="muted">Assistant:</span> {ellipse(item.assistant || '', 180)}</div>
                       <div className="chips">{(item.entities || []).map((ent: string) => <span className="chip" key={ent}>{ent}</span>)}</div>
                     </div>
                   ))}
@@ -305,17 +349,114 @@ export default function App() {
               <div className="card">
                 <div className="card-title">Session inspector</div>
                 {selectedSession && sessionDetail ? (
-                  <>
-                    <div className="metric" style={{ fontSize: 24 }}>{selectedSession}</div>
-                    <div className="metric-sub">{sessionDetail.total} turn(s)</div>
-                    <div className="chips">
-                      {(sessionDetail.entities || []).map((ent: any) => <span className="chip" key={ent.name}>{ent.name} · {ent.count}</span>)}
+                  <div className="grid">
+                    <div className="session-hero">
+                      <div>
+                        <div className="metric" style={{ fontSize: 24 }}>{selectedSession}</div>
+                        <div className="metric-sub">{sessionDetail.total} turn(s) · {sessionDetail.first_ts} → {sessionDetail.last_ts}</div>
+                      </div>
+                      <div className="chips">
+                        {Object.entries(sessionDetail.tiers || {}).map(([tier, count]) => <span className="chip" key={tier}>tier {tier} · {String(count)}</span>)}
+                      </div>
                     </div>
-                    <div className="pre" style={{ marginTop: 16 }}>{JSON.stringify(sessionDetail.items?.slice(-5), null, 2)}</div>
-                  </>
+                    <div className="grid cols-2">
+                      <div className="result-panel">
+                        <div className="result-label">Top entities</div>
+                        <div className="chips">{(sessionDetail.entities || []).slice(0, 8).map((ent: any) => <span className="chip" key={ent.name}>{ent.name} · {ent.count}</span>)}</div>
+                      </div>
+                      <div className="result-panel">
+                        <div className="result-label">Types</div>
+                        <div className="chips">{Object.entries(sessionDetail.types || {}).map(([kind, count]) => <span className="chip" key={kind}>{kind} · {String(count)}</span>)}</div>
+                      </div>
+                    </div>
+                    <div className="grid cols-3">
+                      <div className="result-panel">
+                        <div className="result-label">Decisions</div>
+                        <div className="detail-list">{sessionMeta.decisions.length ? sessionMeta.decisions.map((item: any) => <div key={item.hash} className="mini-note">{ellipse(item.assistant || item.user || '', 120)}</div>) : <div className="muted">none</div>}</div>
+                      </div>
+                      <div className="result-panel">
+                        <div className="result-label">Findings</div>
+                        <div className="detail-list">{sessionMeta.findings.length ? sessionMeta.findings.map((item: any) => <div key={item.hash} className="mini-note">{item.finding?.type || item.type} · {item.finding?.severity || item.tier}</div>) : <div className="muted">none</div>}</div>
+                      </div>
+                      <div className="result-panel">
+                        <div className="result-label">Actions</div>
+                        <div className="detail-list">{sessionMeta.actions.length ? sessionMeta.actions.map((item: any) => <div key={item.hash} className="mini-note">{ellipse(item.user || item.assistant || '', 120)}</div>) : <div className="muted">none</div>}</div>
+                      </div>
+                    </div>
+                    <div className="detail-list">
+                      {(sessionDetail.items || []).slice(-6).map((item: any) => (
+                        <div className={`stream-item tier-${item.tier}`} key={item.hash}>
+                          <div className="row space">
+                            <strong>{item.type}</strong>
+                            <span className="muted">#{item.turn} · {item.ts}</span>
+                          </div>
+                          <div style={{ marginTop: 8 }}><span className="muted">User:</span> {ellipse(item.user || '', 150)}</div>
+                          <div style={{ marginTop: 8 }}><span className="muted">Assistant:</span> {ellipse(item.assistant || '', 170)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div className="muted">Pick a recent session from dashboard.</div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {view === 'graph' && (
+            <div className="grid cols-2">
+              <div className="card graph-card">
+                <div className="row space">
+                  <div>
+                    <div className="card-title">Branch / connections</div>
+                    <div className="muted">session ↔ entity continuity map</div>
+                  </div>
+                  <div className="chips">
+                    <span className="chip">sessions {graph?.sessions_considered ?? 0}</span>
+                    <span className="chip">entities {graph?.entities_considered ?? 0}</span>
+                  </div>
+                </div>
+                <svg viewBox="0 0 840 500" className="graph-svg">
+                  {graph?.links?.map((link, idx) => {
+                    const a = positions[link.source]
+                    const b = positions[link.target]
+                    if (!a || !b) return null
+                    return <line key={idx} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`graph-link ${link.kind}`} strokeWidth={Math.min(6, 1 + link.weight)} />
+                  })}
+                  {graph?.nodes?.map((node) => {
+                    const p = positions[node.id]
+                    if (!p) return null
+                    const r = node.kind === 'session' ? 26 : 16 + Math.min(12, node.weight)
+                    return (
+                      <g key={node.id} transform={`translate(${p.x}, ${p.y})`}>
+                        <circle r={r} className={`graph-node ${node.kind}`} onClick={() => node.kind === 'session' && openSession(node.label)} />
+                        <text y={r + 18} textAnchor="middle" className="graph-label">{node.label}</text>
+                      </g>
+                    )
+                  })}
+                </svg>
+              </div>
+              <div className="card">
+                <div className="card-title">Connection notes</div>
+                <div className="detail-list">
+                  <div className="warning-box">
+                    <strong>How to read</strong>
+                    <div className="muted">large circles = denser nodes. inner ring = sessions. outer ring = recurring entities.</div>
+                  </div>
+                  <div className="result-panel">
+                    <div className="result-label">Top session nodes</div>
+                    <div className="detail-list">
+                      {(graph?.nodes || []).filter(n => n.kind === 'session').slice(0, 6).map((node: any) => (
+                        <div key={node.id} className="row space"><span>{node.label}</span><span className="muted">weight {node.weight}</span></div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="result-panel">
+                    <div className="result-label">Recurring entities</div>
+                    <div className="chips">{(graph?.nodes || []).filter(n => n.kind === 'entity').slice(0, 12).map((node: any) => <span className="chip" key={node.id}>{node.label}</span>)}</div>
+                  </div>
+                  <div className="muted">tip: click a session node to open its inspector.</div>
+                </div>
               </div>
             </div>
           )}

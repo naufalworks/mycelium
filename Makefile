@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 ROOT := $(CURDIR)
 
-.PHONY: test install-daemon deploy-daemon status-daemon test-daemon-e2e test-daemon-offline verify runtime-verify resume patterns web-backend web-frontend web-build web-test web web-stop web-restart web-status web-open web-logs install-cli
+.PHONY: test install-daemon deploy-daemon status-daemon test-daemon-e2e test-daemon-offline verify runtime-verify resume patterns web-backend web-frontend web-build web-test web web-stop web-restart web-status web-open web-install-service web-uninstall-service web-service-status web-logs install-cli
 
 install-daemon:
 	bash scripts/install-myceliumd.sh
@@ -59,6 +59,15 @@ web-status:
 
 web-open:
 	bash scripts/mycelium-web open
+
+web-install-service:
+	bash scripts/mycelium-web install-service
+
+web-uninstall-service:
+	bash scripts/mycelium-web uninstall-service
+
+web-service-status:
+	bash scripts/mycelium-web service-status
 
 web-logs:
 	bash scripts/mycelium-web logs

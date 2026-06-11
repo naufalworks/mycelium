@@ -5,16 +5,20 @@ ROOT="$HOME/Documents/mycelium"
 RUNTIME_DIR="$HOME/.hermes/myceliumd/web"
 PID_DIR="$RUNTIME_DIR/pids"
 LOG_DIR="$RUNTIME_DIR/logs"
+LAUNCHD_DIR="$HOME/Library/LaunchAgents"
+PLIST_NAME="com.naufalworks.mycelium-observatory.plist"
+PLIST_PATH="$LAUNCHD_DIR/$PLIST_NAME"
 BACKEND_PID="$PID_DIR/backend.pid"
 FRONTEND_PID="$PID_DIR/frontend.pid"
 BACKEND_LOG="$LOG_DIR/backend.log"
 FRONTEND_LOG="$LOG_DIR/frontend.log"
+SERVICE_LOG="$LOG_DIR/service.log"
 BACKEND_URL="http://127.0.0.1:8421/api/health"
-FRONTEND_URL="http://127.0.0.1:8420"
+FRONTEND_URL="http://127.0.0.1:8421"
 BACKEND_PORT=8421
 FRONTEND_PORT=8420
 
-mkdir -p "$PID_DIR" "$LOG_DIR"
+mkdir -p "$PID_DIR" "$LOG_DIR" "$LAUNCHD_DIR"
 
 say() {
   printf "%s\n" "$1"
@@ -32,7 +36,7 @@ ritual_start() {
 
 ritual_ready() {
   say "→ mycelium web ready"
-  say "→ frontend $FRONTEND_URL"
+  say "→ app      $FRONTEND_URL"
   say "→ backend  $BACKEND_URL"
 }
 
@@ -94,49 +98,20 @@ start_backend() {
   fi
 }
 
-start_frontend() {
+stop_backend() {
   local pid=""
-  pid=$(port_pid "$FRONTEND_PORT")
-  if [[ -n "$pid" ]]; then
-    echo "$pid" > "$FRONTEND_PID"
-    say "frontend already awake → pid $pid"
-    return 0
-  fi
-  if pid=$(read_pid "$FRONTEND_PID" 2>/dev/null) && is_running "$pid"; then
-    say "frontend already awake → pid $pid"
-    return 0
-  fi
-  cd "$ROOT/web/frontend"
-  nohup npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT" > "$FRONTEND_LOG" 2>&1 &
-  local spawned=$!
-  echo "$spawned" > "$FRONTEND_PID"
-  if wait_http "$FRONTEND_URL"; then
-    pid=$(port_pid "$FRONTEND_PORT")
-    [[ -n "$pid" ]] && echo "$pid" > "$FRONTEND_PID"
-    say "frontend up → pid ${pid:-$spawned}"
-  else
-    say "frontend failed → see $FRONTEND_LOG"
-    return 1
-  fi
-}
-
-stop_by_port() {
-  local name="$1"
-  local port="$2"
-  local file="$3"
-  local pid=""
-  pid=$(port_pid "$port")
+  pid=$(port_pid "$BACKEND_PORT")
   if [[ -n "$pid" ]]; then
     kill "$pid" 2>/dev/null || true
     sleep 0.5
     if is_running "$pid"; then
       kill -9 "$pid" 2>/dev/null || true
     fi
-    say "$name asleep → pid $pid"
+    say "backend asleep → pid $pid"
   else
-    say "$name already asleep"
+    say "backend already asleep"
   fi
-  rm -f "$file"
+  rm -f "$BACKEND_PID"
 }
 
 status_one() {
@@ -161,10 +136,68 @@ open_ui() {
 
 logs_ui() {
   say "backend log → $BACKEND_LOG"
-  tail -n 30 "$BACKEND_LOG" 2>/dev/null || true
+  tail -n 40 "$BACKEND_LOG" 2>/dev/null || true
   echo
-  say "frontend log → $FRONTEND_LOG"
-  tail -n 30 "$FRONTEND_LOG" 2>/dev/null || true
+  say "service log → $SERVICE_LOG"
+  tail -n 40 "$SERVICE_LOG" 2>/dev/null || true
+}
+
+write_plist() {
+  cat > "$PLIST_PATH" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.naufalworks.mycelium-observatory</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>cd "$ROOT" &amp;&amp; export PYTHONPATH="$ROOT" &amp;&amp; python3 -m uvicorn web.backend.app:app --host 127.0.0.1 --port $BACKEND_PORT</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>$ROOT</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>$SERVICE_LOG</string>
+  <key>StandardErrorPath</key>
+  <string>$SERVICE_LOG</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONPATH</key>
+    <string>$ROOT</string>
+  </dict>
+</dict>
+</plist>
+PLIST
+}
+
+install_service() {
+  write_plist
+  launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
+  launchctl load "$PLIST_PATH"
+  wait_http "$BACKEND_URL"
+  say "launchd installed → $PLIST_PATH"
+  say "service ready → $FRONTEND_URL"
+}
+
+uninstall_service() {
+  launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
+  rm -f "$PLIST_PATH"
+  say "launchd removed → $PLIST_PATH"
+}
+
+service_status() {
+  if [[ -f "$PLIST_PATH" ]]; then
+    say "launchd installed → $PLIST_PATH"
+  else
+    say "launchd not installed"
+  fi
+  status_one backend "$BACKEND_PID" "$BACKEND_URL" "$BACKEND_PORT"
 }
 
 case "${1:-start}" in
@@ -172,21 +205,11 @@ case "${1:-start}" in
     banner
     ritual_start
     start_backend
-    start_frontend
     ritual_ready
-    ;;
-  backend)
-    banner
-    start_backend
-    ;;
-  frontend)
-    banner
-    start_frontend
     ;;
   stop)
     banner
-    stop_by_port frontend "$FRONTEND_PORT" "$FRONTEND_PID"
-    stop_by_port backend "$BACKEND_PORT" "$BACKEND_PID"
+    stop_backend
     ;;
   restart)
     banner
@@ -196,7 +219,6 @@ case "${1:-start}" in
   status)
     banner
     status_one backend "$BACKEND_PID" "$BACKEND_URL" "$BACKEND_PORT"
-    status_one frontend "$FRONTEND_PID" "$FRONTEND_URL" "$FRONTEND_PORT"
     ;;
   open)
     banner
@@ -206,8 +228,20 @@ case "${1:-start}" in
     banner
     logs_ui
     ;;
+  install-service)
+    banner
+    install_service
+    ;;
+  uninstall-service)
+    banner
+    uninstall_service
+    ;;
+  service-status)
+    banner
+    service_status
+    ;;
   *)
-    echo "usage: $0 {start|backend|frontend|stop|restart|status|open|logs}"
+    echo "usage: $0 {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
     exit 1
     ;;
 esac

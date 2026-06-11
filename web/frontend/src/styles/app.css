@@ -313,6 +313,52 @@ button, input, select {
   color: var(--text-2);
   margin-bottom: 12px;
 }
+.session-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.mini-note {
+  border: 1px solid rgba(188, 205, 223, 0.08);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.022);
+  color: var(--text-2);
+}
+.graph-card {
+  overflow: hidden;
+}
+.graph-svg {
+  width: 100%;
+  height: 500px;
+  margin-top: 16px;
+}
+.graph-link {
+  stroke: rgba(188, 205, 223, 0.20);
+}
+.graph-link.session-entity {
+  stroke: rgba(104, 213, 200, 0.22);
+}
+.graph-link.entity-entity {
+  stroke: rgba(142, 197, 255, 0.18);
+}
+.graph-node {
+  cursor: pointer;
+  stroke: rgba(255,255,255,0.15);
+  stroke-width: 2;
+}
+.graph-node.session {
+  fill: rgba(104, 213, 200, 0.78);
+}
+.graph-node.entity {
+  fill: rgba(142, 197, 255, 0.70);
+}
+.graph-label {
+  fill: var(--text-2);
+  font-size: 12px;
+}
 .pre {
   white-space: pre-wrap;
   line-height: 1.5;
