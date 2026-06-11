@@ -44,6 +44,17 @@ Installable command
   - `mycelium web open`
   - `mycelium web stop`
   - `mycelium web install-service`
+  - `mycelium recall cloakbrowser`
+  - `mycelium reflex "continue cloakbrowser"`
+  - `mycelium recall cloakbrowser --json`
+
+Recall/reflex
+- API: `GET /api/recall?q=continue%20cloakbrowser`
+- CLI: `mycelium recall <query>`
+- Reflex: `mycelium reflex <user-message>`
+- Current ranking: aliases + lexical match + entity graph + recency
+- State extraction: goal, where left off, decisions, open questions, files touched, next steps, blockers
+- Designed for Hermes auto-recall first; other agents can call CLI/API later
 
 URLs
 - unified app: `http://127.0.0.1:8421`

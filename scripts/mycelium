@@ -3,19 +3,118 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+APP_URL="http://127.0.0.1:8421"
+
+usage() {
+  echo "usage: $0 web {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
+  echo "       $0 recall <query> [--json]"
+  echo "       $0 reflex <user-message> [--json]"
+}
+
+recall_cli() {
+  local mode="$1"
+  shift || true
+  local json=0
+  local parts=()
+  for arg in "$@"; do
+    if [[ "$arg" == "--json" ]]; then
+      json=1
+    else
+      parts+=("$arg")
+    fi
+  done
+  local query="${parts[*]}"
+  if [[ -z "$query" ]]; then
+    echo "query required"
+    exit 1
+  fi
+  python3 - "$APP_URL" "$query" "$json" "$mode" <<'PY'
+import json
+import sys
+import urllib.parse
+import urllib.request
+
+base, query, raw_json, mode = sys.argv[1], sys.argv[2], sys.argv[3] == "1", sys.argv[4]
+url = f"{base}/api/recall?q={urllib.parse.quote(query)}&limit=12"
+try:
+    with urllib.request.urlopen(url, timeout=8) as r:
+        data = json.load(r)
+except Exception as exc:
+    print(f"observatory not reachable → run: mycelium web start\nerror: {exc}")
+    raise SystemExit(1)
+
+if raw_json:
+    print(json.dumps(data, indent=2))
+    raise SystemExit(0)
+
+if not data.get("ok"):
+    print(data.get("message", "recall failed"))
+    raise SystemExit(1)
+
+state = data.get("state", {})
+print("[MYCELIUM_RECALL]")
+print(f"Query: {data.get('query')}")
+print(f"Intent: {data.get('intent')}")
+print(f"Confidence: {data.get('confidence')}")
+print()
+if state.get("goal"):
+    print("Goal:")
+    print(state["goal"])
+    print()
+if state.get("where_left_off"):
+    print("Where left off:")
+    print(state["where_left_off"])
+    print()
+for label, key in [
+    ("Decisions", "decisions"),
+    ("Open questions", "open_questions"),
+    ("Next steps", "next_steps"),
+    ("Blockers", "blockers"),
+]:
+    items = state.get(key) or []
+    if items:
+        print(f"{label}:")
+        for item in items[:5]:
+            print(f"- {item.get('text')}")
+        print()
+files = state.get("files_touched") or []
+if files:
+    print("Files:")
+    for f in files[:10]:
+        print(f"- {f}")
+    print()
+ents = data.get("related_entities") or []
+if ents:
+    print("Related entities:")
+    print(", ".join(e.get("name", "") for e in ents[:10]))
+    print()
+print("Sources:")
+for src in (data.get("source_sessions") or [])[:5]:
+    print(f"- {src.get('session')} turn={src.get('turn')} score={src.get('score')}")
+print("[/MYCELIUM_RECALL]")
+PY
+}
 
 case "${1:-}" in
   web)
     shift || true
     exec "$ROOT/scripts/mycelium-web" "${@:-start}"
     ;;
+  recall)
+    shift || true
+    recall_cli recall "$@"
+    ;;
+  reflex)
+    shift || true
+    recall_cli reflex "$@"
+    ;;
   "")
-    echo "usage: $0 web {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
+    usage
     exit 1
     ;;
   *)
     echo "unknown command: $1"
-    echo "usage: $0 web {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
+    usage
     exit 1
     ;;
 esac

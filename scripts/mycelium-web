@@ -245,8 +245,15 @@ case "${1:-start}" in
     ;;
   restart)
     banner
-    "$0" stop
-    "$0" start
+    if launchctl print "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1; then
+      say "launchd service detected → restarting service"
+      launchctl kickstart -k "gui/$(id -u)/$SERVICE_LABEL"
+      wait_http "$BACKEND_URL"
+      ritual_ready
+    else
+      "$0" stop
+      "$0" start
+    fi
     ;;
   status)
     banner

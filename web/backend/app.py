@@ -26,6 +26,7 @@ from .services.status_service import (
     get_status,
     get_stream,
 )
+from .services.recall_service import recall
 from .services.verify_service import run_verify
 
 app = FastAPI(title="Mycelium Web", version="0.3.0")
@@ -97,6 +98,11 @@ def api_connections(limit: int = 80):
 @app.get("/api/findings")
 def api_findings():
     return get_findings()
+
+
+@app.get("/api/recall")
+def api_recall(q: str, limit: int = 12):
+    return recall(q, limit=limit)
 
 
 @app.get("/api/backups")
