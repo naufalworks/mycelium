@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type View = 'dashboard' | 'stream' | 'graph' | 'vault' | 'findings'
 
@@ -35,7 +35,7 @@ function formatBytes(n: number) {
 
 function ellipse(text: string, n = 180) {
   if (!text) return ''
-  return text.length > n ? `${text.slice(0, n)}…` : text
+  return text.length > n ? `${text.slice(0, n)}\u2026` : text
 }
 
 async function post(path: string, body: any) {
@@ -107,7 +107,7 @@ function graphPositions(nodes: Array<any>) {
 }
 
 function shortLabel(text: string, max = 18) {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text
+  return text.length > max ? `${text.slice(0, max - 1)}\u2026` : text
 }
 
 export default function App() {
@@ -128,6 +128,15 @@ export default function App() {
   const [confirmAction, setConfirmAction] = useState<DangerousAction>(null)
   const [confirmText, setConfirmText] = useState('')
   const confirmInputRef = useRef<HTMLInputElement | null>(null)
+  // graph interactions
+  const [graphZoom, setGraphZoom] = useState(1)
+  const [graphPan, setGraphPan] = useState({ x: 0, y: 0 })
+  const [graphDragging, setGraphDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [graphFilter, setGraphFilter] = useState('')
+  const [hoveredNode, setHoveredNode] = useState<any>(null)
+  const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
+  const svgRef = useRef<SVGSVGElement | null>(null)
 
   const loadAll = async () => {
     const [s, st, d, b, g] = await Promise.all([
@@ -157,24 +166,35 @@ export default function App() {
     return () => clearTimeout(t)
   }, [query])
 
+  // confirm modal keyboard
   useEffect(() => {
     if (!confirmAction) return
+    const timer = window.setTimeout(() => confirmInputRef.current?.focus(), 20)
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setConfirmAction(null)
         setConfirmText('')
       }
-      if (event.key === 'Enter' && confirmReady && busy === null) {
-        void executeConfirmed()
-      }
     }
-    const timer = window.setTimeout(() => confirmInputRef.current?.focus(), 20)
     window.addEventListener('keydown', onKeyDown)
     return () => {
       window.clearTimeout(timer)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [confirmAction, busy])
+  }, [confirmAction])
+
+  // graph zoom via wheel
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg || view !== 'graph') return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? 0.9 : 1.1
+      setGraphZoom(z => Math.max(0.3, Math.min(6, z * delta)))
+    }
+    svg.addEventListener('wheel', onWheel, { passive: false })
+    return () => svg.removeEventListener('wheel', onWheel)
+  }, [view])
 
   const runVerify = async () => {
     const res = await fetch(`${API}/api/verify`, { method: 'POST' }).then(r => r.json())
@@ -239,6 +259,58 @@ export default function App() {
     closeConfirm()
   }
 
+  // graph drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    setDragStart({ x: e.clientX, y: e.clientY })
+    setGraphDragging(true)
+  }, [])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (graphDragging) {
+      const dx = e.clientX - dragStart.x
+      const dy = e.clientY - dragStart.y
+      setGraphPan(p => ({ x: p.x + dx, y: p.y + dy }))
+      setDragStart({ x: e.clientX, y: e.clientY })
+    }
+  }, [graphDragging, dragStart])
+
+  const handleMouseUp = useCallback(() => {
+    setGraphDragging(false)
+  }, [])
+
+  const handleNodeHover = useCallback((node: any, e: React.MouseEvent) => {
+    const rect = (e.currentTarget as SVGElement).closest('svg')?.getBoundingClientRect()
+    if (rect) {
+      setHoverPos({ x: e.clientX - rect.left + 20, y: e.clientY - rect.top - 10 })
+    }
+    setHoveredNode(node)
+  }, [])
+
+  const handleNodeLeave = useCallback(() => {
+    setHoveredNode(null)
+  }, [])
+
+  // filtered graph
+  const filteredNodes = useMemo(() => {
+    if (!graphFilter) return null
+    const f = graphFilter.toLowerCase()
+    return graph?.nodes?.filter(n => n.label?.toLowerCase().includes(f)) || []
+  }, [graph, graphFilter])
+
+  const graphGroup = useMemo(() => {
+    if (!graph?.links?.length || !graph?.nodes?.length) return null
+    const positions = graphPositions(graph.nodes)
+    const gx = graphPan.x
+    const gy = graphPan.y
+    const gz = graphZoom
+    const isFaded = (id: string) => {
+      if (!filteredNodes) return false
+      return !filteredNodes.some(n => n.id === id)
+    }
+    return { positions, gx, gy, gz, isFaded }
+  }, [graph, graphPan, graphZoom, filteredNodes])
+
   const hero = useMemo(() => {
     if (!status) return null
     return (
@@ -267,7 +339,6 @@ export default function App() {
 
   const resultSummary = summarizeResult(actionResult)
   const latestBackup = backups?.items?.[0]
-  const positions = useMemo(() => graphPositions(graph?.nodes || []), [graph])
   const sessionMeta = sessionSummary(sessionDetail)
 
   return (
@@ -310,7 +381,7 @@ export default function App() {
                           <strong>{s.session}</strong>
                           <button className="action-btn secondary" onClick={() => openSession(s.session)}>open</button>
                         </div>
-                        <div className="muted">{s.last_ts} · {s.last_type} · tier {s.last_tier}</div>
+                        <div className="muted">{s.last_ts} &middot; {s.last_type} &middot; tier {s.last_tier}</div>
                         <div className="chips">{(s.entities || []).map(ent => <span className="chip" key={ent}>{ent}</span>)}</div>
                       </div>
                     ))}
@@ -319,7 +390,7 @@ export default function App() {
                 <div className="card">
                   <div className="card-title">Integrity / daemon</div>
                   <div className="detail-list">
-                    <div><strong>Last turn:</strong> <span className="muted">{status?.last_turn?.session} · {status?.last_turn?.ts}</span></div>
+                    <div><strong>Last turn:</strong> <span className="muted">{status?.last_turn?.session} &middot; {status?.last_turn?.ts}</span></div>
                     <div><strong>Daemon state:</strong> <span className="muted mono">{status?.daemon_state_path.path}</span></div>
                     <div><strong>Health URL:</strong> <span className="muted mono">{daemon?.health_url}</span></div>
                     <div><strong>Imports:</strong> <span className="muted">{daemon?.state?.imports ?? 0}</span></div>
@@ -341,7 +412,7 @@ export default function App() {
                     <div className={`stream-item tier-${item.tier}`} key={`${item.turn}-${item.hash}`}>
                       <div className="row space">
                         <strong>{item.session}</strong>
-                        <span className="muted">#{item.turn} · {item.type} · {item.ts}</span>
+                        <span className="muted">#{item.turn} &middot; {item.type} &middot; {item.ts}</span>
                       </div>
                       <div style={{ marginTop: 10 }}><span className="muted">User:</span> {ellipse(item.user || '', 160)}</div>
                       <div style={{ marginTop: 8 }}><span className="muted">Assistant:</span> {ellipse(item.assistant || '', 180)}</div>
@@ -357,20 +428,20 @@ export default function App() {
                     <div className="session-hero">
                       <div>
                         <div className="metric" style={{ fontSize: 24 }}>{selectedSession}</div>
-                        <div className="metric-sub">{sessionDetail.total} turn(s) · {sessionDetail.first_ts} → {sessionDetail.last_ts}</div>
+                        <div className="metric-sub">{sessionDetail.total} turn(s) &middot; {sessionDetail.first_ts} &rarr; {sessionDetail.last_ts}</div>
                       </div>
                       <div className="chips">
-                        {Object.entries(sessionDetail.tiers || {}).map(([tier, count]) => <span className="chip" key={tier}>tier {tier} · {String(count)}</span>)}
+                        {Object.entries(sessionDetail.tiers || {}).map(([tier, count]) => <span className="chip" key={tier}>tier {tier} &middot; {String(count)}</span>)}
                       </div>
                     </div>
                     <div className="grid cols-2">
                       <div className="result-panel">
                         <div className="result-label">Top entities</div>
-                        <div className="chips">{(sessionDetail.entities || []).slice(0, 8).map((ent: any) => <span className="chip" key={ent.name}>{ent.name} · {ent.count}</span>)}</div>
+                        <div className="chips">{(sessionDetail.entities || []).slice(0, 8).map((ent: any) => <span className="chip" key={ent.name}>{ent.name} &middot; {ent.count}</span>)}</div>
                       </div>
                       <div className="result-panel">
                         <div className="result-label">Types</div>
-                        <div className="chips">{Object.entries(sessionDetail.types || {}).map(([kind, count]) => <span className="chip" key={kind}>{kind} · {String(count)}</span>)}</div>
+                        <div className="chips">{Object.entries(sessionDetail.types || {}).map(([kind, count]) => <span className="chip" key={kind}>{kind} &middot; {String(count)}</span>)}</div>
                       </div>
                     </div>
                     <div className="grid cols-3">
@@ -380,7 +451,7 @@ export default function App() {
                       </div>
                       <div className="result-panel">
                         <div className="result-label">Findings</div>
-                        <div className="detail-list">{sessionMeta.findings.length ? sessionMeta.findings.map((item: any) => <div key={item.hash} className="mini-note">{item.finding?.type || item.type} · {item.finding?.severity || item.tier}</div>) : <div className="muted">none</div>}</div>
+                        <div className="detail-list">{sessionMeta.findings.length ? sessionMeta.findings.map((item: any) => <div key={item.hash} className="mini-note">{item.finding?.type || item.type} &middot; {item.finding?.severity || item.tier}</div>) : <div className="muted">none</div>}</div>
                       </div>
                       <div className="result-panel">
                         <div className="result-label">Actions</div>
@@ -392,7 +463,7 @@ export default function App() {
                         <div className={`stream-item tier-${item.tier}`} key={item.hash}>
                           <div className="row space">
                             <strong>{item.type}</strong>
-                            <span className="muted">#{item.turn} · {item.ts}</span>
+                            <span className="muted">#{item.turn} &middot; {item.ts}</span>
                           </div>
                           <div style={{ marginTop: 8 }}><span className="muted">User:</span> {ellipse(item.user || '', 150)}</div>
                           <div style={{ marginTop: 8 }}><span className="muted">Assistant:</span> {ellipse(item.assistant || '', 170)}</div>
@@ -409,58 +480,95 @@ export default function App() {
 
           {view === 'graph' && (
             <div className="grid cols-2">
-              <div className="card graph-card">
+              <div className="card graph-card" style={{ position: 'relative' }}>
                 <div className="row space">
                   <div>
                     <div className="card-title">Branch / connections</div>
-                    <div className="muted">session ↔ entity continuity map</div>
+                    <div className="muted">session &harr; entity continuity map</div>
                   </div>
                   <div className="chips">
                     <span className="chip">sessions {graph?.sessions_considered ?? 0}</span>
                     <span className="chip">entities {graph?.entities_considered ?? 0}</span>
+                    <span className="chip">zoom {graphZoom.toFixed(1)}x</span>
                   </div>
                 </div>
-                <svg viewBox="0 0 840 500" className="graph-svg">
-                  {graph?.links?.map((link, idx) => {
-                    const a = positions[link.source]
-                    const b = positions[link.target]
-                    if (!a || !b) return null
-                    return <line key={idx} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`graph-link ${link.kind}`} strokeWidth={Math.min(5, 1 + link.weight * 0.7)} />
-                  })}
-                  {graph?.nodes?.map((node) => {
-                    const p = positions[node.id]
-                    if (!p) return null
-                    const r = node.kind === 'session' ? 24 : 14 + Math.min(10, node.weight)
-                    return (
-                      <g key={node.id} transform={`translate(${p.x}, ${p.y})`}>
-                        <title>{node.label}</title>
-                        <circle r={r} className={`graph-node ${node.kind}`} onClick={() => node.kind === 'session' && openSession(node.label)} />
-                        <text y={r + 18} textAnchor="middle" className="graph-label">{shortLabel(node.label)}</text>
-                      </g>
-                    )
-                  })}
+                <div className="row space">
+                  <input className="graph-filter-input" placeholder="Filter nodes&hellip;" value={graphFilter} onChange={e => setGraphFilter(e.target.value)} />
+                  <div className="graph-zoom-row">
+                    <button className="graph-zoom-btn" onClick={() => setGraphZoom(z => Math.max(0.3, z / 1.3))}>Zoom out</button>
+                    <button className="graph-zoom-btn" onClick={() => setGraphZoom(1)}>Reset</button>
+                    <button className="graph-zoom-btn" onClick={() => setGraphZoom(z => Math.min(6, z * 1.3))}>Zoom in</button>
+                  </div>
+                </div>
+                <svg ref={svgRef} viewBox="0 0 840 500" className="graph-svg"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
+                  {graphGroup && (
+                    <g transform={`translate(${graphGroup.gx}, ${graphGroup.gy}) scale(${graphGroup.gz})`}>
+                      {graph?.links?.map((link, idx) => {
+                        const a = graphGroup.positions[link.source]
+                        const b = graphGroup.positions[link.target]
+                        if (!a || !b) return null
+                        const isHighlighted = graphFilter && (graphGroup.isFaded(link.source) || graphGroup.isFaded(link.target))
+                        return <line key={idx} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                          className={`graph-link ${link.kind}${!isHighlighted ? ' highlight' : ''}`}
+                          strokeWidth={Math.min(5, 1 + link.weight * 0.7)} />
+                      })}
+                      {graph?.nodes?.map((node) => {
+                        const p = graphGroup.positions[node.id]
+                        if (!p) return null
+                        const r = node.kind === 'session' ? 24 : 14 + Math.min(10, node.weight)
+                        const faded = graphGroup.isFaded(node.id)
+                        return (
+                          <g key={node.id} transform={`translate(${p.x}, ${p.y})`}
+                            onMouseEnter={(e) => handleNodeHover(node, e)}
+                            onMouseMove={(e) => handleNodeHover(node, e)}
+                            onMouseLeave={handleNodeLeave}
+                          >
+                            <title>{node.label}</title>
+                            <circle r={r} className={`graph-node ${node.kind}${faded ? ' faded' : ''}`}
+                              onClick={() => node.kind === 'session' && openSession(node.label)} />
+                            <text y={r + 18} textAnchor="middle" className={`graph-label${faded ? '' : ''}`}
+                              style={{ opacity: faded ? 0.3 : 1 }}>{shortLabel(node.label)}</text>
+                          </g>
+                        )
+                      })}
+                    </g>
+                  )}
                 </svg>
+                {hoveredNode && (
+                  <div className="graph-tooltip" style={{ left: hoverPos.x, top: hoverPos.y }}>
+                    <div className="tooltip-head">{hoveredNode.label}</div>
+                    <div className="tooltip-detail">{hoveredNode.kind === 'session' ? 'session' : 'entity'} &middot; weight {hoveredNode.weight}</div>
+                    {hoveredNode.kind === 'session' && (
+                      <div className="tooltip-detail">Click to open inspector</div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="card">
                 <div className="card-title">Connection notes</div>
                 <div className="detail-list">
                   <div className="warning-box">
                     <strong>How to read</strong>
-                    <div className="muted">large circles = denser nodes. inner ring = sessions. outer ring = recurring entities.</div>
+                    <div className="muted">inner ring sessions, outer ring entities. larger circle = more connections. zoom/pan/drag to explore.</div>
                   </div>
                   <div className="result-panel">
                     <div className="result-label">Top session nodes</div>
                     <div className="detail-list">
-                      {(graph?.nodes || []).filter(n => n.kind === 'session').slice(0, 6).map((node: any) => (
+                      {(graph?.nodes || []).filter((n: any) => n.kind === 'session').slice(0, 6).map((node: any) => (
                         <div key={node.id} className="row space"><span>{node.label}</span><span className="muted">weight {node.weight}</span></div>
                       ))}
                     </div>
                   </div>
                   <div className="result-panel">
                     <div className="result-label">Recurring entities</div>
-                    <div className="chips">{(graph?.nodes || []).filter(n => n.kind === 'entity').slice(0, 12).map((node: any) => <span className="chip" key={node.id}>{node.label}</span>)}</div>
+                    <div className="chips">{(graph?.nodes || []).filter((n: any) => n.kind === 'entity').slice(0, 12).map((node: any) => <span className="chip" key={node.id}>{node.label}</span>)}</div>
                   </div>
-                  <div className="muted">tip: click a session node to open its inspector.</div>
+                  <div className="muted">tip: scroll to zoom, drag to pan, hover nodes for detail.</div>
                 </div>
               </div>
             </div>
@@ -478,8 +586,12 @@ export default function App() {
                     <div><strong>Why this matters</strong><div className="muted">same brain, separate web surface, runs alongside `myceliumd`</div></div>
                   </div>
                   <div className="row" style={{ marginTop: 18 }}>
-                    <button className="action-btn" onClick={createBackup}>Backup now</button>
-                    <button className="action-btn secondary" onClick={exportLatest}>Export latest</button>
+                    <button className="action-btn" disabled={busy !== null} onClick={createBackup}>
+                      {busy === 'create-backup' ? 'backing up...' : 'Backup now'}
+                    </button>
+                    <button className="action-btn secondary" disabled={busy !== null} onClick={exportLatest}>
+                      {busy === 'export-latest' ? 'exporting...' : 'Export latest'}
+                    </button>
                   </div>
                 </div>
                 <div className="card">
@@ -514,12 +626,16 @@ export default function App() {
                     </label>
                     <div className="warning-box">
                       <strong>Safe path</strong>
-                      <div className="muted">verify backup → dry-run import → restore only after review</div>
+                      <div className="muted">verify backup &rarr; dry-run import &rarr; restore only after review</div>
                     </div>
                   </div>
                   <div className="row" style={{ marginTop: 18 }}>
-                    <button className="action-btn secondary" disabled={busy !== null} onClick={() => runVaultAction('verify-backup', '/api/backups/verify', { path: selectedBackupPath })}>Verify backup</button>
-                    <button className="action-btn secondary" disabled={busy !== null} onClick={() => runVaultAction('import-dry', '/api/import/dry-run', { path: selectedBackupPath, target_root: targetRoot })}>Dry-run import</button>
+                    <button className="action-btn secondary" disabled={busy !== null} onClick={() => runVaultAction('verify-backup', '/api/backups/verify', { path: selectedBackupPath })}>
+                      {busy === 'verify-backup' ? 'verifying...' : 'Verify backup'}
+                    </button>
+                    <button className="action-btn secondary" disabled={busy !== null} onClick={() => runVaultAction('import-dry', '/api/import/dry-run', { path: selectedBackupPath, target_root: targetRoot })}>
+                      {busy === 'import-dry' ? 'dry-running...' : 'Dry-run import'}
+                    </button>
                     <button className="action-btn danger" disabled={busy !== null} onClick={() => askConfirm('restore')}>Restore now</button>
                   </div>
                 </div>
@@ -532,11 +648,13 @@ export default function App() {
                     </label>
                     <div className="warning-box">
                       <strong>Migration flow</strong>
-                      <div className="muted">safety snapshot first → copy runtime → relink source surface</div>
+                      <div className="muted">safety snapshot first &rarr; copy runtime &rarr; relink source surface</div>
                     </div>
                   </div>
                   <div className="row" style={{ marginTop: 18 }}>
-                    <button className="action-btn secondary" disabled={busy !== null} onClick={() => runVaultAction('migrate-dry', '/api/migrate/dry-run', { target_root: targetRoot })}>Dry-run migrate</button>
+                    <button className="action-btn secondary" disabled={busy !== null} onClick={() => runVaultAction('migrate-dry', '/api/migrate/dry-run', { target_root: targetRoot })}>
+                      {busy === 'migrate-dry' ? 'dry-running...' : 'Dry-run migrate'}
+                    </button>
                     <button className="action-btn danger" disabled={busy !== null} onClick={() => askConfirm('migrate')}>Migrate now</button>
                   </div>
                 </div>
@@ -545,7 +663,7 @@ export default function App() {
               <div className="card">
                 <div className="card-title">Vault action result</div>
                 {busy ? (
-                  <div className="muted">running {busy}…</div>
+                  <div className="muted">&rarr; running {busy}&hellip;</div>
                 ) : actionResult ? (
                   <div className="result-grid">
                     <div className={`result-banner ${actionResult.ok ? 'ok' : 'bad'}`}>
@@ -592,23 +710,38 @@ export default function App() {
 
       {confirmAction && (
         <div className="modal-backdrop" onClick={closeConfirm}>
-          <div className="modal-shell danger-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-            <div className="card-title">Confirmation required</div>
+          <div className="modal-shell" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <div className="card-title">Danger zone</div>
             <div id="confirm-title" className="confirm-head">{confirmAction === 'restore' ? 'Confirm restore' : 'Confirm migrate'}</div>
-            <div className="muted">{confirmAction === 'restore' ? 'This will overwrite target content with the selected backup.' : 'This will create a safety snapshot, copy runtime data, then rewrite runtime links.'}</div>
-            <div className="grid cols-2">
-              <div className="result-panel">
-                <div className="result-label">Selected backup</div>
-                <div className="mono muted">{selectedBackupPath || latestBackup?.path || 'none'}</div>
-              </div>
-              <div className="result-panel">
-                <div className="result-label">Target root</div>
-                <div className="mono muted">{targetRoot || 'none'}</div>
+            <div className="muted">{confirmAction === 'restore' ? 'This will overwrite target content with the selected backup. This operation cannot be undone.' : 'This will create a safety snapshot, copy runtime data, then rewrite runtime links. Proceed only after dry-run review.'}</div>
+            <div className="warning-box danger-card" style={{ border: '1px solid rgba(255, 138, 122, 0.22)' }}>
+              <strong style={{ color: 'var(--ember)' }}>&#9888; Review before continue</strong>
+              <div className="muted">
+                {confirmAction === 'restore'
+                  ? `Backup: ${selectedBackupPath || latestBackup?.path || 'none'}`
+                  : `Target: ${targetRoot || 'none'}`
+                }
               </div>
             </div>
+            <div className="grid cols-2">
+              <div className="result-panel">
+                <div className="result-label">Source</div>
+                <div className="mono muted">{confirmAction === 'restore' ? (selectedBackupPath || 'none') : status?.canonical_runtime.path}</div>
+              </div>
+              <div className="result-panel">
+                <div className="result-label">Target</div>
+                <div className="mono muted">{confirmAction === 'restore' ? (targetRoot || status?.canonical_runtime.path) : (targetRoot || 'none')}</div>
+              </div>
+            </div>
+            {actionResult && !actionResult.ok && (
+              <div className="result-banner bad">
+                <strong>Last action had issues</strong>
+                <span>{actionResult.message}</span>
+              </div>
+            )}
             <div className="warning-box">
-              <strong>Type to continue</strong>
-              <div className="muted">Type <span className="mono">{confirmLabel}</span>. Esc or click outside cancels.</div>
+              <strong>Type to confirm</strong>
+              <div className="muted">Type <span className="mono">{confirmLabel}</span> below. Esc or backdrop cancels.</div>
             </div>
             <input
               ref={confirmInputRef}
@@ -618,9 +751,9 @@ export default function App() {
               placeholder={`type ${confirmLabel}`}
             />
             <div className="row space">
-              <button className="action-btn secondary" onClick={closeConfirm}>Cancel</button>
+              <button className="action-btn secondary" disabled={busy !== null} onClick={closeConfirm}>Cancel</button>
               <button className="action-btn danger" disabled={!confirmReady || busy !== null} onClick={executeConfirmed}>
-                {confirmAction === 'restore' ? 'Confirm restore' : 'Confirm migrate'}
+                {busy && confirmReady ? 'executing...' : confirmAction === 'restore' ? 'Confirm restore' : 'Confirm migrate'}
               </button>
             </div>
           </div>
@@ -646,7 +779,7 @@ function FindingsView() {
             <div className={`stream-item tier-${item.tier}`} key={`${item.turn}-${item.hash}`}>
               <div className="row space">
                 <strong>{item.finding?.type || 'finding'}</strong>
-                <span className="muted">{item.finding?.severity} · {item.finding?.target}</span>
+                <span className="muted">{item.finding?.severity} &middot; {item.finding?.target}</span>
               </div>
               <div style={{ marginTop: 8 }}>{item.assistant}</div>
             </div>

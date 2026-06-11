@@ -42,7 +42,9 @@ ritual_ready() {
 pid_matches_backend() {
   local pid="$1"
   [[ -n "$pid" ]] || return 1
-  ps -p "$pid" -o command= 2>/dev/null | grep -q "web.backend.app:app"
+  local cmd
+  cmd=$(ps -p "$pid" -o command= 2>/dev/null || true)
+  echo "$cmd" | grep -qE "web\.backend\.app:app|mycelium-observatory-service" 2>/dev/null
 }
 
 ensure_frontend_dist() {
@@ -187,12 +189,8 @@ write_plist() {
   <string>com.naufalworks.mycelium-observatory</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/bin/bash</string>
-    <string>-lc</string>
-    <string>cd "$ROOT" &amp;&amp; export PYTHONPATH="$ROOT" &amp;&amp; python3 -m uvicorn web.backend.app:app --host 127.0.0.1 --port $BACKEND_PORT</string>
+    <string>$HOME/.local/bin/mycelium-observatory-service.py</string>
   </array>
-  <key>WorkingDirectory</key>
-  <string>$ROOT</string>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
@@ -201,11 +199,6 @@ write_plist() {
   <string>$SERVICE_LOG</string>
   <key>StandardErrorPath</key>
   <string>$SERVICE_LOG</string>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PYTHONPATH</key>
-    <string>$ROOT</string>
-  </dict>
 </dict>
 </plist>
 PLIST
@@ -213,6 +206,9 @@ PLIST
 
 install_service() {
   ensure_frontend_dist || return 1
+  mkdir -p "$HOME/.local/bin"
+  cp "$ROOT/scripts/mycelium-observatory-service.py" "$HOME/.local/bin/mycelium-observatory-service.py"
+  chmod +x "$HOME/.local/bin/mycelium-observatory-service.py"
   write_plist
   launchctl bootout "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
   launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
@@ -223,7 +219,7 @@ install_service() {
 
 uninstall_service() {
   launchctl bootout "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
-  rm -f "$PLIST_PATH"
+  rm -f "$PLIST_PATH" "$HOME/.local/bin/mycelium-observatory-service.py" "$HOME/.local/bin/mycelium-observatory-service.sh"
   say "launchd removed → $PLIST_PATH"
 }
 
