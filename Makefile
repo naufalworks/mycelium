@@ -10,7 +10,7 @@ deploy-daemon:
 	bash scripts/deploy-myceliumd.sh
 
 test:
-	pytest tests/test_myceliumd.py -q
+	pytest tests/ -q
 
 status-daemon:
 	bash scripts/status-myceliumd.sh

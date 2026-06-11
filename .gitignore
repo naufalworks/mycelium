@@ -12,6 +12,14 @@ archive
 # Branches (ephemeral exploration data)
 branches/
 
+# Evolution engine data (runtime, auto-generated)
+evolution/failures.jsonl
+evolution/patches.jsonl
+evolution/patches.tmp
+evolution/stats.db
+evolution/stats.db-shm
+evolution/stats.db-wal
+
 # Garden state (auto-generated, session-specific)
 garden/patterns.json
 garden/state.json

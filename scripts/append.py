@@ -7,11 +7,12 @@ Auto-extracts entities, classifies tier, computes hash chain.
 Rebuilds SQLite index.
 
 Usage:
-  append.py [--session NAME] [--type TYPE] [--finding JSON] "user text" "assistant text"
+  append.py [--session NAME] [--type TYPE] [--finding JSON] [--watch-user-msg] "user text" "assistant text"
 
 Types: talk (default), finding, decision, idea, dead-end, gardener
+--watch-user-msg: auto-scan user text for correction signals (evolution engine)
 """
-import argparse, hashlib, json, os, re, sqlite3, sys
+import argparse, hashlib, json, os, re, sqlite3, sys, subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -138,9 +139,36 @@ def main():
                     choices=["talk", "finding", "decision", "idea", "dead-end", "gardener"])
     ap.add_argument("--finding", "-f", help="JSON string for finding object")
     ap.add_argument("--no-index", action="store_true", help="Skip SQLite index rebuild (faster)")
+    ap.add_argument("--watch-user-msg", action="store_true",
+                    help="Auto-scan user text for correction signals (evolution engine)")
     ap.add_argument("user", help="User message (condensed)")
     ap.add_argument("assistant", help="Assistant response (condensed)")
     args = ap.parse_args()
+
+    # ── Evolution watch: auto-detect corrections ──
+    if args.watch_user_msg and args.user:
+        evo_script = MYCELIUM / "scripts" / "evolution.py"
+        if evo_script.exists():
+            try:
+                result = subprocess.run(
+                    [sys.executable, str(evo_script), "watch", args.user],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    watch_data = json.loads(result.stdout)
+                    if watch_data.get("detected"):
+                        for cat in watch_data.get("categories", []):
+                            subprocess.run(
+                                [sys.executable, str(evo_script), "log",
+                                 "--session", args.session,
+                                 "--category", cat,
+                                 "--user", args.user[:200],
+                                 "--correction", args.user[:200]],
+                                capture_output=True, timeout=5
+                            )
+                        print(f"🧬 Evolution: detected {len(watch_data['categories'])} correction signal(s)")
+            except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+                pass  # non-critical, don't block append
 
     last = _load_last()
     prev_hash = last["hash"] if last else ""
