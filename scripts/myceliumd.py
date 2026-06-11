@@ -15,7 +15,7 @@ State:
 - ~/.hermes/myceliumd/state.json — last imported assistant message id
 - ~/.hermes/myceliumd/myceliumd.log — daemon log
 """
-import argparse, json, os, sqlite3, sys, time, subprocess, threading
+import argparse, fcntl, json, os, sqlite3, sys, time, subprocess, threading
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -26,6 +26,7 @@ STATE_DB = HERMES / "state.db"
 DAEMON_DIR = HERMES / "myceliumd"
 DAEMON_STATE = DAEMON_DIR / "state.json"
 DAEMON_LOG = DAEMON_DIR / "myceliumd.log"
+DAEMON_LOCK = DAEMON_DIR / "myceliumd.lock"
 MYCELIUM = HOME / "Documents/mycelium"
 APPEND = MYCELIUM / "scripts/append.py"
 VERIFY = MYCELIUM / "scripts/mycelium.py"
@@ -40,6 +41,22 @@ def log(msg):
     print(line, flush=True)
     with open(DAEMON_LOG, "a") as f:
         f.write(line + "\n")
+
+
+def acquire_lock():
+    DAEMON_DIR.mkdir(parents=True, exist_ok=True)
+    lock_file = open(DAEMON_LOCK, "a+")
+    try:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        log("LOCK_HELD another myceliumd instance is running; exiting")
+        lock_file.close()
+        return None
+    lock_file.seek(0)
+    lock_file.truncate()
+    lock_file.write(f"pid={os.getpid()}\n")
+    lock_file.flush()
+    return lock_file
 
 
 def get_latest_assistant_id():
@@ -260,6 +277,10 @@ def main():
     ap.add_argument("--once", action="store_true", help="Run one poll/import cycle, then exit")
     ap.add_argument("--no-http", action="store_true", help="Do not start health HTTP server")
     args = ap.parse_args()
+
+    lock_file = acquire_lock()
+    if lock_file is None:
+        return 0
 
     ensure_ready()
     state = load_state()

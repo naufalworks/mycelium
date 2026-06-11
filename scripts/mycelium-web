@@ -79,6 +79,26 @@ port_pid() {
   lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | head -n 1 || true
 }
 
+sync_backend_pid_from_port() {
+  local pid=""
+  pid=$(port_pid "$BACKEND_PORT")
+  if [[ -n "$pid" ]] && pid_matches_backend "$pid"; then
+    echo "$pid" > "$BACKEND_PID"
+    printf "%s" "$pid"
+    return 0
+  fi
+  return 1
+}
+
+clear_stale_backend_pid() {
+  local pid=""
+  if pid=$(read_pid "$BACKEND_PID" 2>/dev/null); then
+    if ! is_running "$pid" || ! pid_matches_backend "$pid"; then
+      rm -f "$BACKEND_PID"
+    fi
+  fi
+}
+
 wait_http() {
   local url="$1"
   python3 - "$url" <<'PY'
@@ -98,13 +118,13 @@ PY
 start_backend() {
   local pid=""
   ensure_frontend_dist || return 1
+  clear_stale_backend_pid
+  if pid=$(sync_backend_pid_from_port); then
+    say "backend already awake → pid $pid"
+    return 0
+  fi
   pid=$(port_pid "$BACKEND_PORT")
   if [[ -n "$pid" ]]; then
-    if pid_matches_backend "$pid"; then
-      echo "$pid" > "$BACKEND_PID"
-      say "backend already awake → pid $pid"
-      return 0
-    fi
     fail_port_in_use "$pid"
     return 1
   fi
@@ -112,6 +132,7 @@ start_backend() {
     say "backend already awake → pid $pid"
     return 0
   fi
+  rm -f "$BACKEND_PID"
   cd "$ROOT"
   nohup env PYTHONPATH="$ROOT" python3 -m uvicorn web.backend.app:app --host 127.0.0.1 --port "$BACKEND_PORT" > "$BACKEND_LOG" 2>&1 &
   local spawned=$!
@@ -154,6 +175,7 @@ status_one() {
     say "$name running → pid $pid · $url"
     return 0
   fi
+  rm -f "$file"
   local listener=""
   listener=$(port_pid "$BACKEND_PORT")
   if [[ -n "$listener" ]] && pid_matches_backend "$listener"; then
@@ -249,6 +271,7 @@ case "${1:-start}" in
       say "launchd service detected → restarting service"
       launchctl kickstart -k "gui/$(id -u)/$SERVICE_LABEL"
       wait_http "$BACKEND_URL"
+      sync_backend_pid_from_port >/dev/null || true
       ritual_ready
     else
       "$0" stop

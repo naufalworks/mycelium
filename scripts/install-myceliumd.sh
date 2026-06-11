@@ -117,7 +117,7 @@ cat > "$PLIST_PATH" <<PLIST
   <true/>
 
   <key>StartInterval</key>
-  <integer>5</integer>
+  <integer>60</integer>
 
   <key>WorkingDirectory</key>
   <string>$RUNTIME_DIR</string>

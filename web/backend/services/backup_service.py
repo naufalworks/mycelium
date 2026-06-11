@@ -160,7 +160,20 @@ def create_snapshot() -> Dict[str, Any]:
 def list_backups() -> Dict[str, Any]:
     root = snapshot_dir()
     items = []
+    bundles = []
     for path in sorted(root.glob("mycelium-backup-*"), reverse=True):
+        created_at = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if path.is_file() and path.suffixes[-2:] == [".tar", ".gz"]:
+            bundles.append({
+                "name": path.name,
+                "path": str(path),
+                "created_at": created_at,
+                "total_bytes": path.stat().st_size,
+                "verified": None,
+            })
+            continue
+        if not path.is_dir():
+            continue
         manifest_path = path / "manifest.json"
         manifest = {}
         if manifest_path.exists():
@@ -171,12 +184,12 @@ def list_backups() -> Dict[str, Any]:
         items.append({
             "name": path.name,
             "path": str(path),
-            "created_at": manifest.get("created_at") or datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "created_at": manifest.get("created_at") or created_at,
             "total_bytes": manifest.get("total_bytes", 0),
             "verified": None,
             "manifest_path": str(manifest_path) if manifest_path.exists() else None,
         })
-    return {"backup_root": str(root), "items": items}
+    return {"backup_root": str(root), "items": items, "bundles": bundles}
 
 
 def verify_snapshot(path_str: str) -> Dict[str, Any]:

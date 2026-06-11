@@ -186,11 +186,19 @@ def rebuild_index(entries=None):
             conn.execute("INSERT INTO entities (turn, entity) VALUES (?, ?)", (turn, ent))
 
         # Findings
-        finding = e.get("finding")
-        if finding:
+        if typ == "finding":
+            finding = e.get("finding") or {}
+            detail = finding.get("detail") or finding.get("result")
+            if detail is not None and "detail" not in finding:
+                finding = {**finding, "detail": detail}
             conn.execute(
                 "INSERT OR REPLACE INTO findings (turn, target, ftype, severity) VALUES (?,?,?,?)",
-                (turn, finding.get("target", "?"), finding.get("type", "?"), finding.get("severity", "?"))
+                (
+                    turn,
+                    finding.get("target") or "unknown",
+                    finding.get("type") or "unknown",
+                    finding.get("severity") or "info",
+                )
             )
 
     conn.commit()

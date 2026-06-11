@@ -26,7 +26,7 @@ from .services.status_service import (
     get_status,
     get_stream,
 )
-from .services.recall_service import recall
+from .services.recall_service import list_thread_cards, recall, record_feedback
 from .services.verify_service import run_verify
 
 app = FastAPI(title="Mycelium Web", version="0.3.0")
@@ -103,6 +103,16 @@ def api_findings():
 @app.get("/api/recall")
 def api_recall(q: str, limit: int = 12):
     return recall(q, limit=limit)
+
+
+@app.post("/api/recall/feedback")
+def api_recall_feedback(payload: dict):
+    return record_feedback(payload.get("query", ""), payload.get("action", ""), payload.get("note", ""))
+
+
+@app.get("/api/threads")
+def api_threads():
+    return list_thread_cards()
 
 
 @app.get("/api/backups")

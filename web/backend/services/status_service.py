@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import urllib.request
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
@@ -15,6 +16,7 @@ INDEX_FALLBACK = SOURCE_ROOT / "index.db"
 ARCHIVE_FALLBACK = SOURCE_ROOT / "archive"
 BRANCHES_FALLBACK = SOURCE_ROOT / "branches"
 GARDEN_FALLBACK = SOURCE_ROOT / "garden"
+DAEMON_HEALTH_URL = "http://127.0.0.1:20151/health"
 
 
 def resolve_canonical_root() -> Path:
@@ -145,25 +147,37 @@ def get_status() -> Dict[str, Any]:
     }
 
 
+def probe_daemon_health(timeout: float = 0.4) -> bool:
+    with urllib.request.urlopen(DAEMON_HEALTH_URL, timeout=timeout) as response:
+        return 200 <= response.status < 300
+
+
 def get_daemon_state() -> Dict[str, Any]:
     state = {}
-    if STATE_PATH.exists():
+    state_exists = STATE_PATH.exists()
+    if state_exists:
         try:
             state = json.loads(STATE_PATH.read_text())
         except Exception:
             state = {}
-    running = False
-    last_assistant_id = int(state.get("last_assistant_id", 0) or 0)
-    imports = int(state.get("imports", 0) or 0)
-    if STATE_PATH.exists() and (last_assistant_id > 0 or imports >= 0):
-        running = True
+    try:
+        running = probe_daemon_health()
+    except Exception:
+        running = False
+    if running:
+        status_reason = "health_ok"
+    elif state_exists:
+        status_reason = "state_stale_health_unreachable"
+    else:
+        status_reason = "no_state"
     return {
         "ok": True,
         "running": running,
+        "status_reason": status_reason,
         "state": state,
         "state_path": str(STATE_PATH),
         "log_path": str(DAEMON_DIR / "myceliumd.log"),
-        "health_url": "http://127.0.0.1:20151/health",
+        "health_url": DAEMON_HEALTH_URL,
     }
 
 

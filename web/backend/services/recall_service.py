@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 from difflib import SequenceMatcher
 from typing import Any
 
@@ -27,6 +29,112 @@ ALIASES: dict[str, list[str]] = {
     "companion": ["companion", "desktop companion", "p5.js", "widget", "pywebview"],
     "page radar": ["page radar", "page-radar", "browser extension", "security audit", "page context"],
 }
+
+THREAD_ROOT = Path.home() / ".hermes" / "myceliumd" / "threads"
+FEEDBACK_LOG = THREAD_ROOT / "feedback.jsonl"
+
+
+def slugify(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", normalize(text)).strip("-")
+    return slug[:80] or "untitled"
+
+
+def thread_path_for(query: str) -> Path:
+    return THREAD_ROOT / f"{slugify(query)}.md"
+
+
+def read_feedback() -> dict[str, dict[str, int]]:
+    out: dict[str, dict[str, int]] = defaultdict(lambda: {"boost": 0, "split": 0})
+    if not FEEDBACK_LOG.exists():
+        return out
+    for line in FEEDBACK_LOG.read_text(encoding="utf-8").splitlines():
+        try:
+            row = json.loads(line)
+        except Exception:
+            continue
+        key = slugify(str(row.get("query") or row.get("thread") or ""))
+        action = str(row.get("action") or "")
+        if key and action in {"boost", "split"}:
+            out[key][action] += 1
+    return out
+
+
+def write_thread_card(query: str, result: dict[str, Any]) -> dict[str, Any]:
+    THREAD_ROOT.mkdir(parents=True, exist_ok=True)
+    path = thread_path_for(query)
+    state = result.get("state") or {}
+    sources = result.get("source_sessions") or []
+    items = result.get("items") or []
+    lines = [
+        f"# {query.strip()}",
+        "",
+        f"updated: {datetime.now(timezone.utc).isoformat()}",
+        f"intent: {result.get('intent')}",
+        f"confidence: {result.get('confidence')}",
+        f"thread: {slugify(query)}",
+        "",
+        "## Summary",
+        str(result.get("summary") or ""),
+        "",
+        "## Goal",
+        str(state.get("goal") or ""),
+        "",
+        "## Where left off",
+        str(state.get("where_left_off") or ""),
+        "",
+        "## Decisions",
+    ]
+    for item in state.get("decisions") or []:
+        lines.append(f"- {item.get('text','')} (session={item.get('session')} turn={item.get('turn')})")
+    lines += ["", "## Next steps"]
+    for item in state.get("next_steps") or []:
+        lines.append(f"- {item.get('text','')} (session={item.get('session')} turn={item.get('turn')})")
+    lines += ["", "## Open questions"]
+    for item in state.get("open_questions") or []:
+        lines.append(f"- {item.get('text','')} (session={item.get('session')} turn={item.get('turn')})")
+    lines += ["", "## Blockers"]
+    for item in state.get("blockers") or []:
+        lines.append(f"- {item.get('text','')} (session={item.get('session')} turn={item.get('turn')})")
+    lines += ["", "## Files touched"]
+    for file in state.get("files_touched") or []:
+        lines.append(f"- `{file}`")
+    lines += ["", "## Sources"]
+    for src in sources:
+        lines.append(f"- {src.get('session')} turn={src.get('turn')} score={src.get('score')} hash={src.get('hash')}")
+    lines += ["", "## Recent items"]
+    for item in items[:5]:
+        lines.append(f"- {item.get('session')}#{item.get('turn')}: {str(item.get('assistant') or item.get('user') or '')[:220]}")
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"path": str(path), "thread": slugify(query)}
+
+
+def record_feedback(query: str, action: str, note: str = "") -> dict[str, Any]:
+    action = normalize(action)
+    if action in {"yes", "yes thats it", "yes that's it", "correct", "good"}:
+        action = "boost"
+    if action in {"no", "wrong", "not it", "split"}:
+        action = "split"
+    if action not in {"boost", "split"}:
+        return {"ok": False, "message": "action must be boost or split"}
+    THREAD_ROOT.mkdir(parents=True, exist_ok=True)
+    row = {"ts": datetime.now(timezone.utc).isoformat(), "query": query, "thread": slugify(query), "action": action, "note": note}
+    with FEEDBACK_LOG.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    if action == "split":
+        split_path = THREAD_ROOT / f"{slugify(query)}-split-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.md"
+        split_path.write_text(f"# Split: {query}\n\ncreated: {row['ts']}\nnote: {note}\n", encoding="utf-8")
+        row["split_path"] = str(split_path)
+    return {"ok": True, **row}
+
+
+def list_thread_cards() -> dict[str, Any]:
+    THREAD_ROOT.mkdir(parents=True, exist_ok=True)
+    items = []
+    for path in sorted(THREAD_ROOT.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True):
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        title = text.splitlines()[0].lstrip("# ") if text.splitlines() else path.stem
+        items.append({"name": path.stem, "title": title, "path": str(path), "updated": datetime.fromtimestamp(path.stat().st_mtime).isoformat(), "preview": text[:500]})
+    return {"ok": True, "thread_root": str(THREAD_ROOT), "items": items}
 
 RECALL_INTENT_WORDS = {
     "continue",
@@ -147,12 +255,17 @@ def score_entries(query: str, entries: list[dict[str, Any]]) -> list[tuple[float
     min_ts = min(timestamps) if timestamps else 0
     max_ts = max(timestamps) if timestamps else 0
     span = max(max_ts - min_ts, 1)
+    feedback = read_feedback()
+    query_thread = slugify(query)
     scored = []
     for idx, entry in enumerate(entries):
         ts = parse_ts(entry)
         recency_rank = ((ts - min_ts) / span) if ts else (idx / max(len(entries) - 1, 1))
         score = score_entry(entry, expanded, query_tokens, recency_rank=recency_rank, intent=intent)
         if score > 0:
+            fb = feedback.get(query_thread, {})
+            score += float(fb.get("boost", 0)) * 3.0
+            score -= float(fb.get("split", 0)) * 2.0
             scored.append((score, entry))
     scored.sort(key=lambda x: x[0], reverse=True)
     return scored
@@ -294,7 +407,7 @@ def recall(query: str, limit: int = 12) -> dict[str, Any]:
     items = [entry for _, entry in top]
     state = extract_state(items)
     sources = [source_ref(entry, score) for score, entry in top[:8]]
-    return {
+    result = {
         "ok": True,
         "query": q,
         "intent": infer_intent(q),
@@ -314,3 +427,6 @@ def recall(query: str, limit: int = 12) -> dict[str, Any]:
             for score, entry in top
         ],
     }
+    if result["confidence"] > 0 and result["source_sessions"]:
+        result["thread_card"] = write_thread_card(q, result)
+    return result

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-type View = 'dashboard' | 'stream' | 'graph' | 'vault' | 'findings'
+type View = 'dashboard' | 'stream' | 'recall' | 'graph' | 'vault' | 'findings'
 
 type Status = {
   total_turns: number
@@ -19,10 +19,12 @@ type Status = {
 type StreamResponse = { total: number; items: Array<any> }
 type DaemonResponse = { running: boolean; state: Record<string, any>; health_url: string }
 type VerifyResponse = { ok: boolean; output: string; checked_at: string }
-type BackupList = { backup_root: string; items: Array<any> }
+type BackupList = { backup_root: string; items: Array<any>; bundles?: Array<any> }
 type ActionResult = { ok: boolean; message?: string; data?: any }
 type DangerousAction = 'restore' | 'migrate' | null
 type GraphData = { ok: boolean; nodes: Array<any>; links: Array<any>; sessions_considered: number; entities_considered: number }
+type RecallResponse = { ok?: boolean; query?: string; intent?: string; confidence?: number; summary?: string; state?: any; source_sessions?: Array<any>; related_entities?: Array<any>; items?: Array<any>; thread_card?: { path: string; thread: string } }
+type ThreadList = { ok: boolean; thread_root: string; items: Array<any> }
 
 const API = ''
 
@@ -119,6 +121,10 @@ export default function App() {
   const [verify, setVerify] = useState<VerifyResponse | null>(null)
   const [backups, setBackups] = useState<BackupList | null>(null)
   const [graph, setGraph] = useState<GraphData | null>(null)
+  const [recallQuery, setRecallQuery] = useState('')
+  const [recallResult, setRecallResult] = useState<RecallResponse | null>(null)
+  const [threads, setThreads] = useState<ThreadList | null>(null)
+  const [recallFeedback, setRecallFeedback] = useState<ActionResult | null>(null)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [sessionDetail, setSessionDetail] = useState<any>(null)
   const [selectedBackupPath, setSelectedBackupPath] = useState('')
@@ -233,6 +239,28 @@ export default function App() {
     setActionResult(res)
     setBusy(null)
     loadAll()
+  }
+
+  const runRecall = async (q = recallQuery) => {
+    const clean = q.trim()
+    if (!clean) return
+    setBusy('recall')
+    try {
+      const res = await fetch(`${API}/api/recall?q=${encodeURIComponent(clean)}&limit=12`).then(r => r.json())
+      setRecallResult(res)
+      const t = await fetch(`${API}/api/threads`).then(r => r.json())
+      setThreads(t)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const sendRecallFeedback = async (action: 'boost' | 'split') => {
+    const q = recallResult?.query || recallQuery
+    if (!q) return
+    const res = await post('/api/recall/feedback', { query: q, action })
+    setRecallFeedback(res)
+    await runRecall(q)
   }
 
   const askConfirm = (kind: DangerousAction) => {
@@ -350,7 +378,7 @@ export default function App() {
             <br />clean local continuity layer
           </div>
           <div className="nav-list">
-            {(['dashboard', 'stream', 'graph', 'vault', 'findings'] as View[]).map(v => (
+            {(['dashboard', 'stream', 'recall', 'graph', 'vault', 'findings'] as View[]).map(v => (
               <button key={v} className={`nav-btn ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>{v}</button>
             ))}
           </div>
@@ -474,6 +502,52 @@ export default function App() {
                 ) : (
                   <div className="muted">Pick a recent session from dashboard.</div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {view === 'recall' && (
+            <div className="grid cols-2">
+              <div className="card recall-card">
+                <div className="card-title">Recall panel</div>
+                <div className="muted">Ask: continue / remember / last context. Creates thread cards in ~/.hermes/myceliumd/threads/.</div>
+                <div className="row" style={{ marginTop: 16 }}>
+                  <input className="search" placeholder="continue mycelium recall" value={recallQuery} onChange={e => setRecallQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runRecall()} />
+                  <button className="action-btn" disabled={busy === 'recall'} onClick={() => runRecall()}>{busy === 'recall' ? 'recalling...' : 'Recall'}</button>
+                </div>
+                {recallResult?.ok && (
+                  <div className="recall-result">
+                    <div className="result-banner ok">
+                      <strong>{recallResult.intent} · confidence {recallResult.confidence}</strong>
+                      <span>{recallResult.summary}</span>
+                    </div>
+                    {recallResult.thread_card && <div className="chip mono">thread {recallResult.thread_card.path}</div>}
+                    <RecallState state={recallResult.state} />
+                    <div className="row">
+                      <button className="action-btn secondary" onClick={() => sendRecallFeedback('boost')}>yes that's it → boost</button>
+                      <button className="action-btn secondary" onClick={() => sendRecallFeedback('split')}>no → split</button>
+                    </div>
+                    {recallFeedback && <div className={`result-banner ${recallFeedback.ok ? 'ok' : 'bad'}`}><strong>feedback</strong><span>{recallFeedback.message || (recallFeedback.ok ? 'saved' : 'failed')}</span></div>}
+                    <div className="result-panel">
+                      <div className="result-label">Sources</div>
+                      <div className="detail-list">{(recallResult.source_sessions || []).slice(0, 6).map(src => <div key={`${src.session}-${src.turn}-${src.hash}`} className="mini-note"><strong>{src.session}</strong> turn {src.turn} · score {src.score}</div>)}</div>
+                    </div>
+                  </div>
+                )}
+                {recallResult && !recallResult.ok && <div className="result-banner bad"><strong>Recall failed</strong><span>{recallResult.summary || 'query required'}</span></div>}
+              </div>
+              <div className="card">
+                <div className="card-title">Thread cards</div>
+                <div className="muted mono">{threads?.thread_root || '~/.hermes/myceliumd/threads'}</div>
+                <div className="session-list" style={{ marginTop: 14 }}>
+                  {(threads?.items || []).map(item => (
+                    <div className="session-item" key={item.path}>
+                      <div className="row space"><strong>{item.title}</strong><span className="muted">{item.updated}</span></div>
+                      <div className="mono muted">{item.path}</div>
+                      <div style={{ marginTop: 8 }}>{ellipse(item.preview || '', 220)}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -760,6 +834,32 @@ export default function App() {
         </div>
       )}
     </>
+  )
+}
+
+function RecallState({ state }: { state: any }) {
+  if (!state) return null
+  const sections = [
+    ['Goal', state.goal ? [{ text: state.goal }] : []],
+    ['Where left off', state.where_left_off ? [{ text: state.where_left_off }] : []],
+    ['Decisions', state.decisions || []],
+    ['Next steps', state.next_steps || []],
+    ['Open questions', state.open_questions || []],
+    ['Blockers', state.blockers || []],
+  ] as Array<[string, Array<any>]>
+  return (
+    <div className="grid cols-2">
+      {sections.map(([label, items]) => (
+        <div className="result-panel" key={label}>
+          <div className="result-label">{label}</div>
+          <div className="detail-list">{items.length ? items.slice(0, 5).map((item, idx) => <div className="mini-note" key={idx}>{ellipse(item.text || '', 220)}</div>) : <div className="muted">none</div>}</div>
+        </div>
+      ))}
+      <div className="result-panel">
+        <div className="result-label">Files touched</div>
+        <div className="detail-list">{(state.files_touched || []).length ? state.files_touched.slice(0, 10).map((file: string) => <div className="mini-note mono" key={file}>{file}</div>) : <div className="muted">none</div>}</div>
+      </div>
+    </div>
   )
 }
 

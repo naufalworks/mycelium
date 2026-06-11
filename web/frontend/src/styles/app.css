@@ -442,6 +442,14 @@ button, input, select {
   border-color: rgba(142, 197, 255, 0.26);
   box-shadow: 0 0 0 3px rgba(142, 197, 255, 0.07);
 }
+.recall-card {
+  min-height: 520px;
+}
+.recall-result {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
 .pre {
   white-space: pre-wrap;
   line-height: 1.5;

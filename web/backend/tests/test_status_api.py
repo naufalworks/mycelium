@@ -43,6 +43,24 @@ def test_recall_api():
     assert data["query"] == "mycelium"
 
 
+def test_daemon_not_running_when_state_exists_but_health_unreachable(tmp_path, monkeypatch):
+    state_path = tmp_path / "state.json"
+    state_path.write_text('{"last_assistant_id": 7, "imports": 1}')
+
+    monkeypatch.setattr(status_module, "STATE_PATH", state_path)
+
+    def fail_health(*args, **kwargs):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(status_module, "probe_daemon_health", fail_health)
+
+    res = client.get("/api/daemon")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["running"] is False
+    assert body["status_reason"] == "state_stale_health_unreachable"
+
+
 def test_frontend_fallback_route():
     res = client.get('/')
     assert res.status_code == 200
