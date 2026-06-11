@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$HOME/Documents/mycelium"
+RUNTIME_DIR="$HOME/.hermes/myceliumd/web"
+PID_DIR="$RUNTIME_DIR/pids"
+LOG_DIR="$RUNTIME_DIR/logs"
+BACKEND_PID="$PID_DIR/backend.pid"
+FRONTEND_PID="$PID_DIR/frontend.pid"
+BACKEND_LOG="$LOG_DIR/backend.log"
+FRONTEND_LOG="$LOG_DIR/frontend.log"
+BACKEND_URL="http://127.0.0.1:8421/api/health"
+FRONTEND_URL="http://127.0.0.1:8420"
+BACKEND_PORT=8421
+FRONTEND_PORT=8420
+
+mkdir -p "$PID_DIR" "$LOG_DIR"
+
+say() {
+  printf "%s\n" "$1"
+}
+
+banner() {
+  say "mycelium observatory"
+}
+
+ritual_start() {
+  say "→ spinning the observatory"
+  say "→ binding the vault"
+  say "→ opening the canopy"
+}
+
+ritual_ready() {
+  say "→ mycelium web ready"
+  say "→ frontend $FRONTEND_URL"
+  say "→ backend  $BACKEND_URL"
+}
+
+is_running() {
+  local pid="$1"
+  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
+}
+
+read_pid() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
+  tr -d '[:space:]' < "$file"
+}
+
+port_pid() {
+  local port="$1"
+  lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | head -n 1 || true
+}
+
+wait_http() {
+  local url="$1"
+  python3 - "$url" <<'PY'
+import sys, time, urllib.request
+url = sys.argv[1]
+for _ in range(80):
+    try:
+        with urllib.request.urlopen(url, timeout=1) as r:
+            if 200 <= r.status < 500:
+                raise SystemExit(0)
+    except Exception:
+        time.sleep(0.25)
+raise SystemExit(1)
+PY
+}
+
+start_backend() {
+  local pid=""
+  pid=$(port_pid "$BACKEND_PORT")
+  if [[ -n "$pid" ]]; then
+    echo "$pid" > "$BACKEND_PID"
+    say "backend already awake → pid $pid"
+    return 0
+  fi
+  if pid=$(read_pid "$BACKEND_PID" 2>/dev/null) && is_running "$pid"; then
+    say "backend already awake → pid $pid"
+    return 0
+  fi
+  cd "$ROOT"
+  nohup env PYTHONPATH="$ROOT" python3 -m uvicorn web.backend.app:app --host 127.0.0.1 --port "$BACKEND_PORT" > "$BACKEND_LOG" 2>&1 &
+  local spawned=$!
+  echo "$spawned" > "$BACKEND_PID"
+  if wait_http "$BACKEND_URL"; then
+    pid=$(port_pid "$BACKEND_PORT")
+    [[ -n "$pid" ]] && echo "$pid" > "$BACKEND_PID"
+    say "backend up → pid ${pid:-$spawned}"
+  else
+    say "backend failed → see $BACKEND_LOG"
+    return 1
+  fi
+}
+
+start_frontend() {
+  local pid=""
+  pid=$(port_pid "$FRONTEND_PORT")
+  if [[ -n "$pid" ]]; then
+    echo "$pid" > "$FRONTEND_PID"
+    say "frontend already awake → pid $pid"
+    return 0
+  fi
+  if pid=$(read_pid "$FRONTEND_PID" 2>/dev/null) && is_running "$pid"; then
+    say "frontend already awake → pid $pid"
+    return 0
+  fi
+  cd "$ROOT/web/frontend"
+  nohup npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT" > "$FRONTEND_LOG" 2>&1 &
+  local spawned=$!
+  echo "$spawned" > "$FRONTEND_PID"
+  if wait_http "$FRONTEND_URL"; then
+    pid=$(port_pid "$FRONTEND_PORT")
+    [[ -n "$pid" ]] && echo "$pid" > "$FRONTEND_PID"
+    say "frontend up → pid ${pid:-$spawned}"
+  else
+    say "frontend failed → see $FRONTEND_LOG"
+    return 1
+  fi
+}
+
+stop_by_port() {
+  local name="$1"
+  local port="$2"
+  local file="$3"
+  local pid=""
+  pid=$(port_pid "$port")
+  if [[ -n "$pid" ]]; then
+    kill "$pid" 2>/dev/null || true
+    sleep 0.5
+    if is_running "$pid"; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+    say "$name asleep → pid $pid"
+  else
+    say "$name already asleep"
+  fi
+  rm -f "$file"
+}
+
+status_one() {
+  local name="$1"
+  local file="$2"
+  local url="$3"
+  local port="$4"
+  local pid=""
+  pid=$(port_pid "$port")
+  if [[ -n "$pid" ]]; then
+    echo "$pid" > "$file"
+    say "$name running → pid $pid · $url"
+  else
+    say "$name down"
+  fi
+}
+
+open_ui() {
+  say "→ opening observatory"
+  open "$FRONTEND_URL"
+}
+
+logs_ui() {
+  say "backend log → $BACKEND_LOG"
+  tail -n 30 "$BACKEND_LOG" 2>/dev/null || true
+  echo
+  say "frontend log → $FRONTEND_LOG"
+  tail -n 30 "$FRONTEND_LOG" 2>/dev/null || true
+}
+
+case "${1:-start}" in
+  start)
+    banner
+    ritual_start
+    start_backend
+    start_frontend
+    ritual_ready
+    ;;
+  backend)
+    banner
+    start_backend
+    ;;
+  frontend)
+    banner
+    start_frontend
+    ;;
+  stop)
+    banner
+    stop_by_port frontend "$FRONTEND_PORT" "$FRONTEND_PID"
+    stop_by_port backend "$BACKEND_PORT" "$BACKEND_PID"
+    ;;
+  restart)
+    banner
+    "$0" stop
+    "$0" start
+    ;;
+  status)
+    banner
+    status_one backend "$BACKEND_PID" "$BACKEND_URL" "$BACKEND_PORT"
+    status_one frontend "$FRONTEND_PID" "$FRONTEND_URL" "$FRONTEND_PORT"
+    ;;
+  open)
+    banner
+    open_ui
+    ;;
+  logs)
+    banner
+    logs_ui
+    ;;
+  *)
+    echo "usage: $0 {start|backend|frontend|stop|restart|status|open|logs}"
+    exit 1
+    ;;
+esac

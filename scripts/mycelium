@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$HOME/Documents/mycelium"
+
+case "${1:-}" in
+  web)
+    shift || true
+    exec "$ROOT/scripts/mycelium-web" "${@:-start}"
+    ;;
+  "")
+    echo "usage: $0 web {start|backend|frontend|stop|restart|status|open|logs}"
+    exit 1
+    ;;
+  *)
+    echo "unknown command: $1"
+    echo "usage: $0 web {start|backend|frontend|stop|restart|status|open|logs}"
+    exit 1
+    ;;
+esac
