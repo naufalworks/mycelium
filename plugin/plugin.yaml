@@ -1,0 +1,6 @@
+name: mycelium
+version: 1.0.0
+description: "Mandatory mycelium pre-flight check + evolution patch loading. Runs automatically on every session start — no agent memory required."
+author: "naufalworks"
+hooks:
+  - on_session_start
