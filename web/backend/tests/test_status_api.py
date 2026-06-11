@@ -26,13 +26,21 @@ def test_status_shape():
     assert 'canonical_runtime' in body
 
 
-def test_connections_api():
-    res = client.get('/api/connections')
+def test_connections():
+    res = client.get("/api/connections")
     assert res.status_code == 200
-    body = res.json()
-    assert body['ok'] is True
-    assert 'nodes' in body
-    assert 'links' in body
+    data = res.json()
+    assert data["ok"] is True
+    assert "nodes" in data
+    assert "links" in data
+
+
+def test_recall_api():
+    res = client.get("/api/recall", params={"q": "mycelium", "limit": 5})
+    assert res.status_code == 200
+    data = res.json()
+    assert "ok" in data
+    assert data["query"] == "mycelium"
 
 
 def test_frontend_fallback_route():
