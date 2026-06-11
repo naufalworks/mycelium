@@ -49,6 +49,7 @@ URLs
 - unified app: `http://127.0.0.1:8421`
 - backend health: `http://127.0.0.1:8421/api/health`
 - dev frontend only: `http://127.0.0.1:8420`
+- ports stay fixed; if `8421` is occupied by another process, launcher refuses to start instead of silently picking a new port
 
 Launcher runtime files
 - pid/log root: `~/.hermes/myceliumd/web`

@@ -106,6 +106,10 @@ function graphPositions(nodes: Array<any>) {
   return positions
 }
 
+function shortLabel(text: string, max = 18) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text
+}
+
 export default function App() {
   const [view, setView] = useState<View>('dashboard')
   const [query, setQuery] = useState('')
@@ -421,16 +425,17 @@ export default function App() {
                     const a = positions[link.source]
                     const b = positions[link.target]
                     if (!a || !b) return null
-                    return <line key={idx} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`graph-link ${link.kind}`} strokeWidth={Math.min(6, 1 + link.weight)} />
+                    return <line key={idx} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`graph-link ${link.kind}`} strokeWidth={Math.min(5, 1 + link.weight * 0.7)} />
                   })}
                   {graph?.nodes?.map((node) => {
                     const p = positions[node.id]
                     if (!p) return null
-                    const r = node.kind === 'session' ? 26 : 16 + Math.min(12, node.weight)
+                    const r = node.kind === 'session' ? 24 : 14 + Math.min(10, node.weight)
                     return (
                       <g key={node.id} transform={`translate(${p.x}, ${p.y})`}>
+                        <title>{node.label}</title>
                         <circle r={r} className={`graph-node ${node.kind}`} onClick={() => node.kind === 'session' && openSession(node.label)} />
-                        <text y={r + 18} textAnchor="middle" className="graph-label">{node.label}</text>
+                        <text y={r + 18} textAnchor="middle" className="graph-label">{shortLabel(node.label)}</text>
                       </g>
                     )
                   })}

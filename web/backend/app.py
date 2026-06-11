@@ -31,8 +31,13 @@ from .services.verify_service import run_verify
 app = FastAPI(title="Mycelium Web", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "http://127.0.0.1:8420",
+        "http://localhost:8420",
+        "http://127.0.0.1:8421",
+        "http://localhost:8421",
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

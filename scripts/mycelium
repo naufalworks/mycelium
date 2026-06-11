@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$HOME/Documents/mycelium"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 case "${1:-}" in
   web)
@@ -9,12 +10,12 @@ case "${1:-}" in
     exec "$ROOT/scripts/mycelium-web" "${@:-start}"
     ;;
   "")
-    echo "usage: $0 web {start|backend|frontend|stop|restart|status|open|logs}"
+    echo "usage: $0 web {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
     exit 1
     ;;
   *)
     echo "unknown command: $1"
-    echo "usage: $0 web {start|backend|frontend|stop|restart|status|open|logs}"
+    echo "usage: $0 web {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
     exit 1
     ;;
 esac

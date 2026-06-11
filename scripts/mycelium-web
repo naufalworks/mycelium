@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$HOME/Documents/mycelium"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUNTIME_DIR="$HOME/.hermes/myceliumd/web"
 PID_DIR="$RUNTIME_DIR/pids"
 LOG_DIR="$RUNTIME_DIR/logs"
 LAUNCHD_DIR="$HOME/Library/LaunchAgents"
 PLIST_NAME="com.naufalworks.mycelium-observatory.plist"
 PLIST_PATH="$LAUNCHD_DIR/$PLIST_NAME"
+SERVICE_LABEL="com.naufalworks.mycelium-observatory"
 BACKEND_PID="$PID_DIR/backend.pid"
-FRONTEND_PID="$PID_DIR/frontend.pid"
 BACKEND_LOG="$LOG_DIR/backend.log"
-FRONTEND_LOG="$LOG_DIR/frontend.log"
 SERVICE_LOG="$LOG_DIR/service.log"
 BACKEND_URL="http://127.0.0.1:8421/api/health"
-FRONTEND_URL="http://127.0.0.1:8421"
+APP_URL="http://127.0.0.1:8421"
 BACKEND_PORT=8421
-FRONTEND_PORT=8420
 
 mkdir -p "$PID_DIR" "$LOG_DIR" "$LAUNCHD_DIR"
 
@@ -36,8 +35,30 @@ ritual_start() {
 
 ritual_ready() {
   say "→ mycelium web ready"
-  say "→ app      $FRONTEND_URL"
+  say "→ app      $APP_URL"
   say "→ backend  $BACKEND_URL"
+}
+
+pid_matches_backend() {
+  local pid="$1"
+  [[ -n "$pid" ]] || return 1
+  ps -p "$pid" -o command= 2>/dev/null | grep -q "web.backend.app:app"
+}
+
+ensure_frontend_dist() {
+  local index="$ROOT/web/frontend/dist/index.html"
+  if [[ -f "$index" ]]; then
+    return 0
+  fi
+  say "frontend build missing → run make web-build"
+  return 1
+}
+
+fail_port_in_use() {
+  local pid="$1"
+  say "port $BACKEND_PORT busy → pid $pid"
+  say "not mycelium → refusing to reuse or switch port"
+  return 1
 }
 
 is_running() {
@@ -74,13 +95,18 @@ PY
 
 start_backend() {
   local pid=""
+  ensure_frontend_dist || return 1
   pid=$(port_pid "$BACKEND_PORT")
   if [[ -n "$pid" ]]; then
-    echo "$pid" > "$BACKEND_PID"
-    say "backend already awake → pid $pid"
-    return 0
+    if pid_matches_backend "$pid"; then
+      echo "$pid" > "$BACKEND_PID"
+      say "backend already awake → pid $pid"
+      return 0
+    fi
+    fail_port_in_use "$pid"
+    return 1
   fi
-  if pid=$(read_pid "$BACKEND_PID" 2>/dev/null) && is_running "$pid"; then
+  if pid=$(read_pid "$BACKEND_PID" 2>/dev/null) && is_running "$pid" && pid_matches_backend "$pid"; then
     say "backend already awake → pid $pid"
     return 0
   fi
@@ -88,10 +114,8 @@ start_backend() {
   nohup env PYTHONPATH="$ROOT" python3 -m uvicorn web.backend.app:app --host 127.0.0.1 --port "$BACKEND_PORT" > "$BACKEND_LOG" 2>&1 &
   local spawned=$!
   echo "$spawned" > "$BACKEND_PID"
-  if wait_http "$BACKEND_URL"; then
-    pid=$(port_pid "$BACKEND_PORT")
-    [[ -n "$pid" ]] && echo "$pid" > "$BACKEND_PID"
-    say "backend up → pid ${pid:-$spawned}"
+  if wait_http "$BACKEND_URL" && pid_matches_backend "$spawned"; then
+    say "backend up → pid $spawned"
   else
     say "backend failed → see $BACKEND_LOG"
     return 1
@@ -100,8 +124,7 @@ start_backend() {
 
 stop_backend() {
   local pid=""
-  pid=$(port_pid "$BACKEND_PORT")
-  if [[ -n "$pid" ]]; then
+  if pid=$(read_pid "$BACKEND_PID" 2>/dev/null) && is_running "$pid" && pid_matches_backend "$pid"; then
     kill "$pid" 2>/dev/null || true
     sleep 0.5
     if is_running "$pid"; then
@@ -109,7 +132,13 @@ stop_backend() {
     fi
     say "backend asleep → pid $pid"
   else
-    say "backend already asleep"
+    local listener=""
+    listener=$(port_pid "$BACKEND_PORT")
+    if [[ -n "$listener" ]] && ! pid_matches_backend "$listener"; then
+      say "port $BACKEND_PORT occupied by non-mycelium pid $listener → refusing to kill"
+    else
+      say "backend already asleep"
+    fi
   fi
   rm -f "$BACKEND_PID"
 }
@@ -118,12 +147,18 @@ status_one() {
   local name="$1"
   local file="$2"
   local url="$3"
-  local port="$4"
   local pid=""
-  pid=$(port_pid "$port")
-  if [[ -n "$pid" ]]; then
-    echo "$pid" > "$file"
+  if pid=$(read_pid "$file" 2>/dev/null) && is_running "$pid" && pid_matches_backend "$pid"; then
     say "$name running → pid $pid · $url"
+    return 0
+  fi
+  local listener=""
+  listener=$(port_pid "$BACKEND_PORT")
+  if [[ -n "$listener" ]] && pid_matches_backend "$listener"; then
+    echo "$listener" > "$file"
+    say "$name running → pid $listener · $url"
+  elif [[ -n "$listener" ]]; then
+    say "$name blocked → port $BACKEND_PORT held by pid $listener"
   else
     say "$name down"
   fi
@@ -131,7 +166,7 @@ status_one() {
 
 open_ui() {
   say "→ opening observatory"
-  open "$FRONTEND_URL"
+  open "$APP_URL"
 }
 
 logs_ui() {
@@ -177,27 +212,28 @@ PLIST
 }
 
 install_service() {
+  ensure_frontend_dist || return 1
   write_plist
-  launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
-  launchctl load "$PLIST_PATH"
+  launchctl bootout "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
+  launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
   wait_http "$BACKEND_URL"
   say "launchd installed → $PLIST_PATH"
-  say "service ready → $FRONTEND_URL"
+  say "service ready → $APP_URL"
 }
 
 uninstall_service() {
-  launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
+  launchctl bootout "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
   rm -f "$PLIST_PATH"
   say "launchd removed → $PLIST_PATH"
 }
 
 service_status() {
-  if [[ -f "$PLIST_PATH" ]]; then
+  if launchctl print "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1; then
     say "launchd installed → $PLIST_PATH"
   else
     say "launchd not installed"
   fi
-  status_one backend "$BACKEND_PID" "$BACKEND_URL" "$BACKEND_PORT"
+  status_one backend "$BACKEND_PID" "$BACKEND_URL"
 }
 
 case "${1:-start}" in
@@ -218,7 +254,7 @@ case "${1:-start}" in
     ;;
   status)
     banner
-    status_one backend "$BACKEND_PID" "$BACKEND_URL" "$BACKEND_PORT"
+    status_one backend "$BACKEND_PID" "$BACKEND_URL"
     ;;
   open)
     banner

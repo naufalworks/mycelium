@@ -51,12 +51,51 @@ def migration_backup_dir() -> Path:
     return MIGRATION_BACKUP_ROOT
 
 
+def _is_within(root: Path, target: Path) -> bool:
+    try:
+        target.resolve().relative_to(root.resolve())
+        return True
+    except Exception:
+        return False
+
+
+def _validate_archive_members(tf: tarfile.TarFile) -> None:
+    for member in tf.getmembers():
+        member_path = Path(member.name)
+        if member_path.is_absolute() or ".." in member_path.parts:
+            raise ValueError(f"unsafe archive member: {member.name}")
+        if member.issym() or member.islnk():
+            raise ValueError(f"unsupported archive link member: {member.name}")
+
+
+def validate_target_root(target_root: str | None, *, allow_runtime_root: bool = False) -> Path:
+    target = Path(target_root).expanduser() if target_root else resolve_canonical_root()
+    if not target.is_absolute():
+        raise ValueError("target_root must be an absolute path")
+    canonical_runtime = resolve_canonical_root().resolve()
+    source_root = SOURCE_ROOT.resolve()
+    resolved_target = target.resolve(strict=False)
+    if resolved_target == source_root:
+        raise ValueError("target_root cannot equal source root")
+    if not allow_runtime_root and resolved_target == canonical_runtime:
+        raise ValueError("target_root cannot equal canonical runtime root")
+    if allow_runtime_root and resolved_target == canonical_runtime:
+        return target
+    for protected in INCLUDED_NAMES:
+        protected_source = source_root / protected
+        protected_runtime = canonical_runtime / protected
+        if _is_within(protected_source, resolved_target) or _is_within(protected_runtime, resolved_target):
+            raise ValueError(f"target_root overlaps protected path: {protected}")
+    return target
+
+
 def ensure_snapshot_source(path_str: str) -> Tuple[Path, Dict[str, Any]]:
     path = Path(path_str).expanduser()
     if path.is_file() and path.suffixes[-2:] == [".tar", ".gz"]:
         extract_root = snapshot_dir() / f"extract-{path.stem}-{nowstamp()}"
         extract_root.mkdir(parents=True, exist_ok=False)
         with tarfile.open(path, "r:gz") as tf:
+            _validate_archive_members(tf)
             tf.extractall(extract_root)
         subdirs = [p for p in extract_root.iterdir() if p.is_dir()]
         if not subdirs:
@@ -178,7 +217,10 @@ def dry_run_import(path_str: str, target_root: str | None = None) -> Dict[str, A
     except Exception as e:
         return {"ok": False, "message": str(e), "data": {"path": str(path_str)}}
 
-    target = Path(target_root).expanduser() if target_root else resolve_canonical_root()
+    try:
+        target = validate_target_root(target_root, allow_runtime_root=target_root is None)
+    except Exception as e:
+        return {"ok": False, "message": str(e), "data": {"path": str(path_str), "target_root": str(target_root)}}
     actions = []
     conflicts = []
     for name in manifest.get("included_paths", []):
@@ -262,7 +304,10 @@ def _compare_paths(a: Path, b: Path) -> bool:
 
 def migrate_dry_run(target_root: str) -> Dict[str, Any]:
     source = resolve_canonical_root()
-    target = Path(target_root).expanduser()
+    try:
+        target = validate_target_root(target_root, allow_runtime_root=False)
+    except Exception as e:
+        return {"ok": False, "message": str(e), "data": {"target_root": str(target_root)}}
     mappings = []
     conflicts = []
     for name in INCLUDED_NAMES:
