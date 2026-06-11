@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+case "${1:-}" in
+  web)
+    shift || true
+    exec "$ROOT/scripts/mycelium-web" "${@:-start}"
+    ;;
+  "")
+    echo "usage: $0 web {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
+    exit 1
+    ;;
+  *)
+    echo "unknown command: $1"
+    echo "usage: $0 web {start|stop|restart|status|open|logs|install-service|uninstall-service|service-status}"
+    exit 1
+    ;;
+esac
