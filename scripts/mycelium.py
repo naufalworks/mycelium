@@ -15,11 +15,31 @@ import json, hashlib, re, sqlite3, sys, shutil, datetime, textwrap
 from pathlib import Path
 from collections import defaultdict, Counter
 
-MYCELIUM = Path.home() / "Documents/mycelium"
-LOG = MYCELIUM / "log.jsonl"
-ARCHIVE = MYCELIUM / "archive"
-INDEX = MYCELIUM / "index.db"
-SCRIPTS = MYCELIUM / "scripts"
+SOURCE_PARENT = Path(__file__).resolve().parents[1]
+if str(SOURCE_PARENT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_PARENT))
+
+from web.backend.services.paths_service import detect_split_brain_warnings, get_paths
+
+PATHS = get_paths()
+MYCELIUM = PATHS.source_root
+LOG = PATHS.log
+ARCHIVE = PATHS.archive
+INDEX = PATHS.index
+SCRIPTS = PATHS.scripts
+
+
+def split_brain_warnings():
+    return detect_split_brain_warnings(PATHS)
+
+
+def print_split_brain_warnings():
+    warnings = split_brain_warnings()
+    if not warnings:
+        return
+    print("⚠ MYCELIUM SPLIT-BRAIN WARNING", file=sys.stderr)
+    for warning in warnings:
+        print(f"  {warning['message']}", file=sys.stderr)
 
 # ─── Tier rules ──────────────────────────────────────────────
 TIER_RULES = {
@@ -554,6 +574,7 @@ def main():
         return
 
     cmd = sys.argv[1]
+    print_split_brain_warnings()
 
     if cmd == "migrate":
         migrate()

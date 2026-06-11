@@ -6,51 +6,29 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
-HOME = Path.home()
-SOURCE_ROOT = HOME / "Documents/mycelium"
-RUNTIME_ROOT = HOME / ".hermes/myceliumd/runtime"
-DAEMON_DIR = HOME / ".hermes/myceliumd"
-STATE_PATH = DAEMON_DIR / "state.json"
-LOG_FALLBACK = SOURCE_ROOT / "log.jsonl"
-INDEX_FALLBACK = SOURCE_ROOT / "index.db"
-ARCHIVE_FALLBACK = SOURCE_ROOT / "archive"
-BRANCHES_FALLBACK = SOURCE_ROOT / "branches"
-GARDEN_FALLBACK = SOURCE_ROOT / "garden"
+from .paths_service import detect_split_brain_warnings, get_paths as get_shared_paths, path_info, resolve_canonical_root
+
+_PATHS = get_shared_paths()
+SOURCE_ROOT = _PATHS.source_root
+RUNTIME_ROOT = _PATHS.runtime_root
+DAEMON_DIR = _PATHS.daemon_dir
+STATE_PATH = _PATHS.daemon_state
 DAEMON_HEALTH_URL = "http://127.0.0.1:20151/health"
 
 
-def resolve_canonical_root() -> Path:
-    if RUNTIME_ROOT.exists():
-        return RUNTIME_ROOT
-    return SOURCE_ROOT
-
-
-def path_info(path: Path) -> Dict[str, Any]:
-    info: Dict[str, Any] = {
-        "path": str(path),
-        "exists": path.exists(),
-        "is_symlink": path.is_symlink(),
-        "symlink_target": None,
-    }
-    if path.is_symlink():
-        try:
-            info["symlink_target"] = str(path.resolve())
-        except Exception:
-            info["symlink_target"] = None
-    return info
-
-
 def get_paths() -> Dict[str, Path]:
-    root = resolve_canonical_root()
+    p = get_shared_paths()
+    root = p.canonical_root
     return {
         "canonical_root": root,
-        "source_root": SOURCE_ROOT,
-        "log": root / "log.jsonl" if (root / "log.jsonl").exists() else LOG_FALLBACK,
-        "index": root / "index.db" if (root / "index.db").exists() else INDEX_FALLBACK,
-        "archive": root / "archive" if (root / "archive").exists() else ARCHIVE_FALLBACK,
-        "branches": root / "branches" if (root / "branches").exists() else BRANCHES_FALLBACK,
-        "garden": root / "garden" if (root / "garden").exists() else GARDEN_FALLBACK,
-        "daemon_state": STATE_PATH,
+        "source_root": p.source_root,
+        "runtime_root": p.runtime_root,
+        "log": p.log,
+        "index": p.index,
+        "archive": p.archive,
+        "branches": p.branches,
+        "garden": p.garden,
+        "daemon_state": p.daemon_state,
     }
 
 
@@ -141,6 +119,7 @@ def get_status() -> Dict[str, Any]:
         "branches_path": path_info(paths["branches"]),
         "garden_path": path_info(paths["garden"]),
         "daemon_state_path": path_info(paths["daemon_state"]),
+        "split_brain_warnings": detect_split_brain_warnings(),
         "storage_bytes": storage_bytes,
         "archived_files": archived_files,
         "archived_turns_estimate": archived_turns_estimate,

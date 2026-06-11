@@ -8,12 +8,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from .status_service import SOURCE_ROOT, get_paths, resolve_canonical_root
+from .paths_service import get_paths, resolve_canonical_root
 from .verify_service import run_verify
 
-BACKUP_ROOT = Path.home() / ".hermes/myceliumd/backups"
+_PATHS = get_paths()
+SOURCE_ROOT = _PATHS.source_root
+BACKUP_ROOT = _PATHS.backup_root
 INCLUDED_NAMES = ["log.jsonl", "index.db", "archive", "branches", "garden"]
-MIGRATION_BACKUP_ROOT = Path.home() / ".hermes/myceliumd/migration-backups"
+MIGRATION_BACKUP_ROOT = _PATHS.migration_backup_root
 
 
 def nowstamp() -> str:
@@ -141,7 +143,7 @@ def create_snapshot() -> Dict[str, Any]:
         "schema_version": "mycelium-backup-v1",
         "created_at": iso_now(),
         "snapshot_name": snap_name,
-        "source_root": str(get_paths()["source_root"]),
+        "source_root": str(get_paths().source_root),
         "canonical_runtime_root": str(root),
         "included_paths": included_paths,
         "file_sizes": file_sizes,

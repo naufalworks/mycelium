@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import subprocess
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict
 
-VERIFY_SCRIPT = Path.home() / "Documents/mycelium/scripts/mycelium.py"
+from .paths_service import get_paths
 
 
 def run_verify() -> Dict[str, Any]:
+    paths = get_paths()
     proc = subprocess.run([
         "python3",
-        str(VERIFY_SCRIPT),
+        str(paths.scripts / "mycelium.py"),
         "verify",
     ], capture_output=True, text=True)
     output = (proc.stdout or proc.stderr or "").strip()
