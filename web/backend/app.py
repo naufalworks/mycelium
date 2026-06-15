@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Optional
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+# Add scripts/ to path so v3 modules can be imported
+_SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from .services.backup_service import (
     create_snapshot,
@@ -161,6 +166,142 @@ def api_migrate_execute(payload: dict):
         payload.get("target_root", ""),
         bool(payload.get("overwrite", False)),
     )
+
+
+# ── v3 endpoints ─────────────────────────────────────────────
+
+@app.get("/api/graph/entity/{entity}")
+def api_graph_entity(entity: str):
+    """Entity relationships grouped by edge type."""
+    try:
+        from mycelium_graph import EntityGraph
+        g = EntityGraph()
+        rels = g.query_entity(entity)
+        g.close()
+        return {"entity": entity, "relations": rels}
+    except Exception as e:
+        return {"entity": entity, "relations": {}, "error": str(e)}
+
+
+@app.get("/api/graph/top")
+def api_graph_top(limit: int = 15):
+    """Top entities by connection count."""
+    try:
+        from mycelium_graph import EntityGraph
+        g = EntityGraph()
+        entities = g.top_entities(limit)
+        count = g.count()
+        g.close()
+        return {"entities": [{"name": n, "count": c} for n, c in entities], "total_edges": count}
+    except Exception as e:
+        return {"entities": [], "total_edges": 0, "error": str(e)}
+
+
+@app.get("/api/negations")
+def api_negations(approach: Optional[str] = None, entity: Optional[str] = None):
+    """List negations with optional filters."""
+    try:
+        from mycelium_negation import NegationExtractor
+        ne = NegationExtractor()
+        if approach or entity:
+            results = ne.query(approach=approach, entity=entity)
+        else:
+            results = ne.recent(50)
+        total = ne.count()
+        return {"negations": results, "total": total}
+    except Exception as e:
+        return {"negations": [], "total": 0, "error": str(e)}
+
+
+@app.get("/api/causal/trace/{turn}")
+def api_causal_trace(turn: int):
+    """Trace cause chain backwards from turn."""
+    try:
+        from mycelium_causal import CausalExtractor
+        ce = CausalExtractor()
+        chain = ce.trace_cause(turn)
+        edges = ce.get_chain(chain) if len(chain) > 1 else []
+        ce.close()
+        return {"start_turn": turn, "chain": chain, "edges": edges}
+    except Exception as e:
+        return {"start_turn": turn, "chain": [], "edges": [], "error": str(e)}
+
+
+@app.get("/api/causal/regressions")
+def api_causal_regressions():
+    """List all regressions."""
+    try:
+        from mycelium_causal import CausalExtractor
+        ce = CausalExtractor()
+        regs = ce.regressions()
+        ce.close()
+        return {"regressions": regs}
+    except Exception as e:
+        return {"regressions": [], "error": str(e)}
+
+
+@app.get("/api/bloom/check/{entity}")
+def api_bloom_check(entity: str):
+    """Check entity membership in bloom filter."""
+    try:
+        from mycelium_bloom import MyceliumBloom, MYCELIUM
+        try:
+            bloom = MyceliumBloom.load(MYCELIUM / ".bloom_entities", name="entities")
+        except FileNotFoundError:
+            bloom = MyceliumBloom.load_from_db(name="entities")
+        found = bloom.check(entity)
+        return {"entity": entity, "found": found, "hint": "possible (bloom filter)" if found else "definitely not present"}
+    except Exception as e:
+        return {"entity": entity, "found": False, "error": str(e)}
+
+
+@app.get("/api/bloom/stats")
+def api_bloom_stats():
+    """Bloom filter statistics."""
+    try:
+        from mycelium_bloom import MyceliumBloom
+        bloom = MyceliumBloom.load_from_db(name="entities")
+        return bloom.stats()
+    except Exception as e:
+        return {"error": str(e), "hint": "Run: python3 scripts/mycelium_bloom.py build"}
+
+
+@app.get("/api/attention/top")
+def api_attention_top(limit: int = 15):
+    """Most-attended entries."""
+    try:
+        from mycelium_attention import AttentionTracker
+        t = AttentionTracker()
+        entries = t.top_entries(limit)
+        stats = t.stats()
+        t.close()
+        return {"entries": entries, "stats": stats}
+    except Exception as e:
+        return {"entries": [], "stats": {}, "error": str(e)}
+
+
+@app.get("/api/attention/stale")
+def api_attention_stale(limit: int = 15):
+    """Never-referenced entries."""
+    try:
+        from mycelium_attention import AttentionTracker
+        t = AttentionTracker()
+        entries = t.stale_entries(limit)
+        t.close()
+        return {"entries": entries}
+    except Exception as e:
+        return {"entries": [], "error": str(e)}
+
+
+@app.get("/api/lsm/stats")
+def api_lsm_stats():
+    """LSM layer stats."""
+    try:
+        from mycelium_lsm import MyceliumLSM
+        lsm = MyceliumLSM()
+        return lsm.stats()
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/{full_path:path}")

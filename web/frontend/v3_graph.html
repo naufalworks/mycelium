@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium v3 — Entity Graph</title>
+<style>
+  :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --green: #3fb950; --yellow: #d29922; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 1rem; max-width: 960px; margin: 0 auto; }
+  h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1.5rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .nav { margin-bottom: 1rem; font-size: 0.85rem; }
+  .stats { color: #8b949e; font-size: 0.85rem; margin-bottom: 1rem; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; }
+  tr:hover { background: var(--surface); cursor: pointer; }
+  .entity-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-top: 1rem; }
+  .entity-detail h2 { color: var(--accent); font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .edge-group { margin-bottom: 0.75rem; }
+  .edge-type { color: var(--green); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+  .edge-item { color: var(--text); font-size: 0.9rem; padding: 0.2rem 0; }
+  .edge-item span { color: #8b949e; }
+  .loading { color: #8b949e; font-style: italic; }
+  .error { color: #f85149; }
+  .empty { color: #8b949e; text-align: center; padding: 2rem; }
+  #detail { display: none; }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="v3_dashboard.html">← Dashboard</a> |
+    <a href="v3_negations.html">Negations</a> |
+    <a href="v3_causal.html">Causal</a> |
+    <a href="v3_graph.html">Graph</a>
+  </nav>
+
+  <h1>🕸 Entity Graph</h1>
+  <div class="stats" id="stats">Loading...</div>
+
+  <table id="table">
+    <thead><tr><th>Entity</th><th>Connections</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div class="entity-detail" id="detail">
+    <h2 id="detail-title"></h2>
+    <div id="detail-body"></div>
+  </div>
+
+  <script>
+    const API = window.location.port === '8421' ? 'http://127.0.0.1:8421' : 'http://127.0.0.1:8420';
+
+    async function loadTop() {
+      try {
+        const res = await fetch(`${API}/api/graph/top?limit=20`);
+        const data = await res.json();
+        const tbody = document.getElementById('tbody');
+        document.getElementById('stats').textContent = `${data.total_edges || 0} total edges`;
+
+        if (!data.entities || data.entities.length === 0) {
+          document.getElementById('table').style.display = 'none';
+          tbody.innerHTML = '<tr><td colspan="2" class="empty">No entities found. Run: python3 scripts/mycelium_graph.py build</td></tr>';
+          document.getElementById('table').style.display = '';
+          return;
+        }
+
+        tbody.innerHTML = data.entities.map(e =>
+          `<tr onclick="loadEntity('${e.name}')">
+            <td>${e.name}</td>
+            <td>${e.count}</td>
+          </tr>`
+        ).join('');
+      } catch (e) {
+        document.getElementById('stats').innerHTML = `<span class="error">Failed to load: ${e.message}</span>`;
+      }
+    }
+
+    async function loadEntity(name) {
+      const detail = document.getElementById('detail');
+      detail.style.display = 'block';
+      document.getElementById('detail-title').textContent = name;
+      document.getElementById('detail-body').innerHTML = '<div class="loading">Loading relationships...</div>';
+
+      try {
+        const res = await fetch(`${API}/api/graph/entity/${encodeURIComponent(name)}`);
+        const data = await res.json();
+        const rels = data.relations || {};
+
+        if (Object.keys(rels).length === 0) {
+          document.getElementById('detail-body').innerHTML = '<div class="empty">No relationships found</div>';
+          return;
+        }
+
+        let html = '';
+        for (const [etype, pairs] of Object.entries(rels)) {
+          html += `<div class="edge-group"><div class="edge-type">${etype}</div>`;
+          for (const [other, turn] of pairs) {
+            html += `<div class="edge-item">${other} <span>— turn ${turn}</span></div>`;
+          }
+          html += '</div>';
+        }
+        document.getElementById('detail-body').innerHTML = html;
+      } catch (e) {
+        document.getElementById('detail-body').innerHTML = `<div class="error">Error: ${e.message}</div>`;
+      }
+    }
+
+    loadTop();
+  </script>
+</body>
+</html>

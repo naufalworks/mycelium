@@ -24,6 +24,15 @@ evolution/stats.db-wal
 garden/patterns.json
 garden/state.json
 
+# v3 LSM runtime data (auto-generated, rebuilt via migrate/compact)
+l1/
+l2/
+objects/
+snapshots/
+.bloom_entities
+.bloom_entities-journal
+benchmark_results.json
+
 # macOS
 .DS_Store
 ._*

@@ -1,8 +1,8 @@
-# Mycelium — AI Agent Instructions v2
+# Mycelium — AI Agent Instructions v3
 
-Mycelium is a **persistent brain** — an append-only log with integrity chain,
-tiered importance, entity extraction, and smart session resume. Survives
-crashes, session loss, and `/new`.
+Mycelium is a **persistent brain** — LSM-tree storage with integrity chain,
+tiered importance, entity extraction, Bloom filter, entity graph, negation index,
+and smart session resume. Survives crashes, session loss, and `/new`.
 
 ## Quick start
 
@@ -11,50 +11,55 @@ python3 scripts/mycelium.py status          # Brain stats
 python3 scripts/mycelium.py resume          # Smart session resume
 python3 scripts/mycelium.py verify          # Integrity chain check
 python3 scripts/mycelium.py search <query>  # Search log + index
-python3 scripts/mycelium.py archive [days]  # Compact old sessions (never deletes)
+python3 scripts/mycelium.py compact         # Condition-based maintenance
+python3 scripts/mycelium_compact.py --stats # Layer stats (L0/L1/L2)
 python3 scripts/detect-patterns.py          # Skill Garden pattern scan
 python3 scripts/branch.py list              # List branches
 python3 scripts/findings.py list            # List findings
 python3 scripts/findings.py report          # Generate report
 ```
 
-## Project structure
+## v3 Core Commands
 
-```
-mycelium/
-├── AGENTS.md                  ← this file — AI agent instructions
-├── README.md
-├── .gitignore
-├── log.jsonl                  ← THE BRAIN — v2 tiered, hashed, entity-indexed (gitignored)
-├── index.db                   ← SQLite index for fast queries (gitignored)
-├── archive/                   ← compacted old sessions (gitignored, NEVER deleted)
-├── scripts/
-│   ├── mycelium_lib.py        ← shared library (paths, entities, tier, hash, index)
-│   ├── mycelium.py            ← unified CLI (status, resume, search, verify, archive)
-│   ├── append.py              ← single-turn append (incremental index, always-on evolution)
-│   ├── myceliumd.py           ← safety-net daemon (imports from Hermes state.db)
-│   ├── precheck.py            ← pre-flight health gate
-│   ├── evolution.py           ← Phase 4: Self-Evolution Engine
-│   ├── detect-patterns.py     ← Phase 1: Skill Garden
-│   ├── branch.py              ← Phase 2: Conversation Tree
-│   └── findings.py            ← Phase 3: Vuln Hunter Notebook
-├── evolution/                 ← self-evolution data (gitignored)
-├── web/                       ← local web UI (dashboard, stream, vault, recall)
-├── branches/                  ← conversation branches (gitignored)
-└── garden/                    ← skill garden state (gitignored)
+```bash
+# Resume (uses LSM + Bloom + Graph + Negation)
+python3 scripts/mycelium_resume_v3.py --hint "grav"
+
+# Compact (condition-based, NOT cron)
+python3 scripts/mycelium_compact.py              # auto-flush if over thresholds
+python3 scripts/mycelium_compact.py --dry-run    # preview
+python3 scripts/mycelium_compact.py --stats      # layer stats
+
+# Bloom filter
+python3 scripts/mycelium_bloom.py check "grav"
+python3 scripts/mycelium_bloom.py stats
+
+# Entity graph
+python3 scripts/mycelium_graph.py top 10
+python3 scripts/mycelium_graph.py query grav
+
+# Negation index
+python3 scripts/mycelium_negation.py query --approach curl
+python3 scripts/mycelium_negation.py recent
+
+# Causal chain
+python3 scripts/mycelium_causal.py trace-cause 42
+python3 scripts/mycelium_causal.py regressions
 ```
 
 ## Architecture
 
-All scripts import shared constants from `mycelium_lib.py` — no more duplicated
-entity lists, tier rules, or path resolution across files. Paths resolve dynamically
-via `Path(__file__)` so the same code works from both source (`~/Documents/mycelium/`)
-and runtime (`~/.hermes/myceliumd/runtime/`) locations.
+```
+log.jsonl          ← flat JSONL (backward compatible)
+index.db           ← SQLite (entities, findings, edges, negations, causal, attention)
+l1/                ← LSM compressed segments (gzip)
+l2/                ← LSM summaries (gzip)
+snapshots/         ← COW session snapshots
+objects/           ← content-addressed object store
+```
 
-- `append.py` uses **incremental index update** (O(1) per turn) instead of full rebuild (O(n))
-- `append.py` includes **always-on evolution detection** (no flag needed)
-- `append.py` uses **seek-based last-line read** (O(1) vs O(n))
-- Shared constants: `KNOWN_ENTITIES`, `ENTITY_PATTERNS`, `TIER_RULES` — single source of truth
+All scripts import shared constants from `mycelium_lib.py` — single source of truth.
+Paths resolve dynamically via `Path(__file__)`.
 
 ## Log format v2 (tiered + integrity chain)
 
@@ -64,115 +69,85 @@ and runtime (`~/.hermes/myceliumd/runtime/`) locations.
  "user": "...", "assistant": "...",
  "finding": {"type": "SQLi", "target": "admin.acme.com", "severity": "critical"},
  "prev_hash": "", "hash": "a1b2c3d4e5f6g7h8"}
-
-{"turn": 2, "tier": "B", "type": "talk", "session": "brainstorm",
- "entities": ["mycelium", "grav"],
- "prev_hash": "a1b2c3d4e5f6g7h8", "hash": "i9j0k1l2m3n4o5p6"}
 ```
 
-### New fields
+### Tier rules
 
-| Field | Meaning |
-|-------|---------|
-| `tier` | S=critical (findings, decisions), A=important (ideas), B=normal (talk), C=noise (dead-ends) |
-| `entities` | Auto-extracted: projects, tools, domains, ports |
-| `prev_hash` | SHA256 of previous entry (chain integrity) |
-| `hash` | SHA256 of this entry excluding the `hash` field |
+| Tier | Types |
+|------|-------|
+| S | finding (critical/high), decision, gardener (sprout) |
+| A | idea, finding (medium/low) |
+| B | talk (default) |
+| C | dead-end, pruned branch |
 
-### Tier rules (applied during append)
-
-- **S** — finding (critical/high), decision, gardener (skill sprouted)
-- **A** — idea, finding (medium/low)
-- **B** — talk (default)
-- **C** — dead-end, pruned branch
-
-## Agent behavior v2
+## Agent behavior
 
 ### On session start
 ```bash
-python3 scripts/mycelium.py resume
+bash scripts/mycelium-start
 ```
-This gives you a structured summary: last session, garden seeds, recent S-tier entries, latest critical finding, active branches. Use this instead of raw `tail` — denser signal, less context waste.
+This runs: precheck → resume → pattern detection → evolution load.
+Inject output into response context.
 
-### On every session end
-```python
-# Append turn with ALL v2 fields:
-entry = {
-    "turn": next_turn,
-    "tier": classify_tier(e),       # S/A/B/C based on content
-    "type": "finding|talk|etc",
-    "session": "current-session",
-    "ts": now,
-    "entities": extract_entities(user_msg + assistant_msg),  # auto-extracted
-    "user": abbreviated_user_msg,
-    "assistant": abbreviated_response,
-    "finding": {...} or None,        # if type==finding
-    "prev_hash": last_entry["hash"],
-}
-entry["hash"] = compute_hash(entry, entry["prev_hash"])
-append_to_log(entry)
+### After every response
+```bash
+python3 scripts/append.py \
+  --session <kebab-name> --type <talk|finding|decision|idea> \
+  "<condensed user>" "<condensed assistant>"
 ```
+Auto-calculates: turn number, tier, entities, prev_hash, hash. Takes <1s.
 
-### Smart resume injection
-When resuming, inject the `resume` output NOT raw JSONL tail. It includes:
-- Last session name + turn count
-- Brain stats (22 turns, 10.2 KB, v2)
-- Garden seeds approaching threshold
-- Active branches
-- Recent S-tier entries (decisions, critical findings)
-- Latest critical finding
-- Patterns near 3x threshold (skill offer candidates)
+### V3 resume flow
+1. Brain stats (entries, sessions, entities)
+2. Bloom pre-check (O(1) entity membership)
+3. Load L0 entries (last 50, full text)
+4. Tier-priority filter (S → A → B)
+5. Token-budget packing
+6. Entity graph enrichment
+7. Negation warnings
+
+### Condition-based maintenance
+NOT cron-based. Triggers:
+- L0 > 50 entries → flush to L1
+- L1 > 500 segments → compact to L2
+- `python3 scripts/mycelium_compact.py` (manual)
 
 ### Integrity verification
-Periodically:
 ```bash
 python3 scripts/mycelium.py verify
 ```
-This checks the prev_hash chain. If broken → tampering detected.
-
-### Log compaction
-When log exceeds 500 turns, archive old sessions:
-```bash
-python3 scripts/mycelium.py archive 30   # compact sessions >30 days
-```
-Archived entries go to `archive/log.YYYYMM.session.jsonl` — NEVER deleted.
-Main log gets a summary entry pointing to the archive file.
-You can still `grep` the archive files.
+Checks prev_hash chain across all LSM layers.
 
 ## Phase 1 — Skill Garden
 
 ```bash
 python3 scripts/detect-patterns.py
 ```
-Now with short-circuit optimization — stops counting at threshold. Scales to 1M+ turns.
+Short-circuit optimization — stops at threshold.
 
 ## Phase 2 — Conversation Tree
 
 ```bash
-python3 scripts/branch.py create <name>
-python3 scripts/branch.py merge <name>
-python3 scripts/branch.py prune <name>
-python3 scripts/branch.py diff <name>
-python3 scripts/branch.py list
+python3 scripts/branch.py create|merge|prune|diff|list <name>
 ```
-
-When branching, append to BOTH main log and branch file.
 
 ## Phase 3 — Vuln Hunter Notebook
 
 ```bash
-python3 scripts/findings.py list
-python3 scripts/findings.py by-target <name>
-python3 scripts/findings.py by-type <type>
-python3 scripts/findings.py report [target]
-python3 scripts/findings.py stats
+python3 scripts/findings.py list|by-target|by-type|report|stats
 ```
 
-Findings now indexed in SQLite — queries are instant regardless of log size.
+## Tests
 
-## Security v2
+```bash
+python3 -m pytest tests/ -v    # 228 tests
+python3 -m pytest tests/ -q    # quick summary
+```
+
+## Security
 
 - **Local only.** No network, no cloud, no upload.
-- **Integrity chain.** Each entry hashes the previous. Tampering is detectable.
+- **Integrity chain.** Each entry hashes the previous. Tampering detectable.
 - **Append-only.** Nothing deleted — only appended or archived.
-- **Archive never deletes.** Old sessions compacted into summaries, raw data preserved in `archive/`.
+- **Zero data loss.** LSM compression never deletes — only compresses.
+- **Hash chain.** Tamper-evident across all LSM layers.

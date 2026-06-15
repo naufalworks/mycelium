@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium v3 — Causal Chains</title>
+<style>
+  :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --red: #f85149; --green: #3fb950; --yellow: #d29922; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 1rem; max-width: 960px; margin: 0 auto; }
+  h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1.5rem; }
+  h2 { color: var(--accent); font-size: 1.1rem; margin: 1rem 0 0.5rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .nav { margin-bottom: 1rem; font-size: 0.85rem; }
+  .input-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  input, button { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+  input:focus { border-color: var(--accent); outline: none; }
+  button { cursor: pointer; background: var(--accent); color: #0d1117; font-weight: 600; border: none; }
+  button:hover { opacity: 0.9; }
+  .chain { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 1rem; padding: 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+  .chain-node { padding: 0.3rem 0.6rem; border-radius: 4px; font-weight: 600; font-size: 0.85rem; }
+  .chain-node.start { background: var(--accent); color: #0d1117; }
+  .chain-node.mid { background: var(--surface); border: 1px solid var(--border); }
+  .chain-node.root { background: var(--red); color: #fff; }
+  .chain-arrow { color: #6e7681; }
+  .edge-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.4rem; }
+  .edge-card .type { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+  .edge-card .type.cause { color: var(--yellow); }
+  .edge-card .type.resolved { color: var(--green); }
+  .edge-card .type.regressed { color: var(--red); }
+  .edge-card .detail { font-size: 0.85rem; color: #8b949e; }
+
+  /* Regressions table */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; }
+  tr.regressed { background: rgba(248,81,73,0.08); }
+
+  .empty { color: #8b949e; text-align: center; padding: 2rem; }
+  .error { color: #f85149; }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="v3_dashboard.html">← Dashboard</a> |
+    <a href="v3_negations.html">Negations</a> |
+    <a href="v3_causal.html">Causal</a> |
+    <a href="v3_graph.html">Graph</a>
+  </nav>
+
+  <h1>🔗 Causal Chain Viewer</h1>
+
+  <h2>Trace Cause Chain</h2>
+  <div class="input-row">
+    <input type="number" id="turn-input" placeholder="Turn number" min="1">
+    <button onclick="traceChain()">Trace</button>
+  </div>
+  <div id="chain-result"></div>
+
+  <h2>Regressions</h2>
+  <div id="regressions"></div>
+
+  <script>
+    const API = window.location.port === '8421' ? 'http://127.0.0.1:8421' : 'http://127.0.0.1:8420';
+
+    async function traceChain() {
+      const turn = parseInt(document.getElementById('turn-input').value);
+      if (!turn || turn < 1) return;
+
+      const result = document.getElementById('chain-result');
+      result.innerHTML = '<div class="empty">Tracing...</div>';
+
+      try {
+        const res = await fetch(`${API}/api/causal/trace/${turn}`);
+        const data = await res.json();
+
+        if (!data.chain || data.chain.length === 0) {
+          result.innerHTML = '<div class="empty">No causal chain found for this turn</div>';
+          return;
+        }
+
+        // Visual chain
+        let chainHtml = '<div class="chain">';
+        data.chain.forEach((t, i) => {
+          const cls = i === 0 ? 'start' : (i === data.chain.length - 1 && data.chain.length > 1 ? 'root' : 'mid');
+          if (i > 0) chainHtml += '<span class="chain-arrow">←</span>';
+          chainHtml += `<span class="chain-node ${cls}">Turn ${t}</span>`;
+        });
+        chainHtml += '</div>';
+
+        // Edge details
+        if (data.edges && data.edges.length > 0) {
+          chainHtml += data.edges.map(e => {
+            const cls = e.edge_type.toLowerCase() === 'regressed' ? 'regressed' : e.edge_type.toLowerCase();
+            return `<div class="edge-card">
+              <span class="type ${cls}">${e.edge_type}</span>
+              <span class="detail"> — Turn ${e.source_turn} → ${e.target_turn} (confidence: ${e.confidence}) [${e.session || '?'}]</span>
+            </div>`;
+          }).join('');
+        }
+
+        result.innerHTML = chainHtml;
+      } catch (e) {
+        result.innerHTML = `<div class="error">Error: ${e.message}</div>`;
+      }
+    }
+
+    async function loadRegressions() {
+      try {
+        const res = await fetch(`${API}/api/causal/regressions`);
+        const data = await res.json();
+
+        if (!data.regressions || data.regressions.length === 0) {
+          document.getElementById('regressions').innerHTML = '<div class="empty">No regressions found</div>';
+          return;
+        }
+
+        let html = `<table>
+          <thead><tr><th>Source Turn</th><th>Target Turn</th><th>Confidence</th><th>Session</th><th>Time</th></tr></thead>
+          <tbody>`;
+        for (const r of data.regressions) {
+          html += `<tr class="regressed">
+            <td>${r.source_turn}</td>
+            <td>${r.target_turn}</td>
+            <td>${r.confidence}</td>
+            <td>${r.session || '-'}</td>
+            <td>${r.ts || '-'}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('regressions').innerHTML = html;
+      } catch (e) {
+        document.getElementById('regressions').innerHTML = `<div class="error">Error: ${e.message}</div>`;
+      }
+    }
+
+    loadRegressions();
+
+    // Allow Enter key
+    document.getElementById('turn-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') traceChain();
+    });
+  </script>
+</body>
+</html>

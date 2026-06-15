@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium v3 — Dashboard</title>
+<style>
+  :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --green: #3fb950; --yellow: #d29922; --red: #f85149; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 1rem; max-width: 960px; margin: 0 auto; }
+  h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1.5rem; }
+  h2 { color: var(--accent); font-size: 1.1rem; margin: 1.25rem 0 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .nav { margin-bottom: 1rem; font-size: 0.85rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; }
+  .card h3 { color: var(--accent); font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .card .metric { display: flex; justify-content: space-between; padding: 0.2rem 0; font-size: 0.85rem; }
+  .card .metric .label { color: #8b949e; }
+  .card .metric .value { font-weight: 600; }
+  .card .metric .value.good { color: var(--green); }
+  .card .metric .value.warn { color: var(--yellow); }
+
+  .links { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .links a { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.85rem; transition: border-color 0.2s; }
+  .links a:hover { border-color: var(--accent); text-decoration: none; }
+
+  .bar-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.2rem 0; font-size: 0.85rem; }
+  .bar-label { width: 60px; color: #8b949e; text-align: right; }
+  .bar { height: 16px; border-radius: 3px; min-width: 2px; }
+  .bar.l0 { background: var(--green); }
+  .bar.l1 { background: var(--yellow); }
+  .bar.l2 { background: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); }
+  .empty { color: #8b949e; text-align: center; padding: 1rem; }
+  .error { color: var(--red); font-size: 0.85rem; }
+  .status { font-size: 0.8rem; color: #6e7681; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="v3_dashboard.html">Dashboard</a> |
+    <a href="v3_negations.html">Negations</a> |
+    <a href="v3_causal.html">Causal</a> |
+    <a href="v3_graph.html">Graph</a>
+  </nav>
+
+  <h1>🍄 Mycelium v3 Dashboard</h1>
+
+  <div class="links">
+    <a href="v3_graph.html">🕸 Entity Graph</a>
+    <a href="v3_negations.html">🚫 Negations</a>
+    <a href="v3_causal.html">🔗 Causal Chains</a>
+  </div>
+
+  <div class="grid">
+    <!-- LSM Stats -->
+    <div class="card" id="lsm-card">
+      <h3>🗄 LSM Layers</h3>
+      <div id="lsm-stats"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- Bloom Stats -->
+    <div class="card" id="bloom-card">
+      <h3>🌸 Bloom Filter</h3>
+      <div id="bloom-stats"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- Attention Stats -->
+    <div class="card" id="attention-card">
+      <h3>👁 Attention</h3>
+      <div id="attention-stats"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
+
+  <h2>Top Attended Entries</h2>
+  <div id="top-entries"><div class="empty">Loading...</div></div>
+
+  <h2>Stale Entries (Never Referenced)</h2>
+  <div id="stale-entries"><div class="empty">Loading...</div></div>
+
+  <div class="status" id="status"></div>
+
+  <script>
+    const API = window.location.port === '8421' ? 'http://127.0.0.1:8421' : 'http://127.0.0.1:8420';
+
+    function fmt(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    async function loadLSM() {
+      try {
+        const res = await fetch(`${API}/api/lsm/stats`);
+        const d = await res.json();
+        if (d.error) { document.getElementById('lsm-stats').innerHTML = `<div class="error">${d.error}</div>`; return; }
+
+        const total = d.total_entries || 1;
+        const l0w = Math.round((d.l0_entries / total) * 100);
+        const l1w = Math.round((d.l1_entries / total) * 100);
+        const l2w = 100 - l0w - l1w;
+
+        let html = '';
+        html += `<div class="bar-row"><span class="bar-label">L0</span><div class="bar l0" style="width:${Math.max(l0w, 2)}%"></div><span>${d.l0_entries} entries · ${fmt(d.l0_size_bytes)}</span></div>`;
+        html += `<div class="bar-row"><span class="bar-label">L1</span><div class="bar l1" style="width:${Math.max(l1w, 2)}%"></div><span>${d.l1_entries} entries · ${d.l1_segments} segs · ${fmt(d.l1_size_bytes)}</span></div>`;
+        html += `<div class="bar-row"><span class="bar-label">L2</span><div class="bar l2" style="width:${Math.max(l2w, 2)}%"></div><span>${d.l2_entries} entries · ${d.l2_summaries} sums</span></div>`;
+        html += `<div class="metric"><span class="label">Total</span><span class="value">${d.total_entries} entries · ${fmt(d.total_size_bytes)}</span></div>`;
+        document.getElementById('lsm-stats').innerHTML = html;
+      } catch (e) {
+        document.getElementById('lsm-stats').innerHTML = `<div class="error">${e.message}</div>`;
+      }
+    }
+
+    async function loadBloom() {
+      try {
+        const res = await fetch(`${API}/api/bloom/stats`);
+        const d = await res.json();
+        if (d.error) { document.getElementById('bloom-stats').innerHTML = `<div class="error">${d.hint || d.error}</div>`; return; }
+
+        let html = '';
+        html += `<div class="metric"><span class="label">Elements</span><span class="value">${d.elements}</span></div>`;
+        html += `<div class="metric"><span class="label">Bits</span><span class="value">${d.bits}</span></div>`;
+        html += `<div class="metric"><span class="label">Hash fns</span><span class="value">${d.hash_functions}</span></div>`;
+        html += `<div class="metric"><span class="label">Fill ratio</span><span class="value ${d.fill_ratio < 0.5 ? 'good' : 'warn'}">${(d.fill_ratio * 100).toFixed(1)}%</span></div>`;
+        html += `<div class="metric"><span class="label">Memory</span><span class="value">${fmt(d.memory_bytes)}</span></div>`;
+        html += `<div class="metric"><span class="label">FP rate</span><span class="value">${(d.error_rate * 100).toFixed(1)}%</span></div>`;
+        document.getElementById('bloom-stats').innerHTML = html;
+      } catch (e) {
+        document.getElementById('bloom-stats').innerHTML = `<div class="error">${e.message}</div>`;
+      }
+    }
+
+    async function loadAttention() {
+      try {
+        const res = await fetch(`${API}/api/attention/top?limit=1`);
+        const d = await res.json();
+        const s = d.stats || {};
+
+        let html = '';
+        html += `<div class="metric"><span class="label">Tracked</span><span class="value">${s.total_tracked || 0}</span></div>`;
+        html += `<div class="metric"><span class="label">Avg score</span><span class="value">${(s.avg_score || 0).toFixed(2)}</span></div>`;
+        html += `<div class="metric"><span class="label">Promoted</span><span class="value good">${s.promoted_count || 0}</span></div>`;
+        html += `<div class="metric"><span class="label">Demoted</span><span class="value warn">${s.demoted_count || 0}</span></div>`;
+        document.getElementById('attention-stats').innerHTML = html;
+      } catch (e) {
+        document.getElementById('attention-stats').innerHTML = `<div class="error">${e.message}</div>`;
+      }
+    }
+
+    async function loadTopEntries() {
+      try {
+        const res = await fetch(`${API}/api/attention/top?limit=10`);
+        const d = await res.json();
+        if (!d.entries || d.entries.length === 0) {
+          document.getElementById('top-entries').innerHTML = '<div class="empty">No attention data yet</div>';
+          return;
+        }
+        let html = `<table><thead><tr><th>Turn</th><th>Hits</th><th>Score</th><th>Last Referenced</th></tr></thead><tbody>`;
+        for (const e of d.entries) {
+          html += `<tr><td>${e.turn}</td><td>${e.hit_count}</td><td>${e.current_score.toFixed(2)}</td><td>${e.last_referenced || '-'}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('top-entries').innerHTML = html;
+      } catch (err) {
+        document.getElementById('top-entries').innerHTML = `<div class="error">${err.message}</div>`;
+      }
+    }
+
+    async function loadStaleEntries() {
+      try {
+        const res = await fetch(`${API}/api/attention/stale?limit=10`);
+        const d = await res.json();
+        if (!d.entries || d.entries.length === 0) {
+          document.getElementById('stale-entries').innerHTML = '<div class="empty">All entries have been referenced</div>';
+          return;
+        }
+        let html = `<table><thead><tr><th>Turn</th><th>Hits</th><th>Last Referenced</th></tr></thead><tbody>`;
+        for (const e of d.entries) {
+          html += `<tr><td>${e.turn}</td><td>${e.hit_count}</td><td>${e.last_referenced || 'never'}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('stale-entries').innerHTML = html;
+      } catch (err) {
+        document.getElementById('stale-entries').innerHTML = `<div class="error">${err.message}</div>`;
+      }
+    }
+
+    // Load all
+    Promise.all([loadLSM(), loadBloom(), loadAttention(), loadTopEntries(), loadStaleEntries()]).then(() => {
+      document.getElementById('status').textContent = `Loaded at ${new Date().toLocaleTimeString()}`;
+    });
+  </script>
+</body>
+</html>

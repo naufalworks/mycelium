@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium v3 — Negation Feed</title>
+<style>
+  :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --red: #f85149; --yellow: #d29922; --green: #3fb950; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 1rem; max-width: 960px; margin: 0 auto; }
+  h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1.5rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .nav { margin-bottom: 1rem; font-size: 0.85rem; }
+  .filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  input, button { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+  input:focus { border-color: var(--accent); outline: none; }
+  button { cursor: pointer; background: var(--accent); color: #0d1117; font-weight: 600; border: none; }
+  button:hover { opacity: 0.9; }
+  .stats { color: #8b949e; font-size: 0.85rem; margin-bottom: 1rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+  .approach { font-weight: 600; color: var(--yellow); }
+  .category { font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; }
+  .cat-forbidden { background: rgba(248,81,73,0.2); color: var(--red); }
+  .cat-wrong { background: rgba(210,153,34,0.2); color: var(--yellow); }
+  .cat-failed { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .cat-regression { background: rgba(248,81,73,0.15); color: var(--red); }
+  .cat-default { background: rgba(139,148,158,0.2); color: #8b949e; }
+  .result { font-size: 0.85rem; color: #8b949e; margin-top: 0.2rem; }
+  .fix { font-size: 0.85rem; color: var(--green); margin-top: 0.2rem; }
+  .ts { font-size: 0.75rem; color: #6e7681; }
+  .empty { color: #8b949e; text-align: center; padding: 2rem; }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="v3_dashboard.html">← Dashboard</a> |
+    <a href="v3_negations.html">Negations</a> |
+    <a href="v3_causal.html">Causal</a> |
+    <a href="v3_graph.html">Graph</a>
+  </nav>
+
+  <h1>🚫 Negation Feed</h1>
+  <div class="stats" id="stats">Loading...</div>
+
+  <div class="filters">
+    <input type="text" id="filter-entity" placeholder="Filter by entity...">
+    <input type="text" id="filter-approach" placeholder="Filter by approach...">
+    <button onclick="loadNegations()">Search</button>
+    <button onclick="clearFilters()" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">Clear</button>
+  </div>
+
+  <div id="list"></div>
+
+  <script>
+    const API = window.location.port === '8421' ? 'http://127.0.0.1:8421' : 'http://127.0.0.1:8420';
+
+    function catClass(cat) {
+      if (!cat) return 'cat-default';
+      if (cat.includes('forbidden')) return 'cat-forbidden';
+      if (cat.includes('wrong')) return 'cat-wrong';
+      if (cat.includes('regression')) return 'cat-regression';
+      if (cat.includes('failed')) return 'cat-failed';
+      return 'cat-default';
+    }
+
+    async function loadNegations() {
+      const entity = document.getElementById('filter-entity').value.trim();
+      const approach = document.getElementById('filter-approach').value.trim();
+      const params = new URLSearchParams();
+      if (entity) params.set('entity', entity);
+      if (approach) params.set('approach', approach);
+
+      try {
+        const res = await fetch(`${API}/api/negations?${params}`);
+        const data = await res.json();
+        document.getElementById('stats').textContent = `${data.total || 0} total negations`;
+
+        if (!data.negations || data.negations.length === 0) {
+          document.getElementById('list').innerHTML = '<div class="empty">No negations found</div>';
+          return;
+        }
+
+        document.getElementById('list').innerHTML = data.negations.map(n => {
+          let html = `<div class="card">
+            <div class="card-header">
+              <span class="approach">${n.approach || '?'}</span>
+              <span class="category ${catClass(n.category || n.result)}">${n.category || n.result || '?'}</span>
+            </div>`;
+          if (n.context) html += `<div class="result">Context: ${n.context}</div>`;
+          if (n.result && n.result !== n.category) html += `<div class="result">Result: ${n.result}</div>`;
+          if (n.fix) html += `<div class="fix">✓ Fix: ${n.fix}</div>`;
+          if (n.entities) html += `<div class="result">Entities: ${n.entities}</div>`;
+          if (n.session) html += `<div class="result">Session: ${n.session}</div>`;
+          html += `<div class="ts">${n.ts || ''}</div></div>`;
+          return html;
+        }).join('');
+      } catch (e) {
+        document.getElementById('list').innerHTML = `<div class="empty error">Error: ${e.message}</div>`;
+      }
+    }
+
+    function clearFilters() {
+      document.getElementById('filter-entity').value = '';
+      document.getElementById('filter-approach').value = '';
+      loadNegations();
+    }
+
+    loadNegations();
+  </script>
+</body>
+</html>

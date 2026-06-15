@@ -173,6 +173,68 @@ INDEX_SCHEMA = """
     CREATE INDEX IF NOT EXISTS idx_findings_type ON findings(ftype);
     CREATE INDEX IF NOT EXISTS idx_turns_session ON turns(session);
     CREATE INDEX IF NOT EXISTS idx_turns_tier ON turns(tier);
+
+    -- v3: Content-addressed object store
+    CREATE TABLE IF NOT EXISTS objects (
+        content_hash TEXT PRIMARY KEY,
+        ref_count INTEGER DEFAULT 1,
+        first_seen TEXT,
+        sessions TEXT
+    );
+
+    -- v3: Entity relationship graph
+    CREATE TABLE IF NOT EXISTS entity_edges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        target TEXT NOT NULL,
+        edge_type TEXT NOT NULL,
+        turn INTEGER NOT NULL,
+        session TEXT,
+        ts TEXT,
+        weight INTEGER DEFAULT 1,
+        UNIQUE(source, target, edge_type, turn)
+    );
+    CREATE INDEX IF NOT EXISTS idx_edges_source ON entity_edges(source);
+    CREATE INDEX IF NOT EXISTS idx_edges_target ON entity_edges(target);
+    CREATE INDEX IF NOT EXISTS idx_edges_type ON entity_edges(edge_type);
+
+    -- v3: Negation index (what doesn't work)
+    CREATE TABLE IF NOT EXISTS negations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        approach TEXT NOT NULL,
+        context TEXT,
+        result TEXT NOT NULL,
+        fix TEXT,
+        entities TEXT,
+        session TEXT,
+        ts TEXT,
+        user_msg TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_negations_approach ON negations(approach);
+
+    -- v3: Causal chain DAG
+    CREATE TABLE IF NOT EXISTS causal_edges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_turn INTEGER NOT NULL,
+        target_turn INTEGER NOT NULL,
+        edge_type TEXT NOT NULL,
+        confidence REAL DEFAULT 0.5,
+        session TEXT,
+        ts TEXT,
+        UNIQUE(source_turn, target_turn, edge_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_causal_source ON causal_edges(source_turn);
+    CREATE INDEX IF NOT EXISTS idx_causal_target ON causal_edges(target_turn);
+
+    -- v3: Attention tracking
+    CREATE TABLE IF NOT EXISTS attention (
+        turn INTEGER PRIMARY KEY,
+        score REAL DEFAULT 0.0,
+        hit_count INTEGER DEFAULT 0,
+        last_referenced TEXT,
+        last_promoted TEXT,
+        last_demoted TEXT
+    );
 """
 
 
