@@ -9,9 +9,9 @@ import json, os, sys
 from collections import defaultdict
 from pathlib import Path
 
-MYCELIUM = Path.home() / "Documents/mycelium"
-LOG = MYCELIUM / "log.jsonl"
-BRANCHES = MYCELIUM / "branches"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mycelium_lib import LOG, BRANCHES, MYCELIUM
+
 PATTERNS = MYCELIUM / "garden" / "patterns.json"
 STATE = MYCELIUM / "garden" / "state.json"
 

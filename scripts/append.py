@@ -1,176 +1,81 @@
 #!/usr/bin/env python3
 """
-🍄 append.py — single-turn append for Mycelium v2.
+append.py — single-turn append for Mycelium v2.
 
-Appends one turn to log.jsonl (O(1) line write, no full re-read).
+Appends one turn to log.jsonl.
 Auto-extracts entities, classifies tier, computes hash chain.
-Rebuilds SQLite index.
+Incremental index update (no full rebuild).
+
+Changes (v2-optimize):
+  - Shared constants from mycelium_lib.py (single source of truth)
+  - Incremental index update instead of full O(n) rebuild
+  - Seek-based _load_last (O(1) vs O(n))
+  - Always-on evolution detection (no flag needed)
 
 Usage:
-  append.py [--session NAME] [--type TYPE] [--finding JSON] [--watch-user-msg] "user text" "assistant text"
+  append.py [--session NAME] [--type TYPE] [--finding JSON] "user text" "assistant text"
 
-Types: talk (default), finding, decision, idea, dead-end, gardener
---watch-user-msg: auto-scan user text for correction signals (evolution engine)
+Types: talk (default), finding, decision, idea, dead-end, gardener, tech_verdict
 """
-import argparse, hashlib, json, os, re, sqlite3, sys, subprocess
+import argparse, json, os, sys, subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
-MYCELIUM = Path.home() / "Documents/mycelium"
-LOG = MYCELIUM / "log.jsonl"
-INDEX = MYCELIUM / "index.db"
-
-# ── Entity extraction ──
-KNOWN_ENTITIES = {
-    "grav", "grav-shim", "antigravity", "macro-gift-770k4", "gen-lang-client-0558595692",
-    "mycelium", "memgit", "page-radar", "page radar", "companion",
-    "hermes", "hermes agent", "claude code", "codex",
-    "sqlite", "jsonl", "json",
-    "curl", "python", "bash", "git", "gh", "grep", "tail",
-    "sql", "sqli", "xss", "ssrf", "lfi", "idor", "vpn", "vps",
-    "launchd", "cron",
-}
-ENTITY_PATTERNS = [
-    (r'https?://([^/\s"]+)', lambda m: m.group(1)),
-    (r'(?:^|\s)([\w-]+\.[\w-]{2,})(?:\s|$)', lambda m: m.group(1)),
-    (r'/v\d+/[\w/-]+', lambda m: m.group(0)),
-    (r'port\s*:?\s*(\d{4,5})', lambda m: f"port-{m.group(1)}"),
-]
-
-TIER_RULES = [
-    ("S", lambda e: e.get("type") == "finding" and e.get("finding", {}).get("severity") in ("critical", "high")),
-    ("S", lambda e: e.get("type") == "gardener" and e.get("action") == "sprout"),
-    ("S", lambda e: e.get("type") == "decision"),
-    ("A", lambda e: e.get("type") == "idea"),
-    ("A", lambda e: e.get("type") == "finding"),
-    ("B", lambda e: e.get("type") == "talk"),
-    ("C", lambda e: e.get("type") in ("dead-end", "branch") and e.get("branch_action") in ("prune", "dead-end")),
-]
+# Import shared lib (same directory)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mycelium_lib import (
+    MYCELIUM, LOG, INDEX, extract_entities, classify_tier,
+    compute_hash, load_last_entry, update_index,
+)
 
 
-def _load_last():
-    """Read only the last line of log.jsonl — O(1)."""
-    if not LOG.exists():
-        return None
-    with open(LOG) as f:
-        line = None
-        for line in f:
-            pass
-        if line and line.strip():
-            return json.loads(line)
-    return None
-
-
-def _extract_entities(text):
-    if not text:
-        return []
-    tl = text.lower()
-    es = set()
-    for ent in KNOWN_ENTITIES:
-        if ent in tl:
-            es.add(ent)
-    for pat, fn in ENTITY_PATTERNS:
-        for m in re.finditer(pat, tl):
-            es.add(fn(m))
-    return sorted(es)
-
-
-def _classify_tier(entry):
-    for tier, check in TIER_RULES:
-        if check(entry):
-            return tier
-    return "B"
-
-
-def _compute_hash(entry, prev_hash=""):
-    e = {k: v for k, v in entry.items() if k != "hash"}
-    raw = json.dumps(e, sort_keys=True, ensure_ascii=False)
-    return hashlib.sha256((prev_hash + raw).encode()).hexdigest()[:16]
-
-
-def _rebuild_index():
-    """Full SQLite index rebuild. Cheap for <10K turns."""
-    if not LOG.exists():
+def _detect_and_log_corrections(user_text: str, session: str) -> None:
+    """Always-on evolution: scan user text for correction signals, log if found.
+    Non-blocking — failures are silently swallowed so append is never blocked."""
+    evo_script = MYCELIUM / "scripts" / "evolution.py"
+    if not evo_script.exists():
         return
-    conn = sqlite3.connect(str(INDEX))
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=OFF")
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS turns (
-            turn INTEGER PRIMARY KEY, tier TEXT, type TEXT,
-            session TEXT, ts TEXT, summary TEXT);
-        CREATE TABLE IF NOT EXISTS entities (
-            turn INTEGER, entity TEXT,
-            FOREIGN KEY(turn) REFERENCES turns(turn));
-        CREATE TABLE IF NOT EXISTS findings (
-            turn INTEGER PRIMARY KEY, target TEXT, ftype TEXT, severity TEXT,
-            FOREIGN KEY(turn) REFERENCES turns(turn));
-        DELETE FROM turns; DELETE FROM entities; DELETE FROM findings;
-    """)
-    with open(LOG) as f:
-        for line in f:
-            if not line.strip():
-                continue
-            e = json.loads(line)
-            turn = e.get("turn", 0)
-            tier = e.get("tier", _classify_tier(e))
-            typ = e.get("type", "talk")
-            session = e.get("session", "?")
-            ts = e.get("ts", "?")
-            user = e.get("user", "")
-            assistant = e.get("assistant", "")
-            summary = (user[:80] + " → " + assistant[:80])[:240]
-            conn.execute("INSERT OR REPLACE INTO turns VALUES (?,?,?,?,?,?)",
-                         (turn, tier, typ, session, ts, summary))
-            for ent in e.get("entities", []):
-                conn.execute("INSERT INTO entities (turn, entity) VALUES (?, ?)", (turn, ent))
-            f = e.get("finding")
-            if f:
-                conn.execute("INSERT OR REPLACE INTO findings VALUES (?,?,?,?)",
-                             (turn, f.get("target", "?"), f.get("type", "?"), f.get("severity", "?")))
-    conn.commit()
-    conn.close()
+    try:
+        result = subprocess.run(
+            [sys.executable, str(evo_script), "watch", user_text],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            watch_data = json.loads(result.stdout)
+            if watch_data.get("detected"):
+                for cat in watch_data.get("categories", []):
+                    subprocess.run(
+                        [sys.executable, str(evo_script), "log",
+                         "--session", session,
+                         "--category", cat,
+                         "--user", user_text[:200],
+                         "--correction", user_text[:200]],
+                        capture_output=True, timeout=5
+                    )
+                print(f"🧬 Evolution: detected {len(watch_data['categories'])} correction signal(s)")
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+        pass  # non-critical
 
 
 def main():
     ap = argparse.ArgumentParser(description="Append one turn to Mycelium log.")
     ap.add_argument("--session", "-s", default="default", help="Session name (kebab-case)")
     ap.add_argument("--type", "-t", default="talk",
-                    choices=["talk", "finding", "decision", "idea", "dead-end", "gardener"])
+                    choices=["talk", "finding", "decision", "idea", "dead-end", "gardener", "tech_verdict"])
+    ap.add_argument("--verdict", "-V", help="JSON string for tech_verdict object")
     ap.add_argument("--finding", "-f", help="JSON string for finding object")
-    ap.add_argument("--no-index", action="store_true", help="Skip SQLite index rebuild (faster)")
+    ap.add_argument("--no-index", action="store_true", help="Skip SQLite index update (faster)")
     ap.add_argument("--watch-user-msg", action="store_true",
-                    help="Auto-scan user text for correction signals (evolution engine)")
+                    help="(kept for compat, always-on now) Detect correction signals")
     ap.add_argument("user", help="User message (condensed)")
     ap.add_argument("assistant", help="Assistant response (condensed)")
     args = ap.parse_args()
 
-    # ── Evolution watch: auto-detect corrections ──
-    if args.watch_user_msg and args.user:
-        evo_script = MYCELIUM / "scripts" / "evolution.py"
-        if evo_script.exists():
-            try:
-                result = subprocess.run(
-                    [sys.executable, str(evo_script), "watch", args.user],
-                    capture_output=True, text=True, timeout=5
-                )
-                if result.returncode == 0 and result.stdout.strip():
-                    watch_data = json.loads(result.stdout)
-                    if watch_data.get("detected"):
-                        for cat in watch_data.get("categories", []):
-                            subprocess.run(
-                                [sys.executable, str(evo_script), "log",
-                                 "--session", args.session,
-                                 "--category", cat,
-                                 "--user", args.user[:200],
-                                 "--correction", args.user[:200]],
-                                capture_output=True, timeout=5
-                            )
-                        print(f"🧬 Evolution: detected {len(watch_data['categories'])} correction signal(s)")
-            except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
-                pass  # non-critical, don't block append
+    # ── Evolution: always-on detection ──
+    _detect_and_log_corrections(args.user, args.session)
 
-    last = _load_last()
+    # ── Load prev hash via seek (O(1)) ──
+    last = load_last_entry()
     prev_hash = last["hash"] if last else ""
     turn = (last["turn"] + 1) if last else 1
 
@@ -191,26 +96,34 @@ def main():
         try:
             entry["finding"] = json.loads(args.finding)
         except json.JSONDecodeError as e:
-            print(f"✗ Invalid --finding JSON: {e}", file=sys.stderr)
+            print(f"Invalid --finding JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    if args.type == "tech_verdict" and args.verdict:
+        try:
+            entry["verdict"] = json.loads(args.verdict)
+        except json.JSONDecodeError as e:
+            print(f"Invalid --verdict JSON: {e}", file=sys.stderr)
             sys.exit(1)
 
     if args.type == "dead-end":
         entry["attempt"] = args.user
         entry["result"] = args.assistant
 
-    entry["tier"] = _classify_tier(entry)
-    entry["entities"] = _extract_entities(args.user + " " + args.assistant)
-    entry["hash"] = _compute_hash(entry, prev_hash)
+    entry["tier"] = classify_tier(entry)
+    entry["entities"] = extract_entities(args.user + " " + args.assistant)
+    entry["hash"] = compute_hash(entry, prev_hash)
 
-    # Append single line — O(1)
+    # ── Append single line — O(1) ──
     LOG.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG, "a") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         f.flush()
         os.fsync(f.fileno())
 
+    # ── Incremental index update — O(1) instead of O(n) full rebuild ──
     if not args.no_index:
-        _rebuild_index()
+        update_index(entry)
 
     print(f"✅ Turn {turn} appended [{entry['tier']}] {args.session}: {args.type}")
     return 0

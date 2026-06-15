@@ -27,10 +27,10 @@ DAEMON_DIR = HERMES / "myceliumd"
 DAEMON_STATE = DAEMON_DIR / "state.json"
 DAEMON_LOG = DAEMON_DIR / "myceliumd.log"
 DAEMON_LOCK = DAEMON_DIR / "myceliumd.lock"
-MYCELIUM = HOME / "Documents/mycelium"
+MYCELIUM = Path(__file__).resolve().parent.parent  # runtime dir
 APPEND = MYCELIUM / "scripts/append.py"
 VERIFY = MYCELIUM / "scripts/mycelium.py"
-POLL_INTERVAL = 5
+POLL_INTERVAL = 15
 PORT = 20151
 
 

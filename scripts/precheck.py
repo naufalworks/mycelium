@@ -25,10 +25,10 @@ import json, os, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-MYCELIUM = Path.home() / "Documents" / "mycelium"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mycelium_lib import MYCELIUM, LOG, INDEX, EVOLUTION_DIR
+
 SCRIPTS = MYCELIUM / "scripts"
-LOG = MYCELIUM / "log.jsonl"
-INDEX = MYCELIUM / "index.db"
 STATE = Path.home() / ".hermes" / "myceliumd" / "state.json"
 
 # ── Checks ──
@@ -82,10 +82,9 @@ def check_daemon():
 
 def check_evolution_dir():
     """evolution/ directory exists for self-evolution engine."""
-    evo = MYCELIUM / "evolution"
-    if not evo.exists():
+    if not EVOLUTION_DIR.exists():
         try:
-            evo.mkdir(parents=True, exist_ok=True)
+            EVOLUTION_DIR.mkdir(parents=True, exist_ok=True)
             return True, "created evolution/ (was missing)"
         except OSError as e:
             return False, f"cannot create evolution/: {e}"

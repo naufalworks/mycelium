@@ -27,8 +27,8 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-MYCELIUM = Path.home() / "Documents" / "mycelium"
-EVO_DIR = MYCELIUM / "evolution"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mycelium_lib import MYCELIUM, EVOLUTION_DIR as EVO_DIR
 FAILURES_LOG = EVO_DIR / "failures.jsonl"
 PATCHES_LOG = EVO_DIR / "patches.jsonl"
 STATS_DB = EVO_DIR / "stats.db"

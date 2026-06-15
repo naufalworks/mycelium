@@ -14,9 +14,12 @@ mycelium/
 ├── index.db               ← SQLite index (auto-built, queries)
 ├── archive/               ← compacted old sessions (never deleted)
 ├── scripts/
+│   ├── mycelium_lib.py        ← shared library (paths, entities, tier, hash, index)
 │   ├── mycelium.py            ← unified CLI (status, resume, search, verify, archive)
-│   ├── append.py              ← single-turn append
+│   ├── append.py              ← single-turn append (incremental index, always-on evolution)
 │   ├── myceliumd.py           ← safety-net daemon importing from Hermes state.db
+│   ├── precheck.py            ← pre-flight health gate (session start)
+│   ├── evolution.py           ← Phase 4: Self-Evolution Engine
 │   ├── mycelium-start         ← session-start wrapper
 │   ├── install-myceliumd.sh   ← install runtime outside Documents for launchd
 │   ├── deploy-myceliumd.sh    ← install + verify deploy
@@ -24,8 +27,8 @@ mycelium/
 │   ├── detect-patterns.py     ← Phase 1: Skill Garden
 │   ├── branch.py              ← Phase 2: Conversation Tree
 │   └── findings.py            ← Phase 3: Vuln Hunter Notebook
-├── docs/
-│   └── myceliumd-runtime.md   ← dev source vs installed runtime workflow
+├── evolution/                 ← self-evolution data (gitignored)
+├── web/                       ← local web UI (dashboard, stream, vault, recall)
 ├── branches/                  ← conversation branches (Phase 2)
 └── garden/                    ← skill auto-grow (Phase 1)
     ├── patterns.json          ← recurring patterns detected

@@ -17,9 +17,8 @@ from pathlib import Path
 from datetime import datetime
 from collections import Counter
 
-MYCELIUM = Path.home() / "Documents/mycelium"
-LOG = MYCELIUM / "log.jsonl"
-BRANCHES = MYCELIUM / "branches"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mycelium_lib import LOG, BRANCHES
 
 
 def load_all():

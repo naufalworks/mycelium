@@ -15,7 +15,7 @@ def load_mycelium_module():
 
 def test_rebuild_index_indexes_all_type_finding_entries_with_normalized_defaults(tmp_path):
     module = load_mycelium_module()
-    module.INDEX = tmp_path / "index.db"
+    index_path = tmp_path / "index.db"
     entries = [
         {"turn": 1, "type": "finding", "finding": {"type": "SQLi", "target": "admin", "severity": "critical", "detail": "auth bypass"}},
         {"turn": 2, "type": "finding", "finding": {"type": "status-check", "target": "grav-shim", "result": "alive"}},
@@ -24,10 +24,10 @@ def test_rebuild_index_indexes_all_type_finding_entries_with_normalized_defaults
         {"turn": 5, "type": "talk", "finding": {"type": "noise", "target": "ignored", "severity": "high"}},
     ]
 
-    module.rebuild_index(entries)
+    module.rebuild_index(entries, path=index_path)
 
     log_finding_count = sum(1 for entry in entries if entry.get("type") == "finding")
-    with sqlite3.connect(module.INDEX) as conn:
+    with sqlite3.connect(str(index_path)) as conn:
         db_finding_count = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
         rows = conn.execute(
             "SELECT turn, target, ftype, severity FROM findings ORDER BY turn"

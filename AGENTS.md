@@ -29,13 +29,32 @@ mycelium/
 ├── index.db                   ← SQLite index for fast queries (gitignored)
 ├── archive/                   ← compacted old sessions (gitignored, NEVER deleted)
 ├── scripts/
-│   ├── mycelium.py            ← NEW unified CLI (status, resume, search, verify, archive)
+│   ├── mycelium_lib.py        ← shared library (paths, entities, tier, hash, index)
+│   ├── mycelium.py            ← unified CLI (status, resume, search, verify, archive)
+│   ├── append.py              ← single-turn append (incremental index, always-on evolution)
+│   ├── myceliumd.py           ← safety-net daemon (imports from Hermes state.db)
+│   ├── precheck.py            ← pre-flight health gate
+│   ├── evolution.py           ← Phase 4: Self-Evolution Engine
 │   ├── detect-patterns.py     ← Phase 1: Skill Garden
 │   ├── branch.py              ← Phase 2: Conversation Tree
 │   └── findings.py            ← Phase 3: Vuln Hunter Notebook
+├── evolution/                 ← self-evolution data (gitignored)
+├── web/                       ← local web UI (dashboard, stream, vault, recall)
 ├── branches/                  ← conversation branches (gitignored)
 └── garden/                    ← skill garden state (gitignored)
 ```
+
+## Architecture
+
+All scripts import shared constants from `mycelium_lib.py` — no more duplicated
+entity lists, tier rules, or path resolution across files. Paths resolve dynamically
+via `Path(__file__)` so the same code works from both source (`~/Documents/mycelium/`)
+and runtime (`~/.hermes/myceliumd/runtime/`) locations.
+
+- `append.py` uses **incremental index update** (O(1) per turn) instead of full rebuild (O(n))
+- `append.py` includes **always-on evolution detection** (no flag needed)
+- `append.py` uses **seek-based last-line read** (O(1) vs O(n))
+- Shared constants: `KNOWN_ENTITIES`, `ENTITY_PATTERNS`, `TIER_RULES` — single source of truth
 
 ## Log format v2 (tiered + integrity chain)
 
