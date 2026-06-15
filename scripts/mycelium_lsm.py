@@ -4,7 +4,7 @@ mycelium_lsm.py — LSM-tree memory for agent conversations.
 
 Three-tier storage:
   L0 (Hot):  last N turns, full text, dict-based O(1) lookup
-  L1 (Warm): compressed JSONL segments (gzip)
+  L1 (Warm): compressed JSONL segments (zstd-with-dict when available, gzip fallback)
   L2 (Cold): one-line summaries + entity tags
 
 Condition-based compaction (NOT time-based):
@@ -18,7 +18,7 @@ Hash chain spans all levels for integrity verification.
 
 from __future__ import annotations
 
-import gzip, hashlib, json, os, time
+import gzip, hashlib, json, os, struct, time
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
@@ -28,6 +28,30 @@ from mycelium_lib import (
     MYCELIUM, LOG, INDEX, load_log, compute_hash,
     classify_tier, extract_entities, init_index,
 )
+from zstd_compress import MyceliumZstdDict
+
+# Compression magic bytes for format detection
+_MAGIC_ZSTD = b"\x28\xb5\x2f\xfd"  # zstd (LE: 0xFD2FB528)
+_MAGIC_GZIP = b"\x1f\x8b"
+
+
+def _fallback_decompress(data: bytes) -> str:
+    """Decompress segment data, detecting format via magic bytes.
+
+    Used when no trained zstd dict is available. Handles both zstd (generic)
+    and gzip. Dict-compressed zstd data requires the trained codec.
+    """
+    if len(data) >= 4 and data[:4] == _MAGIC_ZSTD:
+        try:
+            import zstandard as zstd
+            return zstd.ZstdDecompressor().decompress(data).decode("utf-8")
+        except Exception:
+            raise RuntimeError("zstd data but zstd library not available")
+    if len(data) >= 2 and data[:2] == _MAGIC_GZIP:
+        return gzip.decompress(data).decode("utf-8")
+    # Unknown — try as plain text
+    return data.decode("utf-8")
+
 
 
 # ── Configuration ───────────────────────────────────────────
@@ -77,8 +101,9 @@ class L0Layer:
 class L1Segment:
     """A single compressed JSONL segment on disk."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, zstd_codec: MyceliumZstdDict | None = None):
         self.path = path
+        self._zstd = zstd_codec
         self._entries: list[dict] | None = None
         self._turns: set[int] | None = None
 
@@ -89,8 +114,12 @@ class L1Segment:
             self._entries = []
             self._turns = set()
             return
-        with gzip.open(self.path, "rt", encoding="utf-8") as f:
-            self._entries = [json.loads(line) for line in f if line.strip()]
+        raw = self.path.read_bytes()
+        if self._zstd:
+            text = self._zstd.decompress(raw).decode("utf-8")
+        else:
+            text = _fallback_decompress(raw)
+        self._entries = [json.loads(line) for line in text.splitlines() if line.strip()]
         self._turns = {e.get("turn", 0) for e in self._entries}
 
     def get(self, turn: int) -> dict | None:
@@ -128,12 +157,23 @@ class L1Layer:
         self.base.mkdir(parents=True, exist_ok=True)
         self.max_segments = max_segments
         self._segments: list[L1Segment] | None = None
+        # Load zstd dict codec if trained dict exists
+        self._zstd: MyceliumZstdDict | None = None
+        dict_path = base_path / "dicts" / "mycelium.dict.zst"
+        if dict_path.exists():
+            try:
+                self._zstd = MyceliumZstdDict(dict_path)
+            except Exception:
+                pass
 
     def _discover(self) -> list[L1Segment]:
         if self._segments is not None:
             return self._segments
-        files = sorted(self.base.glob("seg_*.jsonl.gz"))
-        self._segments = [L1Segment(f) for f in files]
+        files = sorted(
+            list(self.base.glob("seg_*.jsonl.gz"))
+            + list(self.base.glob("seg_*.jsonl.zst"))
+        )
+        self._segments = [L1Segment(f, self._zstd) for f in files]
         return self._segments
 
     def segment_count(self) -> int:
@@ -162,11 +202,18 @@ class L1Layer:
         if not entries:
             return None
         turns = [e.get("turn", 0) for e in entries]
-        seg_name = f"seg_{min(turns):06d}_{max(turns):06d}.jsonl.gz"
-        seg_path = self.base / seg_name
-        with gzip.open(seg_path, "wt", encoding="utf-8") as f:
-            for e in entries:
-                f.write(json.dumps(e, ensure_ascii=False) + "\n")
+        if self._zstd:
+            seg_name = f"seg_{min(turns):06d}_{max(turns):06d}.jsonl.zst"
+            seg_path = self.base / seg_name
+            lines = "\n".join(json.dumps(e, ensure_ascii=False) for e in entries) + "\n"
+            compressed = self._zstd.compress(lines.encode("utf-8"))
+            seg_path.write_bytes(compressed)
+        else:
+            seg_name = f"seg_{min(turns):06d}_{max(turns):06d}.jsonl.gz"
+            seg_path = self.base / seg_name
+            with gzip.open(seg_path, "wt", encoding="utf-8") as f:
+                for e in entries:
+                    f.write(json.dumps(e, ensure_ascii=False) + "\n")
         # Invalidate cache
         self._segments = None
         return seg_path

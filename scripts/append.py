@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mycelium_lib import (
     MYCELIUM, LOG, INDEX, extract_entities, classify_tier,
-    compute_hash, load_last_entry, update_index,
+    compute_hash, load_last_entry, update_index, init_index,
 )
 
 
@@ -124,6 +124,19 @@ def main():
     # ── Incremental index update — O(1) instead of O(n) full rebuild ──
     if not args.no_index:
         update_index(entry)
+
+    # ── Update attention table ──
+    TIER_SCORES = {"S": 1.0, "A": 0.7, "B": 0.4, "C": 0.1}
+    if not args.no_index:
+        aconn = init_index()
+        now_str = entry["ts"]
+        score = TIER_SCORES.get(entry["tier"], 0.4)
+        aconn.execute(
+            "INSERT OR REPLACE INTO attention (turn, score, hit_count, last_referenced, first_seen) VALUES (?,?,?,?,?)",
+            (turn, score, 1, now_str, now_str),
+        )
+        aconn.commit()
+        aconn.close()
 
     print(f"✅ Turn {turn} appended [{entry['tier']}] {args.session}: {args.type}")
     return 0

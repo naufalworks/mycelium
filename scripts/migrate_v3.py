@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mycelium_lib import (
     MYCELIUM, LOG, INDEX, ARCHIVE,
     load_log, init_index, rebuild_index,
-    compute_hash, extract_entities,
+    compute_hash, extract_entities, classify_tier,
 )
 from mycelium_lsm import MyceliumLSM
 from mycelium_bloom import MyceliumBloom
@@ -147,10 +147,23 @@ def migrate(log_path: str | Path | None = None,
     stats["causal_edges"] = causal_count
     ce.close()
 
-    # ── 8. Initialize attention tracker ──────────────────────
+    # ── 8. Populate attention tracker ──────────────────────
+    TIER_SCORES = {"S": 1.0, "A": 0.7, "B": 0.4, "C": 0.1}
     at = AttentionTracker(db_path=base / "index.db")
+    for entry in entries:
+        turn = entry.get("turn", 0)
+        tier = entry.get("tier", classify_tier(entry))
+        score = TIER_SCORES.get(tier, 0.4)
+        hit_count = 1 if tier in ("S", "A") else 0
+        ts = entry.get("ts", "")
+        at.conn.execute(
+            "INSERT OR REPLACE INTO attention (turn, score, hit_count, last_referenced, first_seen) VALUES (?,?,?,?,?)",
+            (turn, score, hit_count, ts, ts),
+        )
+    at.conn.commit()
     at.close()
     stats["attention_initialized"] = True
+    stats["attention_populated"] = len(entries)
 
     # ── 9. Verify hash chain integrity ──────────────────────
     integrity = lsm.verify_integrity()

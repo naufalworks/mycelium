@@ -232,6 +232,7 @@ INDEX_SCHEMA = """
         score REAL DEFAULT 0.0,
         hit_count INTEGER DEFAULT 0,
         last_referenced TEXT,
+        first_seen TEXT,
         last_promoted TEXT,
         last_demoted TEXT
     );
@@ -246,6 +247,11 @@ def init_index(path=None) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=OFF")
     conn.executescript(INDEX_SCHEMA)
+    # Migration: add first_seen column if missing (pre-v3 attention table)
+    try:
+        conn.execute("SELECT first_seen FROM attention LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE attention ADD COLUMN first_seen TEXT")
     return conn
 
 

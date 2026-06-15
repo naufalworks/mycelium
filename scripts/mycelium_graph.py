@@ -25,6 +25,33 @@ from itertools import combinations
 from mycelium_lib import MYCELIUM, INDEX, init_index, extract_entities, load_log
 
 
+# ── Stop words / junk entity filter ────────────────────────────
+
+STOP_WORDS = frozenset({
+    # common function words
+    'the', 'and', 'for', 'not', 'you', 'our', 'was', 'has', 'its', 'may',
+    'can', 'use', 'new', 'old', 'get', 'set', 'run', 'did', 'yes', 'no',
+    'all', 'any', 'but', 'per', 'via', 'vs', 'on', 'to', 'do', 'be',
+    'if', 'in', 'it', 'ok', 'so', 'at', 'by',
+    # short tech terms that create noisy edges
+    'bash', 'json', 'git', 'sql', 'jsonl', 'tail',
+    # misspellings / junk
+    'doesnt', 'dont', 'isnt',
+})
+
+_HAS_LETTER = re.compile(r'[a-zA-Z]')
+
+
+def _valid_entity(entity: str) -> bool:
+    """Return True if entity passes noise filter."""
+    e = entity.strip().lower()
+    return (
+        len(e) >= 3
+        and e not in STOP_WORDS
+        and bool(_HAS_LETTER.search(e))
+    )
+
+
 # ── Verb patterns for semantic edge detection ──────────────────
 
 _EDGE_VERBS = {
@@ -66,7 +93,8 @@ class EntityGraph:
         turn = entry.get("turn", 0)
         session = entry.get("session", "")
         ts = entry.get("ts", "")
-        entities = entry.get("entities", [])
+        raw_entities = entry.get("entities", [])
+        entities = [e for e in raw_entities if _valid_entity(e)]
         user = entry.get("user", "")
         assistant = entry.get("assistant", "")
         text = (user + " " + assistant).lower()
@@ -91,6 +119,8 @@ class EntityGraph:
                     if ent_lower in text[m.start():]:
                         words_before = text[:m.start()].split()
                         source = words_before[-1] if words_before else "context"
+                        if not _valid_entity(source):
+                            source = "context"
                         edges.append({
                             "source": source,
                             "target": ent,
