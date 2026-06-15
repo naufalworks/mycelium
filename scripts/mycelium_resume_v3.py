@@ -287,7 +287,7 @@ class ResumeV3:
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="V3 Mycelium Resume")
-    parser.add_argument("--hint", "-h", default=None, help="User hint for entity enrichment")
+    parser.add_argument("--hint", default=None, help="User hint for entity enrichment")
     parser.add_argument("--tokens", "-t", type=int, default=2000, help="Token budget")
     parser.add_argument("--stats", action="store_true", help="Brain stats only")
     args = parser.parse_args()

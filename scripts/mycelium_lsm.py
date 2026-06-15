@@ -447,6 +447,7 @@ class MyceliumLSM:
             "l1_size_bytes": self.l1.total_size_bytes(),
             "l2_summaries": self.l2.summary_count(),
             "l2_entries": self.l2.total_entries(),
+            "l2_size_bytes": self.l2.total_size_bytes(),
             "total_entries": (
                 self.l0.count()
                 + self.l1.total_entries()
