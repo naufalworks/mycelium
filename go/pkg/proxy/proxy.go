@@ -20,8 +20,9 @@ import (
 )
 
 const (
-	DefaultPort  = "8443"
-	UpstreamHost = "api.anthropic.com"
+	DefaultPort     = "8443"
+	DefaultUpstream = "https://api.anthropic.com"
+	UpstreamHost    = "api.anthropic.com"
 )
 
 // Proxy intercepts Claude Code ↔ Anthropic API traffic.
@@ -36,7 +37,7 @@ type Proxy struct {
 func New(b *brain.Brain) *Proxy {
 	return &Proxy{
 		Brain:    b,
-		Upstream: fmt.Sprintf("https://%s", UpstreamHost),
+		Upstream: DefaultUpstream,
 		Port:     DefaultPort,
 	}
 }

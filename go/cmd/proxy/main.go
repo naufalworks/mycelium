@@ -19,11 +19,11 @@ import (
 
 func main() {
 	port := flag.String("port", proxy.DefaultPort, "Listen port")
+	upstream := flag.String("upstream", proxy.DefaultUpstream, "Upstream API URL (e.g. http://localhost:8080)")
 	root := flag.String("root", "", "Mycelium root directory (auto-detect if empty)")
 	flag.Parse()
 
 	log.SetFlags(log.Ltime | log.Lshortfile)
-	log.Printf("🧬 Mycelium Proxy starting...")
 
 	b, err := brain.New(*root)
 	if err != nil {
@@ -36,13 +36,9 @@ func main() {
 
 	p := proxy.New(b)
 	p.Port = *port
+	p.Upstream = *upstream
 
-	fmt.Printf(`
-🧬 Mycelium Proxy active on 127.0.0.1:%s
-   Set ANTHROPIC_BASE_URL=http://127.0.0.1:%s to route Claude Code through it.
-   Brain: %s (%d entries)
-
-`, *port, *port, b.LogPath, count)
+	log.Printf("🧬 Mycelium proxy → %s", p.Upstream)
 
 	if err := p.Start(); err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Proxy error: %v\n", err)
