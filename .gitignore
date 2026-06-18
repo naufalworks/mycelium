@@ -67,3 +67,6 @@ web/frontend/.vite/
 # Go binaries
 go/mycelium-proxy
 go/mycelium-mcp
+install.sh
+mycelium
+myceliumd

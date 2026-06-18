@@ -102,3 +102,31 @@ e2e: test go-all
 	go run ./go/cmd/verify/main.go 2>/dev/null || true
 	python3 scripts/precheck.py --stats
 	python3 scripts/mycelium.py verify
+
+.PHONY: install
+install: go-install install-hooks
+	@echo "🍄 Mycelium installed! Run 'mycelium status' to verify."
+
+.PHONY: go-install
+go-install:
+	cd go && go build -o /usr/local/bin/mycelium ./cmd/mycelium/
+	cd go && go build -o /usr/local/bin/myceliumd ./cmd/myceliumd/
+	cd go && go build -o /usr/local/bin/mycelium-proxy ./cmd/proxy/
+	cd go && go build -o /usr/local/bin/mycelium-mcp ./cmd/mcp/
+	@echo "✅ Go binaries installed to /usr/local/bin"
+
+.PHONY: uninstall
+uninstall:
+	rm -f /usr/local/bin/mycelium /usr/local/bin/myceliumd /usr/local/bin/mycelium-proxy /usr/local/bin/mycelium-mcp
+	-launchctl unload ~/Library/LaunchAgents/com.naufal.myceliumd.plist 2>/dev/null
+	rm -f ~/Library/LaunchAgents/com.naufal.myceliumd.plist
+	@echo "🧹 Mycelium uninstalled"
+
+.PHONY: backup
+backup:
+	mycelium backup
+
+.PHONY: restore
+restore:
+	@echo "Usage: make restore ARCHIVE=<path>"
+	mycelium restore $(ARCHIVE)
