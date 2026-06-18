@@ -174,16 +174,22 @@ func (p *Proxy) forwardAndCapture(r *http.Request, body []byte) ([]byte, string)
 }
 
 // handleStreaming processes SSE responses, reconstructing the full text.
+// Supports Anthropic format and generic OpenAI-compatible format.
 func (p *Proxy) handleStreaming(resp *http.Response) ([]byte, string) {
 	var fullText strings.Builder
 	var respBody bytes.Buffer
+
+	// Copy headers to client first
+	// Then stream the body through while capturing
+
+	// Use io.TeeReader to capture and forward simultaneously
 	tee := io.TeeReader(resp.Body, &respBody)
 
+	// Try to extract text from SSE events
 	scanner := bufio.NewScanner(tee)
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// SSE data lines
 		if strings.HasPrefix(line, "data: ") {
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" || data == "" {
@@ -195,7 +201,7 @@ func (p *Proxy) handleStreaming(resp *http.Response) ([]byte, string) {
 				continue
 			}
 
-			// content_block_delta events carry the actual text
+			// Anthropic format: content_block_delta → delta.text
 			if event["type"] == "content_block_delta" {
 				if delta, ok := event["delta"].(map[string]any); ok {
 					if text, ok := delta["text"].(string); ok {
@@ -203,10 +209,46 @@ func (p *Proxy) handleStreaming(resp *http.Response) ([]byte, string) {
 					}
 				}
 			}
+
+			// OpenAI-compatible format (used by some gateways): choices[].delta.content
+			if choices, ok := event["choices"].([]any); ok {
+				for _, c := range choices {
+					if choice, ok := c.(map[string]any); ok {
+						if delta, ok := choice["delta"].(map[string]any); ok {
+							if text, ok := delta["content"].(string); ok {
+								fullText.WriteString(text)
+							}
+						}
+						if msg, ok := choice["message"].(map[string]any); ok {
+							if content, ok := msg["content"].(string); ok {
+								fullText.WriteString(content)
+							}
+						}
+					}
+				}
+			}
+
+			// Unified format: some gateways use content directly
+			if content, ok := event["content"].(string); ok && content != "" {
+				fullText.WriteString(content)
+			}
+		}
+
+		// Non-SSE: plain text line (fallback)
+		if !strings.HasPrefix(line, "event:") && !strings.HasPrefix(line, ":") && line != "" {
+			if fullText.Len() == 0 {
+				fullText.WriteString(line)
+			}
 		}
 	}
 
-	return respBody.Bytes(), fullText.String()
+	text := fullText.String()
+	if text == "" {
+		// Fallback: use raw response body
+		text = fmt.Sprintf("[streaming response: %d bytes]", respBody.Len())
+	}
+
+	return respBody.Bytes(), text
 }
 
 // logConversation logs a user↔assistant pair to mycelium.
