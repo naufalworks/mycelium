@@ -83,6 +83,12 @@ func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Extract user message (last user turn)
 	userMsg := extractUserMessage(msgReq)
 
+	// Skip internal noise (suggestion mode, system reminders)
+	if userMsg == "" || strings.HasPrefix(userMsg, "[SUGGESTION MODE:") || strings.HasPrefix(userMsg, "<system-reminder>") {
+		p.passthroughWithBody(w, r, body)
+		return
+	}
+
 	// Query past context from mycelium
 	var contextEntries []*brain.Entry
 	if userMsg != "" {
@@ -379,23 +385,15 @@ func extractAssistantResponse(resp map[string]any) string {
 }
 
 func extractSession(req map[string]any) string {
-	// Try to extract a session identifier from system prompt or metadata
+	// Extract a clean session identifier from metadata
 	if meta, ok := req["metadata"].(map[string]any); ok {
-		if userID, ok := meta["user_id"].(string); ok && userID != "" {
-			return userID
+		// Prefer session_id (clean UUID)
+		if sessionID, ok := meta["session_id"].(string); ok && sessionID != "" {
+			return sessionID[:min(len(sessionID), 20)]
 		}
-	}
-	// Try system prompt
-	if system, ok := req["system"].(string); ok {
-		words := strings.Fields(system)
-		if len(words) > 0 {
-			// Use first meaningful word as session hint
-			for _, w := range words {
-				w = strings.TrimSpace(w)
-				if len(w) > 4 {
-					return fmt.Sprintf("proxy-%s", strings.ToLower(w[:min(len(w), 20)]))
-				}
-			}
+		// Fallback to user_id
+		if userID, ok := meta["user_id"].(string); ok && userID != "" {
+			return userID[:min(len(userID), 20)]
 		}
 	}
 	return fmt.Sprintf("proxy-%d", time.Now().Unix())
