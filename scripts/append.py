@@ -17,7 +17,7 @@ Usage:
 
 Types: talk (default), finding, decision, idea, dead-end, gardener, tech_verdict
 """
-import argparse, fcntl, json, os, sys, subprocess
+import argparse, fcntl, json, os, sys
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -27,33 +27,24 @@ from mycelium_lib import (
     MYCELIUM, LOG, INDEX, extract_entities, classify_tier,
     compute_hash, load_last_entry, update_index, init_index,
 )
+from evolution import detect_corrections, log_failure
 
 
 def _detect_and_log_corrections(user_text: str, session: str) -> None:
     """Always-on evolution: scan user text for correction signals, log if found.
     Non-blocking — failures are silently swallowed so append is never blocked."""
-    evo_script = MYCELIUM / "scripts" / "evolution.py"
-    if not evo_script.exists():
-        return
     try:
-        result = subprocess.run(
-            [sys.executable, str(evo_script), "watch", user_text],
-            capture_output=True, text=True, timeout=5
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            watch_data = json.loads(result.stdout)
-            if watch_data.get("detected"):
-                for cat in watch_data.get("categories", []):
-                    subprocess.run(
-                        [sys.executable, str(evo_script), "log",
-                         "--session", session,
-                         "--category", cat,
-                         "--user", user_text[:200],
-                         "--correction", user_text[:200]],
-                        capture_output=True, timeout=5
-                    )
-                print(f"🧬 Evolution: detected {len(watch_data['categories'])} correction signal(s)")
-    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+        signals = detect_corrections(user_text)
+        if signals:
+            for s in signals:
+                log_failure(
+                    session=session,
+                    category=s["category"],
+                    user_msg=user_text[:200],
+                    correction=user_text[:200],
+                )
+            print(f"🧬 Evolution: detected {len(signals)} correction signal(s)")
+    except Exception:
         pass  # non-critical
 
 

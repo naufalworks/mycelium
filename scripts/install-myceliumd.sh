@@ -109,15 +109,16 @@ cat > "$PLIST_PATH" <<PLIST
   <array>
     <string>$PYTHON_BIN</string>
     <string>$SCRIPTS_DIR/myceliumd.py</string>
-    <string>--once</string>
-    <string>--no-http</string>
   </array>
 
   <key>RunAtLoad</key>
   <true/>
 
-  <key>StartInterval</key>
-  <integer>60</integer>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
 
   <key>WorkingDirectory</key>
   <string>$RUNTIME_DIR</string>

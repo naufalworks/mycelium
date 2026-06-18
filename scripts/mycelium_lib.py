@@ -245,7 +245,7 @@ def init_index(path=None) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(path))
     conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=OFF")
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(INDEX_SCHEMA)
     # Migration: add first_seen column if missing (pre-v3 attention table)
