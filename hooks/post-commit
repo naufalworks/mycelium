@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# 🧬 Mycelium Live Echo — Git post-commit hook.
+# Auto-logs every git commit to mycelium.
+#
+# Installed by: hooks/install.sh
+# Manual: cp hooks/post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit
+
+set -euo pipefail
+
+MYCELIUM_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+APPEND_SCRIPT="$MYCELIUM_DIR/scripts/append.py"
+
+# Only log if append.py exists (don't block commits)
+if [[ ! -x "$APPEND_SCRIPT" ]]; then
+  exit 0
+fi
+
+# Get commit info
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+COMMIT_MSG=$(git log -1 --format="%s" 2>/dev/null || echo "")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+FILES_CHANGED=$(git diff --stat HEAD~1..HEAD 2>/dev/null | tail -1 || echo "0")
+
+# Skip merge commits and trivial messages
+if [[ "$COMMIT_MSG" == Merge* ]] || [[ -z "$COMMIT_MSG" ]]; then
+  exit 0
+fi
+
+# Log to mycelium
+"$APPEND_SCRIPT" \
+  --session "git" \
+  --type "decision" \
+  "git commit ($BRANCH): $COMMIT_MSG" \
+  "${BRANCH}: ${COMMIT_HASH} — ${FILES_CHANGED}" \
+  2>/dev/null || true

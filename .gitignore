@@ -63,3 +63,7 @@ web/frontend/.vite/
 
 # Git
 *.orig
+
+# Go binaries
+go/mycelium-proxy
+go/mycelium-mcp

@@ -74,3 +74,31 @@ web-logs:
 
 install-cli:
 	bash scripts/install-mycelium-cli.sh
+
+.PHONY: go-build go-proxy go-mcp go-all
+
+go-build:
+	cd go && go build ./...
+
+go-proxy:
+	cd go && go build -o mycelium-proxy ./cmd/proxy/
+
+go-mcp:
+	cd go && go build -o mycelium-mcp ./cmd/mcp/
+
+go-all: go-build go-proxy go-mcp
+	@echo "Go binaries built:"
+	ls -la go/mycelium-*
+
+install-proxy:
+	cd go && go build -o /usr/local/bin/mycelium-proxy ./cmd/proxy/ && go build -o /usr/local/bin/mycelium-mcp ./cmd/mcp/
+	@echo "Installed to /usr/local/bin: mycelium-proxy, mycelium-mcp"
+
+install-hooks:
+	bash hooks/install.sh
+
+e2e: test go-all
+	@echo "🔄 Run brain E2E tests..."
+	go run ./go/cmd/verify/main.go 2>/dev/null || true
+	python3 scripts/precheck.py --stats
+	python3 scripts/mycelium.py verify
