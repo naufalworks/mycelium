@@ -62,11 +62,9 @@ func (p *Proxy) Stop() error {
 
 // handleRequest is the main HTTP handler. It acts as a transparent proxy.
 func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
-	// Only intercept messages API calls
-	if !strings.Contains(r.URL.Path, "/v1/messages") {
-		p.passthrough(w, r)
-		return
-	}
+	// Intercept ALL API calls — log everything that looks like a chat request
+	// This works with any backend (Anthropic, meshgate, OpenAI-compatible, etc.)
+	log.Printf("➡️  %s %s", r.Method, r.URL.Path)
 
 	// Read and parse the request body
 	body, err := io.ReadAll(r.Body)
