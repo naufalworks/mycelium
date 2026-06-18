@@ -246,6 +246,7 @@ def init_index(path=None) -> sqlite3.Connection:
     conn = sqlite3.connect(str(path))
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=OFF")
+    conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(INDEX_SCHEMA)
     # Migration: add first_seen column if missing (pre-v3 attention table)
     try:
@@ -267,16 +268,19 @@ def update_index(entry: dict, path=None) -> None:
     assistant = entry.get("assistant", "")
     summary = (user[:80] + " \u2192 " + assistant[:80])[:240]
 
+    # Delete child rows first to respect foreign key constraints
+    conn.execute("DELETE FROM entities WHERE turn=?", (turn,))
+    finding = entry.get("finding")
+    if not finding:
+        conn.execute("DELETE FROM findings WHERE turn=?", (turn,))
+
     conn.execute(
         "INSERT OR REPLACE INTO turns (turn, tier, type, session, ts, summary) VALUES (?,?,?,?,?,?)",
         (turn, tier, typ, session, ts, summary)
     )
-    # Clear old entities for this turn (in case of re-insert)
-    conn.execute("DELETE FROM entities WHERE turn=?", (turn,))
     for ent in entry.get("entities", extract_entities(user + " " + assistant)):
         conn.execute("INSERT INTO entities (turn, entity) VALUES (?, ?)", (turn, ent))
 
-    finding = entry.get("finding")
     if finding:
         conn.execute(
             "INSERT OR REPLACE INTO findings (turn, target, ftype, severity) VALUES (?,?,?,?)",
@@ -296,9 +300,9 @@ def rebuild_index(entries=None, path=None) -> tuple:
     if entries is None:
         entries = load_log()
     conn = init_index(path)
-    conn.execute("DELETE FROM turns")
     conn.execute("DELETE FROM entities")
     conn.execute("DELETE FROM findings")
+    conn.execute("DELETE FROM turns")
 
     for e in entries:
         turn = e.get("turn", 0)

@@ -245,3 +245,58 @@ class AttentionTracker:
             "promoted_count": promoted_count,
             "demoted_count": demoted_count,
         }
+
+
+if __name__ == "__main__":
+    import sys
+    import json as _json
+
+    t = AttentionTracker()
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "stats"
+
+    if cmd == "top":
+        limit = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+        entries = t.top_entries(limit)
+        if not entries:
+            print("No attention entries with scores > 0")
+        else:
+            print(f"Top {len(entries)} most-attended entries:")
+            for e in entries:
+                print(f"  turn={e['turn']:5d}  hits={e['hit_count']}  score={e['current_score']:.4f}  last={e['last_referenced'][:19] if e['last_referenced'] else 'never'}")
+
+    elif cmd == "stale":
+        limit = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+        entries = t.stale_entries(limit)
+        if not entries:
+            print("No stale entries found")
+        else:
+            print(f"Stale entries (never referenced):")
+            for e in entries:
+                print(f"  turn={e['turn']:5d}  hits={e['hit_count']}  score={e['current_score']:.4f}")
+
+    elif cmd == "decay":
+        result = t.decay_batch()
+        print(f"Decay complete: {len(result['promoted'])} promoted, {len(result['demoted'])} demoted")
+        for p in result["promoted"]:
+            print(f"  PROMOTE turn={p['turn']} → tier={p['tier']}")
+        for d in result["demoted"]:
+            print(f"  DEMOTE turn={d['turn']} → tier={d['tier']}")
+
+    elif cmd == "stats":
+        s = t.stats()
+        print(f"Attention Tracker:")
+        print(f"  Total tracked: {s['total_tracked']}")
+        print(f"  Avg score:     {s['avg_score']}")
+        print(f"  Promoted:      {s['promoted_count']}")
+        print(f"  Demoted:       {s['demoted_count']}")
+
+    elif cmd == "score":
+        turn = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+        score = t.score(turn)
+        print(f"Turn {turn} score: {score:.4f}")
+
+    else:
+        print(f"Usage: {sys.argv[0]} [top|stale|decay|stats|score] [limit|turn]")
+        sys.exit(1)
+
+    t.close()

@@ -17,7 +17,7 @@ Usage:
 
 Types: talk (default), finding, decision, idea, dead-end, gardener, tech_verdict
 """
-import argparse, json, os, sys, subprocess
+import argparse, fcntl, json, os, sys, subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -114,12 +114,16 @@ def main():
     entry["entities"] = extract_entities(args.user + " " + args.assistant)
     entry["hash"] = compute_hash(entry, prev_hash)
 
-    # ── Append single line — O(1) ──
+    # ── Append single line — O(1) with file locking ──
     LOG.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG, "a") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        f.flush()
-        os.fsync(f.fileno())
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
 
     # ── Incremental index update — O(1) instead of O(n) full rebuild ──
     if not args.no_index:
