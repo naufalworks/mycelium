@@ -33,6 +33,12 @@ from mycelium_lib import (
     DEFAULT_TIER,
 )
 
+# Import semantic memory layer
+from mycelium_memory import (
+    init_tables, insert_fact, recall_facts, search_facts,
+    create_snapshot, get_snapshot, last_snapshot, fact_stats
+)
+
 # Daemon health check (replaced Python web.backend after Go migration)
 DAEMON_URL = "http://127.0.0.1:20151"
 
@@ -370,6 +376,321 @@ def cmd_search(query):
         print(f"{turn:>5} {tier:4s} {typ:12s} {session[:25]:25s} {(summary or '')[:60]}")
 
 
+# ── Semantic Memory commands ──────────────────────────────
+
+def _init_memory():
+    """Ensure memory tables exist."""
+    init_tables()
+
+
+def _cmd_fact():
+    """Manage memory facts.
+    Usage: mycelium fact list [--type credential|decision|idea|preference]
+           mycelium fact add <entity> <attribute> <value> [--type fact]
+           mycelium fact search <query>
+           mycelium fact stats
+    """
+    _init_memory()
+
+    if len(sys.argv) < 3:
+        print("Usage:")
+        print("  mycelium fact list [--type <type>]")
+        print("  mycelium fact add <entity> <attr> <value> [--type <type>]")
+        print("  mycelium fact search <query>")
+        print("  mycelium fact stats")
+        return
+
+    sub = sys.argv[2]
+
+    if sub == "stats":
+        stats = fact_stats()
+        print("🧠 Memory Fact Stats")
+        print("-" * 40)
+        print(f"  Total facts:    {stats['total_facts']}")
+        print(f"  By type:")
+        for t, c in sorted(stats["by_type"].items()):
+            print(f"    {t}: {c}")
+        print(f"  By tier:")
+        for t, c in sorted(stats["by_tier"].items()):
+            print(f"    {t}: {c}")
+        print(f"  Snapshots:      {stats['total_snapshots']}")
+        return
+
+    if sub == "list":
+        ftype = None
+        if "--type" in sys.argv:
+            ftype = sys.argv[sys.argv.index("--type") + 1]
+        facts = recall_facts(fact_type=ftype, limit=30)
+        if not facts:
+            print("No facts found.")
+            return
+        print(f"{'Type':14s} {'Entity':20s} {'Attribute':20s} {'Value':40s} {'Conf':5s} {'Tier'}")
+        print("-" * 105)
+        for f in facts:
+            val = f["value"][:38]
+            print(f"{f['fact_type']:14s} {f['entity'][:20]:20s} {f['attribute'][:20]:20s} "
+                  f"{val:40s} {f['confidence']:.2f}  T{f['tier']}")
+        return
+
+    if sub == "search":
+        if len(sys.argv) < 4:
+            print("Usage: mycelium fact search <query>")
+            return
+        query = sys.argv[3]
+        facts = search_facts(query)
+        if not facts:
+            print(f"No facts matching '{query}'.")
+            return
+        print(f"{'Type':14s} {'Entity':20s} {'Attribute':20s} {'Value':40s}")
+        print("-" * 100)
+        for f in facts:
+            val = f["value"][:38]
+            print(f"{f['fact_type']:14s} {f['entity'][:20]:20s} {f['attribute'][:20]:20s} {val:40s}")
+        return
+
+    if sub == "add":
+        if len(sys.argv) < 6:
+            print("Usage: mycelium fact add <entity> <attribute> <value> [--type fact]")
+            return
+        entity, attr, value = sys.argv[3], sys.argv[4], sys.argv[5]
+        ftype = "fact"
+        if "--type" in sys.argv:
+            ftype = sys.argv[sys.argv.index("--type") + 1]
+        ok = insert_fact(entity, attr, value, fact_type=ftype)
+        print(f"{'✅' if ok else '📌'} fact {'inserted' if ok else 'updated'}: {entity}.{attr} = {value[:60]}")
+        return
+
+    print(f"Unknown fact subcommand: {sub}")
+
+
+def _cmd_recall():
+    """Recall facts from semantic memory using natural language.
+    Usage: mycelium recall <question>
+    """
+    _init_memory()
+
+    if len(sys.argv) < 3:
+        print("Usage: mycelium recall <question>")
+        print("Example: mycelium recall what is the metabase api key")
+        return
+
+    question = " ".join(sys.argv[2:])
+
+    # Try LLM-powered query translation
+    try:
+        from mycelium_llm import query_to_sql
+        sql = query_to_sql(question)
+    except ImportError:
+        sql = None
+
+    if sql:
+        import sqlite3
+        from mycelium_lib import INDEX
+        try:
+            db = sqlite3.connect(str(INDEX))
+            db.row_factory = sqlite3.Row
+            rows = db.execute(sql).fetchall()
+            db.close()
+            if rows:
+                print(f"🔍 {question}")
+                print("-" * 60)
+                for r in rows:
+                    d = dict(r)
+                    print(f"  [{d.get('fact_type','?')}] {d.get('entity','')}.{d.get('attribute','')} = {d.get('value','')}")
+                    if d.get('confidence'):
+                        print(f"       confidence={d['confidence']:.2f}  tier=T{d.get('tier','?')}  session={d.get('source_session','')}")
+                return
+        except Exception:
+            pass
+
+    # Fallback: direct fact search with word-level matching
+    import re
+    words = [w.lower() for w in re.findall(r'\w+', question) if len(w) > 2]
+    facts = []
+    if words:
+        from mycelium_lib import INDEX
+        import sqlite3
+        db = sqlite3.connect(str(INDEX))
+        db.row_factory = sqlite3.Row
+        # Search for any matching word across entity/attribute/value
+        conditions = " OR ".join(["(entity LIKE ? OR attribute LIKE ? OR value LIKE ?)" for _ in words])
+        params = []
+        for w in words:
+            params.extend([f"%{w}%", f"%{w}%", f"%{w}%"])
+        try:
+            rows = db.execute(f"""
+                SELECT * FROM memory_facts
+                WHERE {conditions}
+                ORDER BY confidence DESC, tier ASC, updated_at DESC
+                LIMIT 15
+            """, params).fetchall()
+            facts = [dict(r) for r in rows]
+        except Exception:
+            pass
+        db.close()
+
+    if facts:
+        print(f"🔍 {question}")
+        print("-" * 60)
+        for f in facts[:10]:
+            print(f"  [{f['fact_type']}] {f['entity']}.{f['attribute']} = {f['value'][:80]}")
+        return
+
+    # Last fallback: full brain search
+    print(f"⚠️ No facts found for '{question}'. Try mycelium search '{question}' for brain log search.")
+
+
+def _cmd_snapshot():
+    """Create a context snapshot of a session.
+    Usage: mycelium snapshot [--session <session_id>]
+           mycelium snapshot list
+    """
+    _init_memory()
+
+    if len(sys.argv) >= 3 and sys.argv[2] == "list":
+        import sqlite3
+        from mycelium_lib import INDEX
+        db = sqlite3.connect(str(INDEX))
+        rows = db.execute("""
+            SELECT session_id, summary, created_at, turn_count
+            FROM context_snapshots ORDER BY created_at DESC LIMIT 20
+        """).fetchall()
+        db.close()
+        if not rows:
+            print("No snapshots yet.")
+            return
+        print(f"{'Session':30s} {'Turns':6s} {'Summary'}")
+        print("-" * 90)
+        for r in rows:
+            print(f"{r[0][:30]:30s} {str(r[3] or 0):6s} {(r[1] or '')[:50]}")
+        return
+
+    # Generate snapshot from recent log entries
+    from mycelium_lib import load_log
+    entries = load_log()
+
+    # Get last non-trivial session
+    sessions = {}
+    for e in entries:
+        sid = e.get("session", "unknown")
+        if sid not in sessions:
+            sessions[sid] = []
+        sessions[sid].append(e)
+
+    # Find the most recent session with > 2 entries
+    target_session = None
+    target_entries = []
+    for sid in reversed(list(sessions.keys())):
+        if len(sessions[sid]) > 2 and sid != "mycelium-auto":
+            target_session = sid
+            target_entries = sessions[sid]
+            break
+
+    if not target_session:
+        print("No significant session found for snapshot.")
+        return
+
+    # Try LLM-powered summary
+    try:
+        from mycelium_llm import summarize_session, extract_facts
+        texts = [json.dumps(e) for e in target_entries]
+
+        summary = summarize_session(texts, target_session)
+        if summary:
+            snapshot_data = {
+                "session_id": target_session,
+                "summary": summary.get("summary", ""),
+                "topics": summary.get("topics", []),
+                "decisions": summary.get("decisions", []),
+                "entities": summary.get("entities", []),
+                "credentials": summary.get("credentials", []),
+                "turn_count": len(target_entries),
+                "last_turn_hash": target_entries[-1].get("hash", ""),
+            }
+            create_snapshot(**snapshot_data)
+            print(f"✅ Snapshot created for {target_session}")
+            print(f"   Summary: {summary.get('summary', '')[:80]}")
+
+            # Also extract facts
+            for fact in extract_facts(texts, target_session):
+                insert_fact(
+                    entity=fact.get("entity", "unknown"),
+                    attribute=fact.get("attribute", "value"),
+                    value=str(fact.get("value", "")),
+                    fact_type=fact.get("fact_type", "fact"),
+                    confidence=float(fact.get("confidence", 0.5)),
+                    source_session=target_session,
+                    entropy=float(fact.get("entropy", 0.5)),
+                )
+            print(f"   Facts extracted: ✓")
+            return
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"  ⚠️ LLM summary failed: {e}")
+
+    # Fallback: basic snapshot without LLM
+    from mycelium_lib import extract_entities
+    all_text = " ".join(e.get("user", "") + " " + e.get("assistant", "") for e in target_entries[-10:])
+    ents = extract_entities(all_text)
+    create_snapshot(
+        session_id=target_session,
+        summary=f"Session with {len(target_entries)} turns",
+        topics=ents[:8],
+        entities=ents[:12],
+        turn_count=len(target_entries),
+        last_turn_hash=target_entries[-1].get("hash", ""),
+    )
+    print(f"📝 Basic snapshot created for {target_session} ({len(target_entries)} turns)")
+
+
+def _cmd_context():
+    """Show last session context.
+    Usage: mycelium context
+    """
+    _init_memory()
+
+    snap = last_snapshot()
+    if not snap:
+        print("No context snapshots yet. Run 'mycelium snapshot' first.")
+        return
+
+    print("🧠 Last Session Context")
+    print("=" * 60)
+    print(f"  Session:    {snap.get('session_id')}")
+    print(f"  Summary:    {snap.get('summary', '')}")
+    print(f"  Turns:      {snap.get('turn_count', 0)}")
+    print(f"  Created:    {snap.get('created_at', '')}")
+
+    topics = snap.get("topics", [])
+    if topics:
+        print(f"\n  Topics:     {', '.join(topics[:8])}")
+
+    decisions = snap.get("decisions", [])
+    if decisions:
+        print(f"\n  Decisions:")
+        for d in decisions:
+            print(f"    • {d}")
+
+    credentials = snap.get("credentials", [])
+    if credentials:
+        print(f"\n  Credentials:")
+        for c in credentials:
+            svc = c.get("service", c.get("entity", "?"))
+            typ = c.get("type", "?")
+            val = c.get("value", "?")
+            print(f"    • {svc} ({typ}): {val}")
+
+    # Show hot-tier facts
+    facts = recall_facts(tier=0, limit=8)
+    if facts:
+        print(f"\n  Hot facts:")
+        for f in facts:
+            print(f"    [{f['fact_type']}] {f['entity']}.{f['attribute']} = {str(f['value'])[:60]}")
+
+    print(f"\n  Run 'mycelium recall <question>' to query facts")
+
+
 # ─── Main dispatcher ────────────────────────────────────────
 def main():
     if len(sys.argv) < 2:
@@ -384,6 +705,13 @@ def main():
               archive [days=30]   Compact old sessions, archive raw entries
               search <query>      Search log + index
               migrate             Upgrade log to v2 format
+
+  Memory:
+              fact                Manage memory facts (list, add, search, stats)
+              recall <question>   Semantic recall via natural language
+              snapshot            Create context snapshot of last session
+              context             Show last session context + hot facts
+              compact             Entropy-weighted memory compaction
         """))
         return
 
@@ -410,6 +738,19 @@ def main():
             print("Usage: mycelium search <query>")
             return
         cmd_search(sys.argv[2])
+
+    # ── Semantic Memory subcommands ──
+    elif cmd == "fact":
+        _cmd_fact()
+    elif cmd == "recall":
+        _cmd_recall()
+    elif cmd == "snapshot":
+        _cmd_snapshot()
+    elif cmd == "context":
+        _cmd_context()
+    elif cmd == "compact":
+        from mycelium_memory import full_compact
+        full_compact()
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

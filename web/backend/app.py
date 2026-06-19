@@ -23,6 +23,13 @@ from .services.backup_service import (
     restore_snapshot,
     verify_snapshot,
 )
+from .services.memory_service import (
+    handle_stats as memory_stats,
+    handle_facts as memory_facts,
+    handle_recall as memory_recall,
+    handle_patterns as memory_patterns,
+    handle_snapshots as memory_snapshots,
+)
 from .services.status_service import (
     get_connections,
     get_daemon_state,
@@ -302,6 +309,44 @@ def api_lsm_stats():
         return lsm.stats()
     except Exception as e:
         return {"error": str(e)}
+
+
+# ── Semantic Memory API ────────────────────────────────────
+
+@app.get("/api/memory/stats")
+def api_memory_stats():
+    try:
+        return memory_stats({})
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/memory/facts")
+def api_memory_facts(type: str = "", limit: int = 30):
+    try:
+        return memory_facts({"type": type, "limit": limit})
+    except Exception as e:
+        return {"facts": [], "error": str(e)}
+
+@app.get("/api/memory/recall")
+def api_memory_recall(q: str = ""):
+    try:
+        return memory_recall({"q": q})
+    except Exception as e:
+        return {"facts": [], "error": str(e)}
+
+@app.get("/api/memory/patterns")
+def api_memory_patterns():
+    try:
+        return memory_patterns({})
+    except Exception as e:
+        return {"patterns": [], "error": str(e)}
+
+@app.get("/api/memory/snapshots")
+def api_memory_snapshots():
+    try:
+        return memory_snapshots({})
+    except Exception as e:
+        return {"snapshots": [], "error": str(e)}
 
 
 @app.get("/{full_path:path}")

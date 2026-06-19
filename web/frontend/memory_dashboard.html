@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium Memory Browser</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 { font-size: 24px; }
+  .header h1 span { color: var(--accent); }
+  .header .sub { color: var(--dim); font-size: 13px; }
+  .stats-bar {
+    display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 20px; flex: 1; min-width: 140px;
+  }
+  .stat-card .num { font-size: 28px; font-weight: 600; }
+  .stat-card .label { color: var(--dim); font-size: 12px; margin-top: 4px; }
+  .stat-card .num.credential { color: var(--accent); }
+  .stat-card .num.decision { color: var(--orange); }
+  .stat-card .num.idea { color: var(--purple); }
+  .stat-card .num.fact { color: var(--green); }
+  .row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .section {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; flex: 1; min-width: 300px;
+  }
+  .section h2 {
+    font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--dim); margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section h2 .badge {
+    float: right; background: var(--border); padding: 1px 8px;
+    border-radius: 10px; font-size: 11px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--dim); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  .type-badge {
+    display: inline-block; font-size: 10px; padding: 1px 7px;
+    border-radius: 10px; background: var(--border);
+  }
+  .type-credential { background: #0d419d; color: var(--accent); }
+  .type-decision { background: #3d2e00; color: var(--orange); }
+  .type-idea { background: #3d1f6d; color: var(--purple); }
+  .type-preference { background: #0d3d2e; color: var(--green); }
+  .truncate {
+    max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; display: inline-block; vertical-align: middle;
+  }
+  .context-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin-bottom: 12px;
+  }
+  .context-card .session { font-weight: 600; }
+  .context-card .meta { color: var(--dim); font-size: 12px; margin: 4px 0 8px; }
+  .context-card .summary { margin-bottom: 8px; }
+  .topic-tag {
+    display: inline-block; font-size: 11px; padding: 2px 10px;
+    margin: 2px 3px; border-radius: 12px;
+    background: var(--border); color: var(--accent);
+  }
+  .bar-chart { margin: 8px 0; }
+  .bar-row { display: flex; align-items: center; margin: 4px 0; font-size: 12px; }
+  .bar-label { width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-fill { height: 16px; border-radius: 3px; min-width: 4px; transition: width 0.3s; }
+  .bar-val { margin-left: 8px; color: var(--dim); min-width: 40px; }
+  .empty { color: var(--dim); font-style: italic; font-size: 13px; padding: 20px; text-align: center; }
+  .refresh { float: right; font-size: 12px; color: var(--accent); cursor: pointer; }
+  .recall-box {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .recall-box input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px; color: var(--text); font-size: 14px;
+  }
+  .recall-box input:focus { outline: none; border-color: var(--accent); }
+  .recall-box button {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 6px; padding: 10px 20px; cursor: pointer; font-size: 14px;
+  }
+  .recall-box button:hover { opacity: 0.9; }
+  #recall-result { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🧠 <span>Mycelium</span> Memory Browser</h1>
+    <div class="sub">Organized semantic memory — credentials, decisions, patterns, and context</div>
+  </div>
+  <div>
+    <button onclick="location.reload()" style="background:var(--border);color:var(--text);border:none;border-radius:6px;padding:8px 16px;cursor:pointer;">🔄 Refresh</button>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-card"><div class="num fact" id="stat-total">—</div><div class="label">Total Facts</div></div>
+  <div class="stat-card"><div class="num credential" id="stat-cred">—</div><div class="label">Credentials</div></div>
+  <div class="stat-card"><div class="num decision" id="stat-decision">—</div><div class="label">Decisions</div></div>
+  <div class="stat-card"><div class="num idea" id="stat-idea">—</div><div class="label">Ideas</div></div>
+  <div class="stat-card"><div class="num fact" id="stat-hot">—</div><div class="label">Hot (Tier 0)</div></div>
+  <div class="stat-card"><div class="num" id="stat-snap" style="color:var(--orange)">—</div><div class="label">Snapshots</div></div>
+</div>
+
+<!-- Recall -->
+<div class="recall-box">
+  <input id="recall-input" placeholder="Ask your memory... (e.g. 'what API keys do I have?')" onkeydown="if(event.key==='Enter')doRecall()">
+  <button onclick="doRecall()">🔍 Recall</button>
+</div>
+<div id="recall-result"></div>
+
+<div class="row">
+  <!-- Credentials -->
+  <div class="section" style="flex:1.2">
+    <h2>🔑 Credentials <span class="badge" id="cred-count">0</span></h2>
+    <div id="cred-list"><div class="empty">Loading...</div></div>
+  </div>
+  <!-- User Patterns -->
+  <div class="section" style="flex:1">
+    <h2>📊 Frequent Topics <span class="badge" id="pat-count">0</span></h2>
+    <div id="pattern-list"><div class="empty">Loading...</div></div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Decisions -->
+  <div class="section">
+    <h2>⚡ Decisions <span class="badge" id="dec-count">0</span></h2>
+    <div id="decision-list"><div class="empty">Loading...</div></div>
+  </div>
+  <!-- Ideas -->
+  <div class="section">
+    <h2>💡 Ideas <span class="badge" id="idea-count">0</span></h2>
+    <div id="idea-list"><div class="empty">Loading...</div></div>
+  </div>
+</div>
+
+<!-- Context Timeline -->
+<h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim);margin:16px 0 8px;">📜 Session Context Timeline</h2>
+<div id="timeline"><div class="empty">Loading...</div></div>
+
+<script>
+const API = window.location.port === '8421' ? 'http://127.0.0.1:8421' : 'http://127.0.0.1:8420';
+
+async function apiGet(path) {
+  try {
+    const r = await fetch(API + path);
+    return await r.json();
+  } catch(e) {
+    return {error: e.message};
+  }
+}
+
+async function doRecall() {
+  const q = document.getElementById('recall-input').value.trim();
+  if (!q) return;
+  const div = document.getElementById('recall-result');
+  div.innerHTML = '<div class="empty">Searching...</div>';
+  try {
+    const r = await fetch(`${API}/api/memory/recall?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    if (data.facts && data.facts.length) {
+      let html = '<div class="context-card"><div style="font-weight:600;margin-bottom:8px;">🔍 ' +
+                 q + '</div><table><tr><th>Type</th><th>Entity</th><th>Attribute</th><th>Value</th></tr>';
+      for (const f of data.facts) {
+        html += `<tr><td><span class="type-badge type-${f.fact_type}">${f.fact_type}</span></td>
+                 <td>${esc(f.entity)}</td><td>${esc(f.attribute)}</td>
+                 <td class="truncate">${esc(String(f.value).substring(0,60))}</td></tr>`;
+      }
+      html += '</table></div>';
+      div.innerHTML = html;
+    } else {
+      div.innerHTML = '<div class="empty">No facts found for "' + q + '"</div>';
+    }
+  } catch(e) {
+    div.innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+async function loadAll() {
+  // Stats
+  const stats = await apiGet('/api/memory/stats');
+  if (!stats.error) {
+    document.getElementById('stat-total').textContent = stats.total_facts || 0;
+    document.getElementById('stat-cred').textContent = stats.by_type?.credential || 0;
+    document.getElementById('stat-decision').textContent = stats.by_type?.decision || 0;
+    document.getElementById('stat-idea').textContent = stats.by_type?.idea || 0;
+    document.getElementById('stat-hot').textContent = stats.by_tier?.tier_0 || 0;
+    document.getElementById('stat-snap').textContent = stats.total_snapshots || 0;
+    document.getElementById('cred-count').textContent = stats.by_type?.credential || 0;
+    document.getElementById('dec-count').textContent = stats.by_type?.decision || 0;
+    document.getElementById('idea-count').textContent = stats.by_type?.idea || 0;
+  }
+
+  // Credentials
+  const creds = await apiGet('/api/memory/facts?type=credential');
+  if (creds.facts && creds.facts.length) {
+    let html = '<table><tr><th>Service</th><th>Type</th><th>Value</th></tr>';
+    for (const f of creds.facts) {
+      html += `<tr><td>${esc(f.entity)}</td><td>${esc(f.attribute)}</td>
+               <td class="truncate">${esc(String(f.value).substring(0,40))}</td></tr>`;
+    }
+    html += '</table>';
+    document.getElementById('cred-list').innerHTML = html;
+  } else {
+    document.getElementById('cred-list').innerHTML = '<div class="empty">No credentials stored</div>';
+  }
+
+  // Decisions
+  const decisions = await apiGet('/api/memory/facts?type=decision');
+  if (decisions.facts && decisions.facts.length) {
+    let html = '<table><tr><th>Context</th><th>Decision</th><th>Session</th></tr>';
+    for (const f of decisions.facts) {
+      html += `<tr><td>${esc(f.entity)}</td><td>${esc(String(f.value).substring(0,60))}</td>
+               <td style="color:var(--dim);font-size:12px;">${esc(f.source_session || '').substring(0,20)}</td></tr>`;
+    }
+    html += '</table>';
+    document.getElementById('decision-list').innerHTML = html;
+  } else {
+    document.getElementById('decision-list').innerHTML = '<div class="empty">No decisions recorded</div>';
+  }
+
+  // Ideas
+  const ideas = await apiGet('/api/memory/facts?type=idea');
+  if (ideas.facts && ideas.facts.length) {
+    let html = '<table><tr><th>Idea</th><th>Session</th></tr>';
+    for (const f of ideas.facts) {
+      html += `<tr><td>${esc(String(f.value).substring(0,80))}</td>
+               <td style="color:var(--dim);font-size:12px;">${esc(f.source_session || '').substring(0,20)}</td></tr>`;
+    }
+    html += '</table>';
+    document.getElementById('idea-list').innerHTML = html;
+  } else {
+    document.getElementById('idea-list').innerHTML = '<div class="empty">No ideas captured</div>';
+  }
+
+  // Patterns (frequent entities)
+  const patterns = await apiGet('/api/memory/patterns');
+  if (patterns.patterns && patterns.patterns.length) {
+    const max = Math.max(...patterns.patterns.map(p => p.count));
+    let html = '<div class="bar-chart">';
+    for (const p of patterns.patterns) {
+      const pct = Math.max(4, (p.count / max) * 100);
+      html += `<div class="bar-row">
+                <div class="bar-label">${esc(p.entity)}</div>
+                <div class="bar-fill" style="width:${pct}%;background:var(--accent)"></div>
+                <div class="bar-val">${p.count}</div>
+              </div>`;
+    }
+    html += '</div>';
+    document.getElementById('pattern-list').innerHTML = html;
+    document.getElementById('pat-count').textContent = patterns.patterns.length;
+  } else {
+    document.getElementById('pattern-list').innerHTML = '<div class="empty">No pattern data yet</div>';
+  }
+
+  // Timeline (context snapshots)
+  const snaps = await apiGet('/api/memory/snapshots');
+  if (snaps.snapshots && snaps.snapshots.length) {
+    let html = '';
+    for (const s of snaps.snapshots) {
+      html += `<div class="context-card">
+                <div class="session">📝 ${esc(s.session_id || '?')}</div>
+                <div class="meta">${esc(s.created_at || '')} · ${s.turn_count || 0} turns</div>
+                <div class="summary">${esc(s.summary || '')}</div>`;
+      if (s.topics && s.topics.length) {
+        for (const t of s.topics.slice(0,6)) {
+          html += `<span class="topic-tag">${esc(t)}</span>`;
+        }
+      }
+      html += '</div>';
+    }
+    document.getElementById('timeline').innerHTML = html;
+  } else {
+    document.getElementById('timeline').innerHTML = '<div class="empty">No snapshots yet — run mycelium snapshot</div>';
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>
