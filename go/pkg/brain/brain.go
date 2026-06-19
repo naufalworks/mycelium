@@ -19,6 +19,11 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"database/sql"
+	"log"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // ── Paths (mirrors mycelium_lib.py) ──────────────────────────────────────────
@@ -493,6 +498,157 @@ func (b *Brain) Search(query string, limit int) []*Entry {
 		out[i] = results[i].entry
 	}
 	return out
+}
+
+// ── Unlocked helper ─────────────────────────────────────────────────────────
+
+// recentEntriesUnsafe returns recent entries without locking (caller must hold mu).
+func (b *Brain) recentEntriesUnsafe(n int) []*Entry {
+	entries, err := b.loadLogUnsafe()
+	if err != nil || len(entries) == 0 {
+		return nil
+	}
+	if n <= 0 || n > len(entries) {
+		n = len(entries)
+	}
+	return entries[len(entries)-n:]
+}
+
+// ── Enhanced search methods ──────────────────────────────────────────────────
+
+// SearchMultiKeyword splits query into keywords and scores entries by
+// how many keywords match. More relevant than single-substring search.
+func (b *Brain) SearchMultiKeyword(query string, limit int) []*Entry {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	entries, err := b.loadLogUnsafe()
+	if err != nil || len(entries) == 0 {
+		return nil
+	}
+
+	keywords := strings.Fields(strings.ToLower(query))
+	if len(keywords) == 0 {
+		return b.recentEntriesUnsafe(limit)
+	}
+
+	type scored struct {
+		entry *Entry
+		score int
+	}
+	var results []scored
+
+	for _, e := range entries {
+		score := 0
+		user := strings.ToLower(e.User)
+		asst := strings.ToLower(e.Assistant)
+		session := strings.ToLower(e.Session)
+
+		for _, kw := range keywords {
+			if strings.Contains(user, kw) {
+				score += 2
+			}
+			if strings.Contains(asst, kw) {
+				score += 2
+			}
+			if strings.Contains(session, kw) {
+				score += 1
+			}
+			for _, ent := range e.Entities {
+				if strings.Contains(strings.ToLower(ent), kw) {
+					score += 1
+					break
+				}
+			}
+		}
+
+		if score > 0 {
+			results = append(results, scored{e, score})
+		}
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].score != results[j].score {
+			return results[i].score > results[j].score
+		}
+		return results[i].entry.Turn > results[j].entry.Turn
+	})
+
+	if limit <= 0 || limit > len(results) {
+		limit = len(results)
+	}
+	out := make([]*Entry, limit)
+	for i := 0; i < limit; i++ {
+		out[i] = results[i].entry
+	}
+	return out
+}
+
+// SearchFTS uses the existing SQLite index.db for faster search.
+// Falls back to SearchMultiKeyword if the index isn't available.
+func (b *Brain) SearchFTS(query string, limit int) []*Entry {
+	// The index.db path is in the same directory as log.jsonl
+	indexPath := filepath.Join(b.Mycelium, "index.db")
+
+	db, err := sql.Open("sqlite3", indexPath)
+	if err != nil {
+		log.Printf("brain: FTS fallback (can't open index: %v)", err)
+		return b.SearchMultiKeyword(query, limit)
+	}
+	defer db.Close()
+
+	// Use LIKE on the turns table (index.db is populated by mycelium.py on the Python side)
+	rows, err := db.Query(
+		`SELECT turn, tier, type, session, ts, summary FROM turns
+		 WHERE summary LIKE ? OR session LIKE ?
+		 ORDER BY turn DESC LIMIT ?`,
+		"%"+query+"%", "%"+query+"%", limit,
+	)
+	if err != nil {
+		log.Printf("brain: FTS fallback (query error: %v)", err)
+		return b.SearchMultiKeyword(query, limit)
+	}
+	defer rows.Close()
+
+	var results []*Entry
+	for rows.Next() {
+		var turn int
+		var tier, typ, session, ts string
+		var summary sql.NullString
+		if err := rows.Scan(&turn, &tier, &typ, &session, &ts, &summary); err != nil {
+			continue
+		}
+		results = append(results, &Entry{
+			Turn:      turn,
+			Tier:      tier,
+			Type:      typ,
+			Session:   session,
+			Timestamp: ts,
+			User:      summary.String, // summary is stored as user text
+			Assistant: "",
+		})
+	}
+
+	if len(results) > 0 {
+		return results
+	}
+	return b.SearchMultiKeyword(query, limit)
+}
+
+// SearchBest tries FTS first, falls back to multi-keyword, falls back to basic search.
+func (b *Brain) SearchBest(query string, limit int) []*Entry {
+	// Try FTS first
+	results := b.SearchFTS(query, limit)
+	if len(results) > 0 {
+		return results
+	}
+	// Fall back to multi-keyword
+	results = b.SearchMultiKeyword(query, limit)
+	if len(results) > 0 {
+		return results
+	}
+	// Ultimate fallback: basic search
+	return b.Search(query, limit)
 }
 
 // RecentEntries returns the most recent N entries.

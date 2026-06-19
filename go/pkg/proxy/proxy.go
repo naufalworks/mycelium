@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/naufalworks/mycelium/go/pkg/brain"
@@ -27,18 +28,23 @@ const (
 
 // Proxy intercepts Claude Code ↔ Anthropic API traffic.
 type Proxy struct {
-	Brain    *brain.Brain
-	Upstream string
-	Port     string
-	server   *http.Server
+	Brain         *brain.Brain
+	Upstream      string
+	Port          string
+	server        *http.Server
+	sessionLoaded map[string]bool // tracks which sessions got initial context (A1)
+	injectedTurns map[int]bool    // tracks turn IDs already injected to avoid bloat (A2)
+	mu            sync.Mutex      // protects sessionLoaded and injectedTurns
 }
 
 // New creates a new mycelium proxy.
 func New(b *brain.Brain) *Proxy {
 	return &Proxy{
-		Brain:    b,
-		Upstream: DefaultUpstream,
-		Port:     DefaultPort,
+		Brain:         b,
+		Upstream:      DefaultUpstream,
+		Port:          DefaultPort,
+		sessionLoaded: make(map[string]bool),
+		injectedTurns: make(map[int]bool),
 	}
 }
 
@@ -89,14 +95,56 @@ func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract session identifier (reused for A1 and logging)
+	session := extractSession(msgReq)
+
+	// ── A1: Session-start context loader ────────────────────────────────────
+	// For the first request in a session, load recent entries as initial context.
+	// This ensures even the first message benefits from past knowledge.
+	p.mu.Lock()
+	sessionInitialized := p.sessionLoaded[session]
+	p.mu.Unlock()
+
+	if !sessionInitialized {
+		recentEntries := p.Brain.RecentEntries(10)
+		if len(recentEntries) > 0 {
+			msgReq = injectContext(msgReq, recentEntries)
+		}
+		p.mu.Lock()
+		p.sessionLoaded[session] = true
+		for _, e := range recentEntries {
+			p.injectedTurns[e.Turn] = true
+		}
+		p.mu.Unlock()
+	}
+
 	// Query past context from mycelium
 	var contextEntries []*brain.Entry
 	if userMsg != "" {
 		contextEntries = p.Brain.Search(userMsg, 3)
 	}
 
+	// ── A2: Dedup injected context ──────────────────────────────────────────
+	// Filter out entries already injected (from session-start or prior turns)
+	// to avoid prompt bloat.
+	p.mu.Lock()
+	var filteredContext []*brain.Entry
+	for _, e := range contextEntries {
+		if !p.injectedTurns[e.Turn] {
+			filteredContext = append(filteredContext, e)
+		}
+	}
+	p.mu.Unlock()
+
 	// Inject context into system prompt
-	msgReq = injectContext(msgReq, contextEntries)
+	msgReq = injectContext(msgReq, filteredContext)
+
+	// Track injected entries for future dedup
+	p.mu.Lock()
+	for _, e := range filteredContext {
+		p.injectedTurns[e.Turn] = true
+	}
+	p.mu.Unlock()
 
 	// Marshal modified request
 	modifiedBody, err := json.Marshal(msgReq)
@@ -396,7 +444,26 @@ func extractSession(req map[string]any) string {
 			return userID[:min(len(userID), 20)]
 		}
 	}
-	return fmt.Sprintf("proxy-%d", time.Now().Unix())
+	// Fallback to ANTHROPIC_AUTH_TOKEN (stable per Claude Code config)
+	if key := os.Getenv("ANTHROPIC_AUTH_TOKEN"); key != "" {
+		if len(key) > 12 {
+			return "token-" + key[:12]
+		}
+		return "token-" + key
+	}
+	// Fallback to CLAUDE_API_KEY (stable per machine config)
+	if key := os.Getenv("CLAUDE_API_KEY"); key != "" {
+		if len(key) > 12 {
+			return "token-" + key[:12]
+		}
+		return "token-" + key
+	}
+	// Last resort: hostname-based (stable per machine)
+	host, err := os.Hostname()
+	if err != nil {
+		return fmt.Sprintf("proxy-%d", time.Now().Unix())
+	}
+	return host + "-mycelium"
 }
 
 // ── Context injection ───────────────────────────────────────────────────────

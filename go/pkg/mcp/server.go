@@ -107,6 +107,11 @@ func (s *Server) serve() error {
 }
 
 func (s *Server) handle(req *Request) {
+	// Skip notifications (no ID → no response expected)
+	if req.ID == nil {
+		return
+	}
+
 	switch req.Method {
 	case "initialize":
 		s.respond(req.ID, map[string]any{
@@ -214,6 +219,20 @@ func (s *Server) tools() []Tool {
 				},
 			},
 		},
+		{
+			Name:        "store",
+			Description: "Store a new entry in mycelium permanent memory for future recall across sessions",
+			InputSchema: &InputSchema{
+				Type: "object",
+				Properties: map[string]SchemaProperty{
+					"user":     {Type: "string", Description: "The user message or context to store"},
+					"assistant": {Type: "string", Description: "The assistant response or finding to store"},
+					"type":     {Type: "string", Description: "Entry type: talk, finding, decision, idea, dead-end, tech_verdict (default talk)"},
+					"session":  {Type: "string", Description: "Optional session identifier"},
+					"entities": {Type: "string", Description: "Optional comma-separated entity names for better searchability"},
+				},
+			},
+		},
 	}
 }
 
@@ -238,6 +257,8 @@ func (s *Server) handleToolCall(req *Request) {
 		s.handleListEntities(req.ID, args)
 	case "get_state":
 		s.handleGetState(req.ID, args)
+	case "store":
+		s.handleStore(req.ID, args)
 	default:
 		s.respondError(req.ID, -32601, fmt.Sprintf("Unknown tool: %s", name))
 	}
@@ -375,6 +396,107 @@ func (s *Server) handleGetState(id any, args map[string]any) {
 			)},
 		},
 	})
+}
+
+// ── Store tool ──────────────────────────────────────────────────────────────
+
+func (s *Server) handleStore(id any, args map[string]any) {
+	user, _ := args["user"].(string)
+	assistant, _ := args["assistant"].(string)
+	entryType, _ := args["type"].(string)
+	session, _ := args["session"].(string)
+	entitiesStr, _ := args["entities"].(string)
+
+	if user == "" && assistant == "" {
+		s.respondError(id, -32602, "Must provide user or assistant text")
+		return
+	}
+	if entryType == "" {
+		entryType = "talk"
+	}
+
+	var entities []string
+	if entitiesStr != "" {
+		for _, e := range strings.Split(entitiesStr, ",") {
+			e = strings.TrimSpace(e)
+			if e != "" {
+				entities = append(entities, e)
+			}
+		}
+	}
+
+	// Auto-extract entities from text (simple word extraction)
+	if len(entities) == 0 {
+		words := extractKeywords(user + " " + assistant)
+		entities = words
+	}
+
+	entry := &brain.Entry{
+		Type:      entryType,
+		Session:   session,
+		User:      user[:min(len(user), 500)],
+		Assistant: assistant[:min(len(assistant), 2000)],
+		Entities:  entities,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}
+
+	saved, err := s.Brain.Append(entry)
+	if err != nil {
+		s.respondError(id, -32603, fmt.Sprintf("Failed to store: %v", err))
+		return
+	}
+
+	s.respond(id, map[string]any{
+		"content": []map[string]any{
+			{
+				"type": "text",
+				"text": fmt.Sprintf("Stored turn %d in mycelium [type=%s, session=%s]", saved.Turn, entryType, session),
+			},
+		},
+	})
+}
+
+func extractKeywords(text string) []string {
+	text = strings.ToLower(text)
+	// Common stop words to skip
+	stopWords := map[string]bool{
+		"the": true, "a": true, "an": true, "is": true, "are": true, "was": true,
+		"were": true, "be": true, "been": true, "being": true, "have": true,
+		"has": true, "had": true, "do": true, "does": true, "did": true,
+		"will": true, "would": true, "could": true, "should": true, "may": true,
+		"might": true, "shall": true, "can": true, "need": true, "dare": true,
+		"to": true, "of": true, "in": true, "for": true, "on": true, "with": true,
+		"at": true, "by": true, "from": true, "and": true, "or": true, "but": true,
+		"not": true, "this": true, "that": true, "it": true, "its": true, "you": true,
+		"i": true, "me": true, "my": true, "we": true, "our": true, "us": true,
+		"they": true, "them": true, "their": true, "he": true, "she": true, "him": true,
+		"her": true, "his": true, "what": true, "which": true, "who": true, "how": true,
+		"when": true, "where": true, "why": true, "ok": true, "yes": true, "no": true,
+		"please": true, "thanks": true, "thank": true, "hi": true, "hello": true,
+		"hey": true, "so": true, "just": true, "like": true, "also": true, "very": true,
+		"really": true, "well": true, "then": true, "there": true, "here": true,
+		"about": true, "into": true, "over": true, "after": true, "before": true,
+		"if": true, "as": true, "because": true, "up": true,
+		"down": true, "out": true, "off": true, "all": true, "each": true, "every": true,
+		"some": true, "any": true, "more": true, "most": true, "other": true, "such": true,
+		"only": true, "own": true, "same": true, "than": true, "too": true,
+	}
+
+	seen := make(map[string]bool)
+	var keywords []string
+	for _, word := range strings.Fields(text) {
+		// Remove punctuation
+		word = strings.Trim(word, ".,!?;:\"'()[]{}/<>-")
+		if len(word) < 3 || stopWords[word] || seen[word] {
+			continue
+		}
+		seen[word] = true
+		keywords = append(keywords, word)
+	}
+	if len(keywords) > 10 {
+		keywords = keywords[:10]
+	}
+	return keywords
 }
 
 // ── Formatting helpers ──────────────────────────────────────────────────────

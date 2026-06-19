@@ -70,3 +70,8 @@ go/mycelium-mcp
 install.sh
 mycelium
 myceliumd
+go/proxy
+go/proxy.log
+mycelium.db
+references/
+index.db*
