@@ -99,7 +99,7 @@ install-hooks:
 
 e2e: test go-all
 	@echo "🔄 Run brain E2E tests..."
-	go run ./go/cmd/verify/main.go 2>/dev/null || true
+	cd go && go run ./cmd/mycelium verify || true
 	python3 scripts/precheck.py --stats
 	python3 scripts/mycelium.py verify
 
