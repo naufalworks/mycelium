@@ -134,6 +134,17 @@ def main():
         aconn.close()
 
     print(f"✅ Turn {turn} appended [{entry['tier']}] {args.session}: {args.type}")
+
+    # Event trigger: non-blocking snapshot check after append
+    import subprocess, threading
+    def _auto_snapshot():
+        try:
+            hook = Path(__file__).resolve().parent.parent / "hooks" / "mycelium-auto-snapshot.sh"
+            subprocess.run(["bash", str(hook)], capture_output=True, timeout=30)
+        except Exception:
+            pass
+    threading.Thread(target=_auto_snapshot, daemon=True).start()
+
     return 0
 
 
