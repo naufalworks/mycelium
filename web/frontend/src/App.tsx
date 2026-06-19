@@ -242,23 +242,35 @@ function DashboardView({ status, stream, daemon }: { status: BrainStatus | null;
         <div className="card">
           <div className="card-header">
             <span>🕐 Recent Activity</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>latest turns</span>
           </div>
-          <div className="card-body" style={{ maxHeight: 300, overflow: 'auto' }}>
-            {stream.slice(0, 10).map(e => (
-              <div key={e.turn} className="entry-item" style={{ marginBottom: 6 }}>
-                <div className="meta">
-                  <span className={`tier-${e.tier}`}>{e.tier}</span>
-                  <span>Turn {e.turn}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    {e.ts ? new Date(e.ts).toLocaleString() : ''}
-                  </span>
-                  {e.entities?.slice(0, 3).map(ent => (
-                    <span key={ent} className="tag">{ent}</span>
-                  ))}
+          <div className="card-body" style={{ maxHeight: 350, overflow: 'auto' }}>
+            {stream.map(e => {
+              // Clean proxy garbage from assistant text
+              const assistant = e.assistant?.replace(/^data: /, '').replace(/\n/g, ' ').slice(0, 120) || ''
+              const user = e.user?.slice(0, 150) || ''
+              // Skip raw SSE noise
+              if (user.startsWith('data: ') || user.length < 3) return null
+              return (
+                <div key={e.turn} className="entry-item" style={{ marginBottom: 6 }}>
+                  <div className="meta">
+                    <span className={`tier-${e.tier}`}>● {e.tier}</span>
+                    <span>Turn {e.turn}</span>
+                    <span>{e.type}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {e.ts ? new Date(e.ts).toLocaleString() : ''}
+                    </span>
+                    {e.entities?.slice(0, 3).filter(Boolean).map(ent => (
+                      <span key={ent} className="tag">{ent}</span>
+                    ))}
+                  </div>
+                  <div className="user-text">{user}</div>
+                  {assistant && !assistant.startsWith('{"message"') && (
+                    <div className="ai-text">🤖 {assistant}{e.assistant?.length > 120 ? '...' : ''}</div>
+                  )}
                 </div>
-                <div className="user-text">{e.user?.slice(0, 120)}{e.user?.length > 120 ? '...' : ''}</div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -329,49 +341,131 @@ function MemoryView({ stream, searchQuery, onSearch, onRefresh }: {
 
 // ── Graph View ──────────────────────────────────────
 function GraphView() {
-  const [entities, setEntities] = useState<Array<{name: string; count: number}>>([])
+  const [data, setData] = useState<{nodes: any[]; links: any[]} | null>(null)
   const [loading, setLoading] = useState(true)
-  const maxCount = useMemo(() => Math.max(...entities.map(e => e.count), 1), [entities])
 
   useEffect(() => {
-    fetch(`${API}/api/graph/top`).then(r => r.json()).then((d: any) => {
-      setEntities(d.entities ?? [])
+    fetch(`${API}/api/connections`).then(r => r.json()).then(d => {
+      setData(d)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
 
   if (loading) return <div className="loading"><div className="spinner" /> Loading graph...</div>
+  if (!data) return <div className="empty-state">No graph data</div>
+
+  const sessions = data.nodes.filter((n: any) => n.kind === 'session')
+  const entities = data.nodes.filter((n: any) => n.kind === 'entity')
+  // Get top entities by link weight
+  const entityWeights: Record<string, number> = {}
+  data.links.forEach((l: any) => {
+    const target = l.target?.replace('entity:', '')
+    if (target) entityWeights[target] = (entityWeights[target] || 0) + l.weight
+  })
+  const topEntities = Object.entries(entityWeights)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 20)
 
   return (
     <>
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <div className="stat-card cyan">
-          <div className="label">Total Entities</div>
+          <div className="label">Sessions</div>
+          <div className="value">{sessions.length}</div>
+        </div>
+        <div className="stat-card blue">
+          <div className="label">Entities</div>
           <div className="value">{entities.length}</div>
-          <div className="sub">unique entities</div>
+        </div>
+        <div className="stat-card purple">
+          <div className="label">Connections</div>
+          <div className="value">{data.links.length}</div>
         </div>
       </div>
 
+      {/* Session → Entity relationships */}
+      {sessions.map((sess: any) => {
+        const sessionLinks = data.links.filter((l: any) => l.source === sess.id)
+        if (sessionLinks.length === 0) return null
+        const cleanLabel = sess.label?.replace(/^\{.*device_id.*\}/, sess.id?.split(':')[1]?.slice(0, 20) || sess.label)
+        return (
+          <div className="card" key={sess.id} style={{ marginBottom: 10 }}>
+            <div className="card-header">
+              <span>💬 {cleanLabel}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {sessionLinks.reduce((s: number, l: any) => s + l.weight, 0)} connections
+              </span>
+            </div>
+            <div className="card-body">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {sessionLinks
+                  .sort((a: any, b: any) => b.weight - a.weight)
+                  .slice(0, 8)
+                  .map((link: any) => {
+                    const label = link.target?.replace('entity:', '')
+                    return (
+                      <div key={link.target} style={{
+                        background: 'var(--bg-active)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                      }}>
+                        <span style={{ color: 'var(--accent-cyan)' }}>{label}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>×{link.weight}</span>
+                      </div>
+                    )
+                  })}
+                {sessionLinks.length > 8 && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>
+                    +{sessionLinks.length - 8} more
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Entity Relationship Map */}
       <div className="card">
         <div className="card-header">
-          <span>◎ Entity Graph — Top Entities</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>by occurrence count</span>
+          <span>◎ Entity Map — Top Connections</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>entities that co-occur together</span>
         </div>
         <div className="card-body">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {entities.map((e, i) => (
-              <div key={e.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 20, textAlign: 'right', fontSize: 11, color: 'var(--text-muted)' }}>{i + 1}</span>
-                <span style={{ width: 150, fontSize: 13, color: 'var(--text-primary)' }}>{e.name}</span>
-                <div style={{
-                  flex: 1, height: 22, borderRadius: 4,
-                  background: `linear-gradient(90deg, var(--accent-cyan), var(--accent-purple))`,
-                  width: `${(e.count / maxCount) * 100}%`,
-                  minWidth: 40,
-                  display: 'flex', alignItems: 'center', paddingLeft: 8,
-                  fontSize: 11, fontWeight: 600, color: '#000',
-                }}>
-                  {e.count}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {topEntities.map(([name, weight]) => (
+              <div key={name} style={{
+                background: 'var(--gradient-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 16px',
+                minWidth: 120,
+                flex: '1 0 auto',
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--accent-blue)' }}>{name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  {weight} connection{weight !== 1 ? 's' : ''}
+                </div>
+                {/* Find related entities */}
+                <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                  {data.links
+                    .filter(l => (l.target === `entity:${name}` || l.source === `entity:${name}`) && l.kind === 'entity-entity')
+                    .slice(0, 4)
+                    .map((l: any) => {
+                      const related = (l.target === `entity:${name}` ? l.source : l.target)?.replace('entity:', '')
+                      return related ? (
+                        <span key={related} style={{
+                          fontSize: 10, padding: '1px 6px',
+                          background: 'var(--bg-hover)', borderRadius: 3,
+                          color: 'var(--text-secondary)',
+                        }}>{related}</span>
+                      ) : null
+                    })}
                 </div>
               </div>
             ))}
