@@ -10,7 +10,7 @@ deploy-daemon:
 	bash scripts/deploy-myceliumd.sh
 
 test:
-	pytest tests/ -q
+	python3 -m pytest tests/ -q
 
 status-daemon:
 	bash scripts/status-myceliumd.sh
@@ -19,7 +19,7 @@ test-daemon-e2e:
 	bash scripts/test-myceliumd-e2e.sh
 
 test-daemon-offline:
-	pytest tests/test_myceliumd.py -q
+	python3 -m pytest tests/test_myceliumd.py -q
 
 verify:
 	python3 scripts/mycelium.py verify
@@ -43,7 +43,7 @@ web-build:
 	bash scripts/build-mycelium-web.sh
 
 web-test:
-	pytest web/backend/tests -q
+	python3 -m pytest web/backend/tests -q
 
 web:
 	bash scripts/mycelium-web start
