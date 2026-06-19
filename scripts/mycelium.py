@@ -33,21 +33,29 @@ from mycelium_lib import (
     DEFAULT_TIER,
 )
 
-from web.backend.services.paths_service import detect_split_brain_warnings, get_paths
-
-# Keep paths_service for split-brain detection
-PATHS = get_paths()
+# Daemon health check (replaced Python web.backend after Go migration)
+DAEMON_URL = "http://127.0.0.1:20151"
 
 
-def split_brain_warnings():
-    return detect_split_brain_warnings(PATHS)
+def daemon_health():
+    """Check Go myceliumd health via /health endpoint."""
+    try:
+        import urllib.request, json
+        req = urllib.request.Request(f"{DAEMON_URL}/health", method="GET")
+        with urllib.request.urlopen(req, timeout=3) as r:
+            data = json.loads(r.read().decode())
+            if data.get("ok"):
+                return []
+            return [{"message": f"Daemon unhealthy: {data}"}]
+    except Exception as e:
+        return [{"message": f"Cannot reach myceliumd at {DAEMON_URL}: {e}"}]
 
 
-def print_split_brain_warnings():
-    warnings = split_brain_warnings()
+def print_daemon_health():
+    warnings = daemon_health()
     if not warnings:
         return
-    print("MYCELIUM SPLIT-BRAIN WARNING", file=sys.stderr)
+    print("MYCELIUM DAEMON WARNING", file=sys.stderr)
     for warning in warnings:
         print(f"  {warning['message']}", file=sys.stderr)
 
@@ -380,7 +388,7 @@ def main():
         return
 
     cmd = sys.argv[1]
-    print_split_brain_warnings()
+    print_daemon_health()
 
     if cmd == "migrate":
         migrate()
