@@ -56,8 +56,11 @@ app.add_middleware(
 )
 
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+FRONTEND_SRC = Path(__file__).resolve().parents[1] / "frontend"
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+if FRONTEND_SRC.exists():
+    app.mount("/src", StaticFiles(directory=FRONTEND_SRC / "src"), name="src")
 
 
 @app.get("/api/health")
@@ -361,6 +364,17 @@ def api_memory_infer():
 
 @app.get("/{full_path:path}")
 def frontend_fallback(full_path: str):
+    # Serve memory dashboard from source if exists
+    memory_html = FRONTEND_SRC / "memory_dashboard.html"
+    if full_path == "memory_dashboard.html" and memory_html.exists():
+        return FileResponse(memory_html)
+    # Serve v3 HTML pages from source if not found in dist
+    v3_pages = {"v3_dashboard.html", "v3_graph.html", "v3_negations.html", "v3_causal.html"}
+    if full_path in v3_pages:
+        src_file = FRONTEND_SRC / full_path
+        if src_file.exists():
+            return FileResponse(src_file)
+    # Serve built frontend
     index_path = FRONTEND_DIST / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
