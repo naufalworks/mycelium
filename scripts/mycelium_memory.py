@@ -10,7 +10,7 @@ Tables:
   context_snapshots   — per-session structured summaries
 """
 
-import json, sqlite3, hashlib, time
+import json, math, sqlite3, hashlib, time
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
@@ -293,22 +293,55 @@ def _days_old(iso_ts: str) -> float:
         return 9999.0
 
 
-def _target_tier(confidence: float, entropy: float, days: float) -> int:
-    """Entropy-weighted tier assignment.
+# ── Confidence Decay Model ────────────────────────────────
+#
+# Instead of hard tier thresholds, compute a continuous
+# "retention score" R in [0, 1] using an exponential decay
+# modulated by entropy and verification count.
+#
+#   R = confidence × e^(-λ × days) × (1 + entropy × η)
+#
+# Where:
+#   λ = decay rate (higher = faster forgetting)
+#   η = entropy boost (higher-entropy facts decay slower)
+#
+# The tier is then derived from R:
+#   R >= 0.6 → hot   (tier 0)
+#   R >= 0.35 → warm (tier 1)
+#   R >= 0.15 → cool (tier 2)
+#   R < 0.15  → cold (tier 3)
 
-    A fact's survival depends on how *surprising* it is, not just recency.
-    High-entropy (novel/surprising) facts stay hot longer.
-    Low-entropy (mundane/common) facts decay faster.
+DECAY_RATE = 0.015        # λ — per day
+ENTROPY_BOOST = 0.8       # η — how much entropy slows decay
+
+
+def compute_retention(confidence: float, entropy: float, days_old: float) -> float:
+    """Compute continuous retention score R ∈ [0, 1].
+
+    A fact with confidence=1.0, entropy=1.0, 0 days old → R=1.0
+    The same fact 100 days later → R=0.22 (low)
+    But if entropy=0.8 → 100 days later → R=0.40 (still warm)
     """
-    # Novel, surprising facts → stay hot
-    if days <= HOT_DAYS and confidence >= 0.6 and entropy >= 0.4:
+    decay = (confidence * (1 + entropy * ENTROPY_BOOST)) * (1 + entropy)
+    decay_factor = (1 + entropy * ENTROPY_BOOST)  # normalize so R starts <= 1
+    raw = confidence * (1 + entropy * ENTROPY_BOOST) * math.exp(-DECAY_RATE * days_old) / decay_factor
+    return max(0.0, min(1.0, raw))
+
+
+def retention_to_tier(r: float) -> int:
+    if r >= 0.6:
         return 0
-    # High-entropy gets extra warmth even if older
-    if days <= WARM_DAYS * (1 + entropy):
+    if r >= 0.35:
         return 1
-    if days <= COOL_DAYS:
+    if r >= 0.15:
         return 2
     return 3
+
+
+def _target_tier(confidence: float, entropy: float, days: float) -> int:
+    """Continuous decay-based tier assignment."""
+    r = compute_retention(confidence, entropy, days)
+    return retention_to_tier(r)
 
 
 def compact(verbose: bool = True) -> dict:

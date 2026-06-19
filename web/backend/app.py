@@ -348,6 +348,16 @@ def api_memory_snapshots():
     except Exception as e:
         return {"snapshots": [], "error": str(e)}
 
+@app.get("/api/memory/infer")
+def api_memory_infer():
+    """Cross-session pattern inference — cached per call."""
+    try:
+        from mycelium_inference import infer_patterns
+        insights = infer_patterns()
+        return insights
+    except Exception as e:
+        return {"error": str(e), "note": "inference unavailable"}
+
 
 @app.get("/{full_path:path}")
 def frontend_fallback(full_path: str):

@@ -691,6 +691,22 @@ def _cmd_context():
     print(f"\n  Run 'mycelium recall <question>' to query facts")
 
 
+def _cmd_infer():
+    """Run cross-session pattern inference.
+    Usage: mycelium infer
+    """
+    try:
+        from mycelium_inference import infer_patterns, print_insights
+        insights = infer_patterns()
+        print_insights(insights)
+    except ImportError:
+        print("Inference engine not available.")
+    except Exception as e:
+        import traceback
+        print(f"Inference error: {e}")
+        traceback.print_exc()
+
+
 # ─── Main dispatcher ────────────────────────────────────────
 def main():
     if len(sys.argv) < 2:
@@ -712,6 +728,7 @@ def main():
               snapshot            Create context snapshot of last session
               context             Show last session context + hot facts
               compact             Entropy-weighted memory compaction
+              infer               Cross-session pattern inference
         """))
         return
 
@@ -751,6 +768,8 @@ def main():
     elif cmd == "compact":
         from mycelium_memory import full_compact
         full_compact()
+    elif cmd == "infer":
+        _cmd_infer()
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)
