@@ -56,7 +56,7 @@ def _call_llm(prompt: str, system: str = "", temperature: float = 0.1,
             method="POST",
         )
 
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with urllib.request.urlopen(req, timeout=120) as r:
             resp = json.loads(r.read().decode())
             _total_calls += 1
             usage = resp.get("usage", {})
@@ -78,8 +78,8 @@ def extract_facts(session_entries: list[str],
     Returns list of fact dicts:
       {entity, attribute, value, fact_type, confidence, entropy}
     """
-    # Take last ~30 entries (token window)
-    sample = session_entries[-30:] if len(session_entries) > 30 else session_entries
+    # Take last ~15 entries (token window — larger causes timeout on slower models)
+    sample = session_entries[-15:] if len(session_entries) > 15 else session_entries
     text = "\n".join(sample)
 
     system = """You are a memory fact extractor. From the conversation text, extract:
@@ -187,7 +187,7 @@ Output ONLY a float between 0.0 and 1.0, nothing else."""
 def summarize_session(session_entries: list[str],
                       session_id: str = "unknown") -> Optional[dict]:
     """Generate a structured summary of a session for snapshot creation."""
-    text = "\n".join(session_entries[-50:]) if session_entries else ""
+    text = "\n".join(session_entries[-20:]) if session_entries else ""
 
     system = """Read this conversation and output a JSON summary:
 
