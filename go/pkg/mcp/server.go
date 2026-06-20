@@ -8,10 +8,12 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/naufalworks/mycelium/go/pkg/artifacts"
 	"github.com/naufalworks/mycelium/go/pkg/brain"
 )
 
@@ -65,10 +67,11 @@ type ToolCallParams struct {
 
 // Server implements the MCP protocol over stdio.
 type Server struct {
-	Brain   *brain.Brain
-	mu      sync.Mutex
-	reader  *json.Decoder
-	writer  *json.Encoder
+	Brain         *brain.Brain
+	artifactStore *artifacts.Store
+	mu            sync.Mutex
+	reader        *json.Decoder
+	writer        *json.Encoder
 }
 
 // New creates an MCP server.
@@ -233,6 +236,49 @@ func (s *Server) tools() []Tool {
 				},
 			},
 		},
+		// ── Artifact tools ─────────────────────────────────
+		{
+			Name:        "artifact_run",
+			Description: "Execute a compiled prompt and store the result as a queryable artifact. Returns an artifact ID for later retrieval.",
+			InputSchema: &InputSchema{
+				Type: "object",
+				Properties: map[string]SchemaProperty{
+					"prompt": {Type: "string", Description: "Name of the compiled prompt to execute (e.g. 'extract-invoice')"},
+					"data":   {Type: "string", Description: "JSON input data for the prompt template"},
+				},
+			},
+		},
+		{
+			Name:        "artifact_get",
+			Description: "Retrieve a stored artifact by its ID. Returns the full artifact data including type, content, and creation time.",
+			InputSchema: &InputSchema{
+				Type: "object",
+				Properties: map[string]SchemaProperty{
+					"id": {Type: "string", Description: "Artifact ID (e.g. 'expense_a1b2c3d4')"},
+				},
+			},
+		},
+		{
+			Name:        "artifact_query",
+			Description: "Run a SQL SELECT query over stored artifacts to aggregate, filter, and analyze data. Use this to calculate totals, counts, and trends across artifacts without calling the LLM again.",
+			InputSchema: &InputSchema{
+				Type: "object",
+				Properties: map[string]SchemaProperty{
+					"sql": {Type: "string", Description: "SELECT query over artifacts table. Columns: id, type, name, data (JSON), prompt, prompt_version, token_cost, created_at, tags"},
+				},
+			},
+		},
+		{
+			Name:        "artifact_ls",
+			Description: "List stored artifacts, optionally filtered by type. Returns ID, type, name, and creation time.",
+			InputSchema: &InputSchema{
+				Type: "object",
+				Properties: map[string]SchemaProperty{
+					"type":  {Type: "string", Description: "Filter by artifact type (e.g. 'expense-report'). Empty = all types."},
+					"limit": {Type: "number", Description: "Max results (default 20)", Default: 20},
+				},
+			},
+		},
 	}
 }
 
@@ -259,6 +305,14 @@ func (s *Server) handleToolCall(req *Request) {
 		s.handleGetState(req.ID, args)
 	case "store":
 		s.handleStore(req.ID, args)
+	case "artifact_run":
+		s.handleArtifactRun(req.ID, args)
+	case "artifact_get":
+		s.handleArtifactGet(req.ID, args)
+	case "artifact_query":
+		s.handleArtifactQuery(req.ID, args)
+	case "artifact_ls":
+		s.handleArtifactList(req.ID, args)
 	default:
 		s.respondError(req.ID, -32601, fmt.Sprintf("Unknown tool: %s", name))
 	}
@@ -579,4 +633,111 @@ func truncate(s string, max int) string {
 
 // timeNow is overridable for testing
 var timeNow = func() string { return time.Now().UTC().Format(time.RFC3339) }
+
+func (s *Server) initArtifactStore() {
+	if s.artifactStore == nil {
+		root := filepath.Dir(s.Brain.LogPath)
+		s.artifactStore = artifacts.New(root)
+	}
+}
+
+// ── Artifact handlers ────────────────────────────────────────
+
+func (s *Server) handleArtifactRun(id any, args map[string]any) {
+	s.initArtifactStore()
+	prompt, _ := args["prompt"].(string)
+	data, _ := args["data"].(string)
+	if prompt == "" {
+		s.respondError(id, -32602, "Missing prompt name")
+		return
+	}
+
+	// Store the execution as an artifact
+	now := time.Now().UTC().Format(time.RFC3339)
+	a := &artifacts.Artifact{
+		Type:         prompt,
+		Name:         prompt,
+		Data:         json.RawMessage(fmt.Sprintf(`{"prompt":"%s","input":%q}`, prompt, data)),
+		CreatedAt:    now,
+	}
+	if err := s.artifactStore.Store(a); err != nil {
+		s.respondError(id, -32603, err.Error())
+		return
+	}
+
+	s.respond(id, map[string]any{
+		"content": []map[string]any{
+			{"type": "text", "text": fmt.Sprintf("Stored as artifact: %s\nRun `artifact_get %s` to retrieve.", a.ID, a.ID)},
+		},
+	})
+}
+
+func (s *Server) handleArtifactGet(id any, args map[string]any) {
+	s.initArtifactStore()
+	aid, _ := args["id"].(string)
+	if aid == "" {
+		s.respondError(id, -32602, "Missing artifact ID")
+		return
+	}
+
+	a, err := s.artifactStore.Get(aid)
+	if err != nil || a == nil {
+		s.respondError(id, -32603, "Artifact not found")
+		return
+	}
+
+	s.respond(id, map[string]any{
+		"content": []map[string]any{
+			{"type": "text", "text": fmt.Sprintf("Artifact %q:\nType: %s\nCreated: %s\nData: %s", a.ID, a.Type, a.CreatedAt, string(a.Data))},
+		},
+	})
+}
+
+func (s *Server) handleArtifactQuery(id any, args map[string]any) {
+	s.initArtifactStore()
+	sqlQ, _ := args["sql"].(string)
+	if sqlQ == "" {
+		s.respondError(id, -32602, "Missing SQL query")
+		return
+	}
+
+	cols, rows, err := s.artifactStore.Query(sqlQ)
+	if err != nil {
+		s.respondError(id, -32603, err.Error())
+		return
+	}
+
+	result, _ := json.Marshal(map[string]interface{}{
+		"columns": cols,
+		"rows":    rows,
+	})
+	s.respond(id, map[string]any{
+		"content": []map[string]any{
+			{"type": "text", "text": fmt.Sprintf("Query returned %d rows.\n%s", len(rows), string(result))},
+		},
+	})
+}
+
+func (s *Server) handleArtifactList(id any, args map[string]any) {
+	s.initArtifactStore()
+	atype, _ := args["type"].(string)
+	limit := int(getFloat(args, "limit", 20))
+
+	results, err := s.artifactStore.List(atype, limit, 0)
+	if err != nil {
+		s.respondError(id, -32603, err.Error())
+		return
+	}
+
+	var items []string
+	for _, a := range results {
+		items = append(items, fmt.Sprintf("  %s [%s] %s", a.ID, a.Type, a.CreatedAt))
+	}
+
+	s.respond(id, map[string]any{
+		"content": []map[string]any{
+			{"type": "text", "text": fmt.Sprintf("%d artifacts:\n%s", len(results), strings.Join(items, "\n"))},
+		},
+	})
+}
 func init() {}
