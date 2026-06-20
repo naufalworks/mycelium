@@ -676,6 +676,81 @@ func (b *Brain) Count() int {
 	return len(entries)
 }
 
+// MemoryFact is a structured fact from the memory_facts table.
+type MemoryFact struct {
+	Entity      string
+	Attribute   string
+	Value       string
+	FactType    string
+	Confidence  float64
+	SourceSession string
+}
+
+// FetchMemoryFacts queries the memory_facts table in index.db for facts
+// relevant to the given query. Returns up to `limit` facts.
+// Direct SQL reads — no HTTP dependency, under 1ms.
+func (b *Brain) FetchMemoryFacts(query string, limit int) []MemoryFact {
+	if len(query) < 3 {
+		return nil
+	}
+
+	indexPath := filepath.Join(b.Mycelium, "index.db")
+	db, err := sql.Open("sqlite3", indexPath)
+	if err != nil {
+		return nil
+	}
+	defer db.Close()
+
+	// Word-level LIKE matching against entity, attribute, and value
+	words := strings.Fields(query)
+	var conditions []string
+	var args []interface{}
+	for _, w := range words {
+		if len(w) < 3 {
+			continue
+		}
+		like := "%" + strings.ToLower(w) + "%"
+		conditions = append(conditions,
+			"(LOWER(entity) LIKE ? OR LOWER(attribute) LIKE ? OR LOWER(value) LIKE ?)")
+		args = append(args, like, like, like)
+	}
+
+	if len(conditions) == 0 {
+		return nil
+	}
+
+	sqlQuery := fmt.Sprintf(
+		`SELECT entity, attribute, value, fact_type, confidence, source_session
+		 FROM memory_facts WHERE %s
+		 ORDER BY confidence DESC, tier ASC, updated_at DESC LIMIT ?`,
+		strings.Join(conditions, " OR "),
+	)
+	args = append(args, limit)
+
+	rows, err := db.Query(sqlQuery, args...)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var facts []MemoryFact
+	for rows.Next() {
+		var f MemoryFact
+		var srcSession sql.NullString
+		if err := rows.Scan(&f.Entity, &f.Attribute, &f.Value, &f.FactType, &f.Confidence, &srcSession); err != nil {
+			continue
+		}
+		f.SourceSession = srcSession.String
+		facts = append(facts, f)
+	}
+
+	if facts == nil {
+		return []MemoryFact{}
+	}
+	return facts
+}
+
+
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
 func (b *Brain) loadLastEntrySeeked() (*Entry, error) {
