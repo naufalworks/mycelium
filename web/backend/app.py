@@ -23,16 +23,18 @@ if FRONTEND_DIST.exists():
 if FRONTEND_SRC.exists():
     app.mount("/src", StaticFiles(directory=FRONTEND_SRC / "src"), name="src")
 
-# Include route modules
+# Include route modules — catch-all must come LAST
 from .routes_core import router as core_router
 from .routes_memory import router as memory_router
 from .routes_reader import router as reader_router
 from .routes_prompts import router as prompts_router
+from .routes_fallback import router as fallback_router
 
 app.include_router(core_router)
 app.include_router(memory_router)
 app.include_router(reader_router)
 app.include_router(prompts_router)
+app.include_router(fallback_router)
 
 app.add_middleware(
     CORSMiddleware,

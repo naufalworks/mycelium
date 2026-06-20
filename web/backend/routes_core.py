@@ -261,43 +261,4 @@ def api_lsm_stats():
     except Exception as e:
         return {"error": str(e)}
 
-# ── Frontend fallback ─────────────────────────────────────
-
-@router.get("/{full_path:path}")
-def frontend_fallback(full_path: str):
-    memory_html = FRONTEND_SRC / "memory_dashboard.html"
-    if full_path == "memory_dashboard.html" and memory_html.exists():
-        return FileResponse(memory_html)
-    v3_pages = {"v3_dashboard.html", "v3_graph.html", "v3_negations.html", "v3_causal.html"}
-    if full_path in v3_pages:
-        src_file = FRONTEND_SRC / full_path
-        if src_file.exists():
-            return FileResponse(src_file)
-    index_path = FRONTEND_DIST / "index.html"
-    if index_path.exists():
-        return FileResponse(index_path)
-    return {"ok": False, "message": "frontend build missing", "hint": "run: cd web/frontend && npm run build"}
-
-def load_entries():
-    """Load entries from the brain log."""
-    try:
-        return load_entries_from_file()
-    except Exception:
-        return []
-
-def load_entries_from_file():
-    """Read entries from log.jsonl directly."""
-    import json
-    from pathlib import Path
-    log = Path(__file__).resolve().parents[2] / "log.jsonl"
-    if not log.exists():
-        return []
-    entries = []
-    with open(log) as f:
-        for line in f:
-            if line.strip():
-                try:
-                    entries.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
-    return entries
+# ── End of core routes. Catch-all frontend fallback is in routes_fallback.py.

@@ -62,7 +62,7 @@
   <div id="regressions"></div>
 
   <script>
-    const API = window.location.port === '8421' ? 'http://127.0.0.1:8421' : 'http://127.0.0.1:8420';
+    const API = window.location.port === '8421' ? '' : 'http://127.0.0.1:8421';
 
     async function traceChain() {
       const turn = parseInt(document.getElementById('turn-input').value);

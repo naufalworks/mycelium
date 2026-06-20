@@ -87,7 +87,7 @@
   <div class="status" id="status"></div>
 
   <script>
-    const API = window.location.port === '8421' ? 'http://127.0.0.1:8421' : 'http://127.0.0.1:8420';
+    const API = window.location.port === '8421' ? '' : 'http://127.0.0.1:8421';
 
     function fmt(bytes) {
       if (bytes < 1024) return bytes + ' B';
