@@ -20,6 +20,7 @@ import (
 	"github.com/naufalworks/mycelium/go/pkg/artifacts"
 	"github.com/naufalworks/mycelium/go/pkg/brain"
 	"github.com/naufalworks/mycelium/go/pkg/prompts"
+	"github.com/naufalworks/mycelium/go/pkg/reader"
 )
 
 const (
@@ -75,6 +76,12 @@ func (p *Proxy) Stop() error {
 
 // handleRequest is the main HTTP handler. It acts as a transparent proxy.
 func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
+	// Handle proxy-local API routes (reader, prompts)
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		p.handleAPIRequest(w, r)
+		return
+	}
+
 	// Intercept ALL API calls — log everything that looks like a chat request
 	// This works with any backend (Anthropic, meshgate, OpenAI-compatible, etc.)
 	log.Printf("➡️  %s %s", r.Method, r.URL.Path)
@@ -526,7 +533,45 @@ func truncate(s string, max int) string {
 	return s[:max] + "..."
 }
 
-// ── Hippocampus: Real-Time Fact Extraction ─────────────────────
+// ── Hippocampus & API Routes ───────────────────────────
+
+// handleAPIRequest handles proxy-local API endpoints.
+func (p *Proxy) handleAPIRequest(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case r.URL.Path == "/api/reader/fetch" && r.Method == "GET":
+		p.handleReaderFetch(w, r)
+	default:
+		http.NotFound(w, r)
+	}
+}
+
+// handleReaderFetch handles GET /api/reader/fetch?url=...
+func (p *Proxy) handleReaderFetch(w http.ResponseWriter, r *http.Request) {
+	url := r.URL.Query().Get("url")
+	if url == "" {
+		writeJSON(w, map[string]string{"error": "url parameter required"})
+		return
+	}
+
+	result, err := reader.Fetch(url)
+	if err != nil {
+		writeJSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, map[string]interface{}{
+		"title":      result.Title,
+		"content":    result.Content,
+		"text_only":  result.TextOnly,
+		"word_count": result.WordCount,
+		"url":        result.URL,
+	})
+}
+
+func writeJSON(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
+}
 
 // hippocampusExtract sends a single exchange to the fact extraction endpoint.
 // Called as a goroutine — never blocks the response.
