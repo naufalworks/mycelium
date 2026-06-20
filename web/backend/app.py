@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import sys
+import json, sys
 from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI
@@ -360,6 +360,45 @@ def api_memory_infer():
         return insights
     except Exception as e:
         return {"error": str(e), "note": "inference unavailable"}
+
+
+@app.post("/api/memory/extract")
+def api_memory_extract(payload: dict):
+    """Hippocampus: real-time fact extraction from a single exchange.
+    Called by Meshgate after each response. Non-blocking.
+
+    Payload: {"user": "...", "assistant": "...", "session": "..."}
+    """
+    try:
+        user = payload.get("user", "")
+        assistant = payload.get("assistant", "")
+        session = payload.get("session", "unknown")
+        if not user or not assistant:
+            return {"ok": False, "reason": "empty exchange"}
+
+        texts = [json.dumps({"user": user, "assistant": assistant})]
+
+        from mycelium_llm import extract_facts
+        facts = extract_facts(texts, session)
+
+        stored = 0
+        if facts:
+            from mycelium_memory import insert_fact
+            for f in facts:
+                insert_fact(
+                    entity=f.get("entity", "unknown"),
+                    attribute=f.get("attribute", "value"),
+                    value=str(f.get("value", "")),
+                    fact_type=f.get("fact_type", "fact"),
+                    confidence=float(f.get("confidence", 0.5)),
+                    source_session=session,
+                    entropy=float(f.get("entropy", 0.5)),
+                )
+                stored += 1
+
+        return {"ok": True, "facts_extracted": stored, "session": session}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 @app.get("/{full_path:path}")

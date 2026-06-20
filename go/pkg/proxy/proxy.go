@@ -139,6 +139,14 @@ func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Inject context into system prompt
 	msgReq = injectContext(msgReq, filteredContext)
 
+	// Anti-Memory: inject verified memory facts alongside brain context.
+	if len(userMsg) > 10 {
+		facts := fetchFactsFromMycelium(userMsg)
+		if len(facts) > 0 {
+			msgReq = injectMemoryFacts(msgReq, facts)
+		}
+	}
+
 	// Track injected entries for future dedup
 	p.mu.Lock()
 	for _, e := range filteredContext {
@@ -159,6 +167,10 @@ func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Log to mycelium
 	if userMsg != "" && assistantMsg != "" {
 		p.logConversation(userMsg, assistantMsg, msgReq, contextEntries)
+
+		// Hippocampus: real-time fact extraction after every exchange.
+		// Non-blocking — the response is never delayed.
+		go p.hippocampusExtract(userMsg, assistantMsg, session)
 	}
 
 	// Return the response
@@ -504,4 +516,105 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max] + "..."
+}
+
+
+// ── Hippocampus: Real-Time Fact Extraction ─────────────────────
+
+// myceliumAPI is the base URL of the mycelium web backend.
+const myceliumAPI = "http://127.0.0.1:8421"
+
+// hippocampusExtract sends a single exchange to the fact extraction endpoint.
+// Called as a goroutine — never blocks the response.
+func (p *Proxy) hippocampusExtract(user, assistant, session string) {
+	payload, err := json.Marshal(map[string]string{
+		"user":      user,
+		"assistant": assistant,
+		"session":   session,
+	})
+	if err != nil {
+		return
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Post(
+		myceliumAPI+"/api/memory/extract",
+		"application/json",
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return // silent fail — never break the proxy
+	}
+	resp.Body.Close()
+}
+
+
+// ── Anti-Memory: Verified Fact Injection ──────────────────────
+
+// fetchFactsFromMycelium queries the mycelium memory recall API
+// for facts relevant to the user's message.
+func fetchFactsFromMycelium(query string) []string {
+	if len(query) < 5 {
+		return nil
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(
+		fmt.Sprintf("%s/api/memory/recall?q=%s", myceliumAPI, url.QueryEscape(query)),
+	)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Facts []struct {
+			FactType  string `json:"fact_type"`
+			Entity    string `json:"entity"`
+			Attribute string `json:"attribute"`
+			Value     string `json:"value"`
+		} `json:"facts"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil
+	}
+
+	if len(result.Facts) == 0 {
+		return nil
+	}
+
+	// Format top 5 facts as concise strings
+	var facts []string
+	for i, f := range result.Facts {
+		if i >= 5 {
+			break
+		}
+		facts = append(facts, fmt.Sprintf("[%s] %s.%s = %s", f.FactType, f.Entity, f.Attribute, f.Value))
+	}
+	return facts
+}
+
+// injectMemoryFacts adds a structured <mycelium-facts> block
+// to the system prompt, giving Claude verified facts to work from.
+func injectMemoryFacts(req map[string]any, facts []string) map[string]any {
+	if len(facts) == 0 {
+		return req
+	}
+
+	var lines []string
+	lines = append(lines, "\n<mycelium-facts>")
+	lines = append(lines, "Verified facts from permanent memory:")
+	lines = append(lines, "")
+	for _, f := range facts {
+		lines = append(lines, "  "+f)
+	}
+	lines = append(lines, "</mycelium-facts>")
+	block := strings.Join(lines, "\n")
+
+	if existing, ok := req["system"].(string); ok {
+		req["system"] = existing + "\n\n" + block
+	} else {
+		req["system"] = block
+	}
+	return req
 }
