@@ -182,11 +182,20 @@ func (s *Store) List(artifactType string, limit, offset int) ([]*Artifact, error
 }
 
 // Query runs a raw SQL query over artifacts and returns the results.
-// Only SELECT is allowed. Returns column names + rows.
+// Only SELECT queries are allowed. Dangerous keywords are blocked.
 func (s *Store) Query(sqlQuery string) ([]string, []map[string]interface{}, error) {
 	sqlUpper := strings.TrimSpace(strings.ToUpper(sqlQuery))
 	if !strings.HasPrefix(sqlUpper, "SELECT") {
 		return nil, nil, fmt.Errorf("only SELECT queries allowed")
+	}
+
+	// Block dangerous operations
+	blocked := []string{"DROP ", "DELETE ", "INSERT ", "UPDATE ", "ALTER ", "CREATE ",
+		"ATTACH ", "DETACH ", "REINDEX ", "REPLACE ", "VACUUM"}
+	for _, b := range blocked {
+		if strings.Contains(sqlUpper, b) {
+			return nil, nil, fmt.Errorf("blocked keyword: %s", b)
+		}
 	}
 
 	db, err := s.db()

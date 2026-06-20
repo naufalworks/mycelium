@@ -43,7 +43,7 @@ export default function App() {
       const r = await fetch(`${API}/api/status`)
       const d = await r.json()
       setStatus(d as BrainStatus)
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[mycelium] status:', e) }
   }, [])
 
   const fetchStream = useCallback(async (q?: string) => {
@@ -52,7 +52,7 @@ export default function App() {
       const r = await fetch(url)
       const d = await r.json()
       setStream(d.items ?? [])
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[mycelium] stream:', e) }
   }, [])
 
   const fetchDaemon = useCallback(async () => {
@@ -60,7 +60,7 @@ export default function App() {
       const r = await fetch(`${API}/api/daemon`)
       const d = await r.json()
       setDaemonHealth(d)
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[mycelium] daemon:', e) }
   }, [])
 
   // Initial load

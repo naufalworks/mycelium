@@ -26,6 +26,8 @@ const (
 	DefaultPort     = "8443"
 	DefaultUpstream = "https://api.anthropic.com"
 	UpstreamHost    = "api.anthropic.com"
+	// MyceliumAPI is the web backend URL for hippocampus extraction.
+	MyceliumAPI = "http://127.0.0.1:8421"
 )
 
 // Proxy intercepts Claude Code ↔ Anthropic API traffic.
@@ -527,8 +529,7 @@ func truncate(s string, max int) string {
 
 // ── Hippocampus: Real-Time Fact Extraction ─────────────────────
 
-// myceliumAPI base URL for the mycelium web backend.
-const myceliumAPI = "http://127.0.0.1:8421"
+
 
 // hippocampusExtract sends a single exchange to the fact extraction endpoint.
 // Called as a goroutine — never blocks the response.
@@ -539,19 +540,22 @@ func (p *Proxy) hippocampusExtract(user, assistant, session string) {
 		"session":   session,
 	})
 	if err != nil {
+		log.Printf("[hippocampus] marshal error: %v", err)
 		return
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Post(
-		myceliumAPI+"/api/memory/extract",
+		MyceliumAPI+"/api/memory/extract",
 		"application/json",
 		bytes.NewReader(payload),
 	)
 	if err != nil {
+		log.Printf("[hippocampus] extract call failed: %v", err)
 		return
 	}
 	resp.Body.Close()
+	log.Printf("[hippocampus] extracted facts from exchange")
 }
 
 
