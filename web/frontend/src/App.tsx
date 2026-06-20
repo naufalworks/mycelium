@@ -209,14 +209,14 @@ function DashboardView({ status, stream, daemon }: { status: BrainStatus | null;
         </div>
         <div className="card-body">
           <div className="daemon-row">
-            <div className={`status-dot ${daemon?.state?.last_assistant_id != null ? 'green' : 'red'}`} />
+            <div className={`status-dot ${daemon?.last_assistant_id != null ? 'green' : 'red'}`} />
             <div style={{ flex: 1 }}>Daemon</div>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {daemon?.state?.imports ?? 0} imports
+              {daemon?.imports ?? 0} imports
             </span>
-            {daemon?.state?.last_assistant_id != null && (
+            {daemon?.last_assistant_id != null && (
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                ID: {daemon.state.last_assistant_id}
+                ID: {daemon.last_assistant_id}
               </span>
             )}
           </div>
@@ -637,10 +637,10 @@ claude
         <div className="setting-card" style={{ borderColor: 'var(--border-light)' }}>
           <div className="title">Proxy Status</div>
           <div className="daemon-row" style={{ padding: '8px 0' }}>
-            <div className={`status-dot ${daemon?.state?.last_assistant_id != null ? 'green' : 'yellow'}`} />
+            <div className={`status-dot ${daemon?.last_assistant_id != null ? 'green' : 'yellow'}`} />
             <div style={{ flex: 1 }}>Daemon</div>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {daemon?.state?.imports ?? 0} imports
+              {daemon?.imports ?? 0} imports
             </span>
           </div>
           <div className="daemon-row" style={{ padding: '8px 0' }}>
