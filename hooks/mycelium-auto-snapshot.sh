@@ -30,4 +30,9 @@ if [ "$DIFF" -ge 3 ]; then
     python3 "$ROOT/scripts/mycelium.py" snapshot 2>&1 | tail -1
     python3 "$ROOT/scripts/mycelium.py" compact 2>&1 | tail -1
     echo "$CURRENT" > "$LAST_FILE"
+
+    # Speculative cache: pre-compute predictions for next likely questions
+    curl -s -X POST http://127.0.0.1:8443/api/cache/precompute \
+        -H "Content-Type: application/json" \
+        -d '{"threshold": 0.4}' > /dev/null 2>&1 || true
 fi
