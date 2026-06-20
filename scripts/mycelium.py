@@ -707,6 +707,146 @@ def _cmd_infer():
         traceback.print_exc()
 
 
+def _cmd_read():
+    """Read and extract clean content from a URL.
+    Usage: mycelium read <url>
+           mycelium read --save <url>
+    """
+    if len(sys.argv) < 3 or sys.argv[2] in ("-h", "--help"):
+        print("Usage:")
+        print("  mycelium read <url>           Extract clean content")
+        print("  mycelium read --save <url>    Also save to memory_facts")
+        return
+
+    save = "--save" in sys.argv
+    url = sys.argv[3] if save else sys.argv[2]
+
+    import urllib.request, json
+
+    try:
+        params = {"url": url}
+        req = urllib.request.Request(
+            "http://127.0.0.1:8421/api/reader/fetch?" + urllib.parse.urlencode(params)
+        )
+        with urllib.request.urlopen(req, timeout=20) as r:
+            data = json.loads(r.read().decode())
+
+        if "error" in data:
+            print(f"Error: {data['error']}")
+            return
+
+        print(f"\n📄 {data.get('title', 'Untitled')}")
+        print(f"   URL: {url}")
+        print(f"   Words: {data.get('word_count', 0)}")
+        print(f"\n{data.get('content', '')}")
+    except Exception as e:
+        print(f"Error fetching {url}: {e}")
+
+
+def _cmd_prompt():
+    """Manage compiled prompts.
+    Usage: mycelium prompt define <name> --template "..." --output-schema "{...}"
+           mycelium prompt list
+           mycelium prompt run <name> <input_json>
+    """
+    if len(sys.argv) < 3:
+        print("Usage:")
+        print("  mycelium prompt define <name> --template <tpl> --output-schema <json>")
+        print("  mycelium prompt list")
+        print("  mycelium prompt run <name> <input_json>")
+        return
+
+    sub = sys.argv[2]
+
+    if sub == "list":
+        import urllib.request, json
+        try:
+            req = urllib.request.Request("http://127.0.0.1:8421/api/prompts/list")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                data = json.loads(r.read().decode())
+            if "prompts" in data:
+                if not data["prompts"]:
+                    print("No prompts defined.")
+                    return
+                print(f"{'Name':25s} {'Description':40s} {'Output Schema'}")
+                print("-" * 90)
+                for p in data["prompts"]:
+                    out = p.get("output_schema", "")[:40]
+                    print(f"{p.get('name',''):25s} {p.get('description',''):40s} {out}")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+    if sub == "define":
+        name = sys.argv[3] if len(sys.argv) > 3 else ""
+        template = ""
+        output_schema = ""
+        input_schema = ""
+        desc = ""
+
+        if "--template" in sys.argv:
+            idx = sys.argv.index("--template")
+            template = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ""
+        if "--output-schema" in sys.argv:
+            idx = sys.argv.index("--output-schema")
+            output_schema = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ""
+        if "--input-schema" in sys.argv:
+            idx = sys.argv.index("--input-schema")
+            input_schema = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ""
+        if "--desc" in sys.argv:
+            idx = sys.argv.index("--desc")
+            desc = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ""
+
+        if not name or not template or not output_schema:
+            print("Error: name, --template, and --output-schema are required")
+            return
+
+        import urllib.request, json
+        payload = json.dumps({
+            "name": name, "template": template,
+            "input_schema": input_schema, "output_schema": output_schema,
+            "description": desc,
+        }).encode()
+        try:
+            req = urllib.request.Request(
+                "http://127.0.0.1:8421/api/prompts/define",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=5) as r:
+                result = json.loads(r.read().decode())
+            if result.get("ok"):
+                print(f"✅ Prompt '{name}' defined")
+            else:
+                print(f"Error: {result}")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+    if sub == "run":
+        name = sys.argv[3] if len(sys.argv) > 3 else ""
+        input_data = sys.argv[4] if len(sys.argv) > 4 else "{}"
+        import urllib.request, json
+        payload = json.dumps({"name": name, "input": input_data}).encode()
+        try:
+            req = urllib.request.Request(
+                "http://127.0.0.1:8421/api/prompts/run",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=120) as r:
+                result = json.loads(r.read().decode())
+            if "error" in result:
+                print(f"Error: {result['error']}")
+            elif "output" in result:
+                print(result["output"])
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+
 # ─── Main dispatcher ────────────────────────────────────────
 def main():
     if len(sys.argv) < 2:
@@ -729,6 +869,8 @@ def main():
               context             Show last session context + hot facts
               compact             Entropy-weighted memory compaction
               infer               Cross-session pattern inference
+              read <url>          Fetch and extract clean content from URL
+              prompt              Manage compiled prompts (define, list, run)
         """))
         return
 
@@ -770,6 +912,10 @@ def main():
         full_compact()
     elif cmd == "infer":
         _cmd_infer()
+    elif cmd == "read":
+        _cmd_read()
+    elif cmd == "prompt":
+        _cmd_prompt()
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

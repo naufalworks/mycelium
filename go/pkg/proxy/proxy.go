@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/naufalworks/mycelium/go/pkg/brain"
+	"github.com/naufalworks/mycelium/go/pkg/prompts"
 )
 
 const (
@@ -35,6 +36,8 @@ type Proxy struct {
 	sessionLoaded map[string]bool // tracks which sessions got initial context (A1)
 	injectedTurns map[int]bool    // tracks turn IDs already injected to avoid bloat (A2)
 	mu            sync.Mutex      // protects sessionLoaded and injectedTurns
+	promptReg     *prompts.Registry // compiled prompt registry (Anti-Memory)
+	readerTool    bool            // enable reader tool
 }
 
 // New creates a new mycelium proxy.

@@ -401,6 +401,94 @@ def api_memory_extract(payload: dict):
         return {"ok": False, "error": str(e)}
 
 
+# ── Reader API ────────────────────────────────────────────
+
+
+@app.get("/api/reader/fetch")
+def api_reader_fetch(url: str = ""):
+    """Fetch and extract clean content from a URL.
+    Calls the Go reader tool (compiled into mycelium-proxy).
+    Falls back to basic requests + readability if Go endpoint unavailable.
+    """
+    if not url:
+        return {"error": "url parameter required"}
+
+    try:
+        # Try Go reader endpoint first (runs on :8443)
+        import urllib.request, json
+        req = urllib.request.Request(
+            f"http://127.0.0.1:8443/api/reader/fetch?url={urllib.parse.quote(url)}",
+            headers={"User-Agent": "mycelium/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read().decode())
+            return data
+    except Exception:
+        pass
+
+    # Fallback: basic extraction using readability if available
+    try:
+        import requests
+        from readability import Document
+        resp = requests.get(url, timeout=15, headers={"User-Agent": "mycelium/1.0"})
+        doc = Document(resp.text)
+        return {
+            "title": doc.title(),
+            "content": doc.summary(),
+            "url": url,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Prompts API ───────────────────────────────────────────
+
+
+def _call_go_prompt_endpoint(path: str, data: dict = None):
+    """Call the Go prompt endpoint on the mycelium-proxy."""
+    import urllib.request, json
+
+    url = f"http://127.0.0.1:8443/api/prompts/{path}"
+    if data:
+        body = json.dumps(data).encode()
+        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+    else:
+        req = urllib.request.Request(url)
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.loads(r.read().decode())
+    except Exception:
+        return None
+
+
+@app.get("/api/prompts/list")
+def api_prompts_list():
+    """List compiled prompts."""
+    result = _call_go_prompt_endpoint("list")
+    if result:
+        return result
+    return {"prompts": []}
+
+
+@app.post("/api/prompts/define")
+def api_prompts_define(payload: dict):
+    """Define a compiled prompt."""
+    result = _call_go_prompt_endpoint("define", payload)
+    if result:
+        return result
+    return {"ok": False, "error": "prompt service unavailable"}
+
+
+@app.post("/api/prompts/run")
+def api_prompts_run(payload: dict):
+    """Run a compiled prompt."""
+    result = _call_go_prompt_endpoint("run", payload)
+    if result:
+        return result
+    return {"error": "prompt service unavailable"}
+
+
 @app.get("/{full_path:path}")
 def frontend_fallback(full_path: str):
     # Serve memory dashboard from source if exists
