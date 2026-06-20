@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium Artifacts</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --dim: #8b949e; --accent: #58a6ff;
+    --green: #3fb950; --orange: #d29922; --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); padding: 20px;
+  }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .header h1 { font-size: 24px; }
+  .header h1 span { color: var(--accent); }
+  .stats-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; flex: 1; min-width: 140px; }
+  .stat-card .num { font-size: 28px; font-weight: 600; }
+  .stat-card .label { color: var(--dim); font-size: 12px; margin-top: 4px; }
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .controls input, .controls select {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 12px; color: var(--text); font-size: 13px;
+  }
+  .controls input:focus { outline: none; border-color: var(--accent); }
+  .controls button {
+    background: var(--accent); color: #fff; border: none; border-radius: 6px;
+    padding: 8px 16px; cursor: pointer; font-size: 13px;
+  }
+  .controls button:hover { opacity: 0.9; }
+  .sql-box { display: flex; gap: 8px; margin-bottom: 16px; }
+  .sql-box input { flex: 1; font-family: monospace; }
+  .section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--dim); margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--dim); font-weight: 500; padding: 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px; border-bottom: 1px solid var(--border); font-family: monospace; font-size: 12px; }
+  .empty { color: var(--dim); font-style: italic; padding: 20px; text-align: center; }
+  .badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--border); }
+  .fade { color: var(--dim); font-size: 11px; }
+  .type-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+  .sql-result { max-height: 400px; overflow: auto; }
+  .refresh { float: right; color: var(--accent); cursor: pointer; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📦 <span>Mycelium</span> Artifacts</h1>
+    <div class="sub" style="color:var(--dim);font-size:13px;">Stored prompt outputs — structured, queryable, zero-token recall</div>
+  </div>
+  <button onclick="location.reload()" style="background:var(--border);color:var(--text);border:none;border-radius:6px;padding:8px 16px;cursor:pointer;">🔄 Refresh</button>
+</div>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-card"><div class="num" id="stat-total">—</div><div class="label">Total Artifacts</div></div>
+  <div class="stat-card"><div class="num" id="stat-tokens" style="color:var(--orange)">—</div><div class="label">Tokens Used</div></div>
+  <div class="stat-card"><div class="num" id="stat-cost" style="color:var(--green)">—</div><div class="label">Est. Cost ($)</div></div>
+  <div class="stat-card"><div class="num" id="stat-types" style="color:var(--purple)">—</div><div class="label">Types</div></div>
+</div>
+
+<div class="controls">
+  <input id="filter-type" placeholder="Filter by type..." style="flex:1">
+  <select id="filter-limit"><option>10</option><option selected>25</option><option>50</option></select>
+  <button onclick="loadArtifacts()">🔍 Browse</button>
+</div>
+
+<div class="section">
+  <h2>📋 Artifacts</h2>
+  <div id="artifact-list"><div class="empty">Loading...</div></div>
+</div>
+
+<div class="sql-box">
+  <input id="sql-input" placeholder="SELECT type, COUNT(*) as cnt FROM artifacts GROUP BY type ORDER BY cnt DESC" style="font-size:13px">
+  <button onclick="runQuery()">▶ Run SQL</button>
+</div>
+<div id="sql-result"></div>
+
+<script>
+const API = 'http://127.0.0.1:8421';
+
+async function apiGet(path) {
+  try {
+    const r = await fetch(API + path);
+    return await r.json();
+  } catch(e) { return {error: e.message}; }
+}
+
+async function loadStats() {
+  const s = await apiGet('/api/artifacts/stats');
+  if (!s.error) {
+    document.getElementById('stat-total').textContent = s.total || 0;
+    document.getElementById('stat-tokens').textContent = s.total_tokens || 0;
+    document.getElementById('stat-cost').textContent = (s.total_cost || 0).toFixed(4);
+    document.getElementById('stat-types').textContent = Object.keys(s.by_type || {}).length;
+  }
+  loadArtifacts();
+}
+
+async function loadArtifacts() {
+  const type = document.getElementById('filter-type').value.trim();
+  const limit = document.getElementById('filter-limit').value;
+  let url = `/api/artifacts?limit=${limit}`;
+  if (type) url += `&type=${encodeURIComponent(type)}`;
+
+  const d = await apiGet(url);
+  const div = document.getElementById('artifact-list');
+
+  if (d.error || !d.artifacts || d.artifacts.length === 0) {
+    div.innerHTML = '<div class="empty">No artifacts found. Define a prompt and run artifact_run to create one.</div>';
+    return;
+  }
+
+  let html = '<table><tr><th>ID</th><th>Type</th><th>Created</th><th>Tokens</th></tr>';
+  for (const a of d.artifacts) {
+    html += `<tr><td style="color:var(--accent)">${esc(a.id)}</td>
+             <td class="type-cell"><span class="badge">${esc(a.type)}</span></td>
+             <td class="fade">${esc((a.created||'').substring(0,19))}</td>
+             <td class="fade">${a.cost || 0}</td></tr>`;
+  }
+  html += '</table>';
+  div.innerHTML = html;
+}
+
+async function runQuery() {
+  const sql = document.getElementById('sql-input').value.trim();
+  if (!sql) return;
+  const div = document.getElementById('sql-result');
+  div.innerHTML = '<div class="empty">Running...</div>';
+
+  try {
+    const r = await fetch(`${API}/api/artifacts/query`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({sql})
+    });
+    const d = await r.json();
+    if (d.error) { div.innerHTML = `<div class="empty" style="color:var(--orange)">${esc(d.error)}</div>`; return; }
+
+    let html = '<div class="section sql-result"><h2>📊 Result</h2><table><tr>';
+    for (const c of d.columns || []) html += `<th>${esc(c)}</th>`;
+    html += '</tr>';
+    for (const row of d.rows || []) {
+      html += '<tr>';
+      for (const c of d.columns || []) html += `<td>${esc(row[c] != null ? String(row[c]) : '')}</td>`;
+      html += '</tr>';
+    }
+    html += '</table></div>';
+    if ((d.rows || []).length === 0) html = '<div class="empty">Query returned 0 rows</div>';
+    div.innerHTML = html;
+  } catch(e) {
+    div.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadStats();
+</script>
+</body>
+</html>
