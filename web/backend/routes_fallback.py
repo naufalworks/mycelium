@@ -15,6 +15,9 @@ def frontend_fallback(full_path: str):
     memory_html = FRONTEND_SRC / "memory_dashboard.html"
     if full_path == "memory_dashboard.html" and memory_html.exists():
         return FileResponse(memory_html)
+    artifact_html = FRONTEND_SRC / "artifact_dashboard.html"
+    if full_path == "artifact_dashboard.html" and artifact_html.exists():
+        return FileResponse(artifact_html)
     v3_pages = {"v3_dashboard.html", "v3_graph.html", "v3_negations.html", "v3_causal.html"}
     if full_path in v3_pages:
         src_file = FRONTEND_SRC / full_path
