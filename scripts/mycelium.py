@@ -847,6 +847,94 @@ def _cmd_prompt():
         return
 
 
+def _cmd_task():
+    """Manage async tasks.
+    Usage: mycelium task list [--status pending|done|failed]
+           mycelium task status <id>
+    """
+    if len(sys.argv) < 3:
+        print("Usage:")
+        print("  mycelium task list [--status <status>]")
+        print("  mycelium task status <id>")
+        return
+
+    sub = sys.argv[2]
+    import urllib.request, json
+
+    if sub == "list":
+        status = ""
+        if "--status" in sys.argv:
+            status = sys.argv[sys.argv.index("--status") + 1]
+        try:
+            url = f"http://127.0.0.1:8421/api/tasks?limit=20"
+            if status:
+                url += f"&status={status}"
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=5) as r:
+                data = json.loads(r.read().decode())
+            if data.get("tasks"):
+                print(f"{'ID':30s} {'Status':12s} {'Prompt':50s}")
+                print("-" * 95)
+                for t in data["tasks"]:
+                    print(f"{t['id']:30s} {t.get('status',''):12s} {(t.get('prompt','')[:50]):50s}")
+            else:
+                print("No tasks found.")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+    if sub == "status":
+        if len(sys.argv) < 4:
+            print("Usage: mycelium task status <id>")
+            return
+        tid = sys.argv[3]
+        try:
+            req = urllib.request.Request(f"http://127.0.0.1:8421/api/tasks/{tid}")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                data = json.loads(r.read().decode()).get("task", {})
+            if data:
+                print(f"Task:    {data.get('id')}")
+                print(f"Status:  {data.get('status')}")
+                print(f"Created: {data.get('created_at','')[:19]}")
+                if data.get('completed_at'):
+                    print(f"Done:    {data['completed_at'][:19]}")
+                if data.get('result_artifact'):
+                    print(f"Result:  {data['result_artifact']}")
+                if data.get('error_msg'):
+                    print(f"Error:   {data['error_msg'][:100]}")
+            else:
+                print(f"Task {tid} not found.")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+
+def _cmd_cache():
+    """Manage speculative cache.
+    Usage: mycelium cache stats
+           mycelium cache clear
+    """
+    if len(sys.argv) < 3:
+        print("Usage: mycelium cache stats")
+        return
+
+    sub = sys.argv[2]
+    import urllib.request, json
+
+    if sub == "stats":
+        try:
+            req = urllib.request.Request("http://127.0.0.1:8421/api/cache/stats")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                data = json.loads(r.read().decode())
+            print("🔮 Speculative Cache")
+            print("-" * 30)
+            print(f"  Cached entries: {data.get('cached_entries', 0)}")
+            print(f"  Max entries:    {data.get('max_entries', 100)}")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+
 # ─── Main dispatcher ────────────────────────────────────────
 def main():
     if len(sys.argv) < 2:
@@ -871,6 +959,8 @@ def main():
               infer               Cross-session pattern inference
               read <url>          Fetch and extract clean content from URL
               prompt              Manage compiled prompts (define, list, run)
+              task                Manage async tasks (create, status, list)
+              cache               Manage speculative cache (stats, clear)
         """))
         return
 
@@ -916,6 +1006,10 @@ def main():
         _cmd_read()
     elif cmd == "prompt":
         _cmd_prompt()
+    elif cmd == "task":
+        _cmd_task()
+    elif cmd == "cache":
+        _cmd_cache()
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

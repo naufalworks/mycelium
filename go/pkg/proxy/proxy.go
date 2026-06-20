@@ -19,8 +19,10 @@ import (
 
 	"github.com/naufalworks/mycelium/go/pkg/artifacts"
 	"github.com/naufalworks/mycelium/go/pkg/brain"
+	"github.com/naufalworks/mycelium/go/pkg/cache"
 	"github.com/naufalworks/mycelium/go/pkg/prompts"
 	"github.com/naufalworks/mycelium/go/pkg/reader"
+	"github.com/naufalworks/mycelium/go/pkg/tasks"
 )
 
 const (
@@ -43,6 +45,8 @@ type Proxy struct {
 	promptReg     *prompts.Registry // compiled prompt registry
 	artifactStore *artifacts.Store  // artifact storage
 	readerTool    bool              // enable reader tool
+	taskQueue     *tasks.Queue      // async task queue
+	specCache     *cache.Cache      // speculative cache
 }
 
 // New creates a new mycelium proxy.
