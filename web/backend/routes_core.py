@@ -166,6 +166,17 @@ def api_graph_entity(entity: str):
     except Exception as e:
         return {"entity": entity, "relations": [], "error": str(e)}
 
+@router.get("/api/graph/top")
+def api_graph_top(limit: int = 20):
+    """Top entities by connection count."""
+    try:
+        from mycelium_graph import EntityGraph
+        g = EntityGraph()
+        entities = g.top_entities(limit)
+        return {"entities": [{"name": n, "count": c} for n, c in entities]}
+    except Exception as e:
+        return {"entities": [], "error": str(e)}
+
 @router.get("/api/graph/edges")
 def api_graph_edges():
     try:
