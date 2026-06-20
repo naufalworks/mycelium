@@ -1,153 +1,69 @@
-# Mycelium — AI Agent Instructions v3
+# Mycelium — AI Agent Instructions
 
-Mycelium is a **persistent brain** — LSM-tree storage with integrity chain,
-tiered importance, entity extraction, Bloom filter, entity graph, negation index,
-and smart session resume. Survives crashes, session loss, and `/new`.
+Mycelium is a permanent memory system with three tiers: facts (tiny), artifacts (structured), prompts (templates). It also has predictive caching, async task processing, and a web dashboard.
 
-## Quick start
+## Available MCP Tools
 
-```bash
-python3 scripts/mycelium.py status          # Brain stats
-python3 scripts/mycelium.py resume          # Smart session resume
-python3 scripts/mycelium.py verify          # Integrity chain check
-python3 scripts/mycelium.py search <query>  # Search log + index
-python3 scripts/mycelium.py compact         # Condition-based maintenance
-python3 scripts/mycelium_compact.py --stats # Layer stats (L0/L1/L2)
-python3 scripts/detect-patterns.py          # Skill Garden pattern scan
-python3 scripts/branch.py list              # List branches
-python3 scripts/findings.py list            # List findings
-python3 scripts/findings.py report          # Generate report
-```
+| Tool | When to use |
+|---|---|
+| `search` | User asks about past conversations, decisions, or findings |
+| `recall` | User needs context from a previous session |
+| `store` | User says something important to remember permanently |
+| `artifact_run` | User says "run prompt X" — executes a compiled prompt, stores result |
+| `artifact_get` | User asks for a stored artifact by ID |
+| `artifact_query` | User asks about aggregated data (totals, counts, trends) |
+| `artifact_ls` | User asks what artifacts exist |
 
-## v3 Core Commands
+## CLI Commands Reference
 
 ```bash
-# Resume (uses LSM + Bloom + Graph + Negation)
-python3 scripts/mycelium_resume_v3.py --hint "grav"
+# Memory
+mycelium recall "what is the api key"   # Instant semantic recall
+mycelium fact list --type credential     # Credential grid
+mycelium fact list --type decision       # Decision log
+mycelium fact list --type idea           # Idea board
+mycelium context                         # Last session context
 
-# Compact (condition-based, NOT cron)
-python3 scripts/mycelium_compact.py              # auto-flush if over thresholds
-python3 scripts/mycelium_compact.py --dry-run    # preview
-python3 scripts/mycelium_compact.py --stats      # layer stats
+# Prompts
+mycelium prompt define extract-invoice --template "..." --output-schema "{...}"
+mycelium prompt run extract-invoice '{"text":"..."}'
 
-# Bloom filter
-python3 scripts/mycelium_bloom.py check "grav"
-python3 scripts/mycelium_bloom.py stats
+# Artifacts
+mycelium artifact query "SELECT type, COUNT(*) FROM artifacts GROUP BY type"
 
-# Entity graph
-python3 scripts/mycelium_graph.py top 10
-python3 scripts/mycelium_graph.py query grav
+# Tasks (async)
+mycelium task list --status pending
+mycelium task status task_abc123
 
-# Negation index
-python3 scripts/mycelium_negation.py query --approach curl
-python3 scripts/mycelium_negation.py recent
+# Cache (predictive)
+mycelium cache stats
 
-# Causal chain
-python3 scripts/mycelium_causal.py trace-cause 42
-python3 scripts/mycelium_causal.py regressions
+# Analysis
+mycelium infer                            # Cross-session pattern inference
+mycelium compact                          # Entropy-weighted compaction
+mycelium read https://example.com         # Fetch clean content
 ```
 
-## Architecture
+## Infrastructure
 
-```
-log.jsonl          ← flat JSONL (backward compatible)
-index.db           ← SQLite (entities, findings, edges, negations, causal, attention)
-l1/                ← LSM compressed segments (gzip)
-l2/                ← LSM summaries (gzip)
-snapshots/         ← COW session snapshots
-objects/           ← content-addressed object store
-```
+| Service | Port | Binary | What |
+|---|---|---|---|
+| Web backend | 8421 | — | FastAPI + dashboards |
+| LLM proxy | 8443 | `mycelium-proxy` | Anti-Memory, Hippocampus, Cache |
+| Meshgate | 8080 | `meshgate` | Upstream routing |
+| MCP | stdio | `mycelium-mcp` | Tools for Claude Code |
+| Daemon | 20151 | `myceliumd` | Background health |
 
-All scripts import shared constants from `mycelium_lib.py` — single source of truth.
-Paths resolve dynamically via `Path(__file__)`.
+## Three Memory Tiers
 
-## Log format v2 (tiered + integrity chain)
+1. **memory_facts** — tiny key-value facts (credentials, decisions, preferences). Fast recall, SQL-backed.
+2. **artifacts** — large structured outputs (expense reports, generated files). SQL-queryable.
+3. **prompts** — versioned templates with input/output schema validation. Produces artifacts.
 
-```jsonl
-{"turn": 1, "tier": "S", "type": "finding", "session": "acme-pentest",
- "ts": "ISO_TIMESTAMP", "entities": ["acme.com", "sqli"],
- "user": "...", "assistant": "...",
- "finding": {"type": "SQLi", "target": "admin.acme.com", "severity": "critical"},
- "prev_hash": "", "hash": "a1b2c3d4e5f6g7h8"}
-```
+## Key Principles
 
-### Tier rules
-
-| Tier | Types |
-|------|-------|
-| S | finding (critical/high), decision, gardener (sprout) |
-| A | idea, finding (medium/low) |
-| B | talk (default) |
-| C | dead-end, pruned branch |
-
-## Agent behavior
-
-### On session start
-```bash
-bash scripts/mycelium-start
-```
-This runs: precheck → resume → pattern detection → evolution load.
-Inject output into response context.
-
-### After every response
-```bash
-python3 scripts/append.py \
-  --session <kebab-name> --type <talk|finding|decision|idea> \
-  "<condensed user>" "<condensed assistant>"
-```
-Auto-calculates: turn number, tier, entities, prev_hash, hash. Takes <1s.
-
-### V3 resume flow
-1. Brain stats (entries, sessions, entities)
-2. Bloom pre-check (O(1) entity membership)
-3. Load L0 entries (last 50, full text)
-4. Tier-priority filter (S → A → B)
-5. Token-budget packing
-6. Entity graph enrichment
-7. Negation warnings
-
-### Condition-based maintenance
-NOT cron-based. Triggers:
-- L0 > 50 entries → flush to L1
-- L1 > 500 segments → compact to L2
-- `python3 scripts/mycelium_compact.py` (manual)
-
-### Integrity verification
-```bash
-python3 scripts/mycelium.py verify
-```
-Checks prev_hash chain across all LSM layers.
-
-## Phase 1 — Skill Garden
-
-```bash
-python3 scripts/detect-patterns.py
-```
-Short-circuit optimization — stops at threshold.
-
-## Phase 2 — Conversation Tree
-
-```bash
-python3 scripts/branch.py create|merge|prune|diff|list <name>
-```
-
-## Phase 3 — Vuln Hunter Notebook
-
-```bash
-python3 scripts/findings.py list|by-target|by-type|report|stats
-```
-
-## Tests
-
-```bash
-python3 -m pytest tests/ -v    # 228 tests
-python3 -m pytest tests/ -q    # quick summary
-```
-
-## Security
-
-- **Local only.** No network, no cloud, no upload.
-- **Integrity chain.** Each entry hashes the previous. Tampering detectable.
-- **Append-only.** Nothing deleted — only appended or archived.
-- **Zero data loss.** LSM compression never deletes — only compresses.
-- **Hash chain.** Tamper-evident across all LSM layers.
+- Raw brain (`log.jsonl`) is append-only and never modified.
+- All derived data (facts, artifacts, snapshots) is stored in `index.db`.
+- Memory decays by entropy-weight: surprising facts survive, mundane facts fade.
+- Snapshot is event-based (triggered by append), not cron-based.
+- Proxy intercepts every LLM call for context injection and fact extraction.
