@@ -36,9 +36,9 @@ type Proxy struct {
 	Upstream      string
 	Port          string
 	server        *http.Server
-	sessionLoaded map[string]bool // tracks which sessions got initial context (A1)
-	injectedTurns map[int]bool    // tracks turn IDs already injected to avoid bloat (A2)
-	mu            sync.Mutex      // protects sessionLoaded and injectedTurns
+	sessionLoaded map[string]bool   // tracks which sessions got initial context (A1)
+	injectedTurns map[int]bool      // tracks turn IDs already injected to avoid bloat (A2)
+	mu            sync.Mutex        // protects sessionLoaded and injectedTurns
 	promptReg     *prompts.Registry // compiled prompt registry
 	artifactStore *artifacts.Store  // artifact storage
 	readerTool    bool              // enable reader tool
@@ -526,10 +526,7 @@ func truncate(s string, max int) string {
 	return s[:max] + "..."
 }
 
-
 // ── Hippocampus: Real-Time Fact Extraction ─────────────────────
-
-
 
 // hippocampusExtract sends a single exchange to the fact extraction endpoint.
 // Called as a goroutine — never blocks the response.
@@ -557,7 +554,6 @@ func (p *Proxy) hippocampusExtract(user, assistant, session string) {
 	resp.Body.Close()
 	log.Printf("[hippocampus] extracted facts from exchange")
 }
-
 
 // ── Anti-Memory: Verified Fact Injection ──────────────────────
 

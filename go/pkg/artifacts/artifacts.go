@@ -240,8 +240,8 @@ func (s *Store) Query(sqlQuery string) ([]string, []map[string]interface{}, erro
 // Stats returns aggregate statistics about stored artifacts.
 func (s *Store) Stats() map[string]interface{} {
 	stats := map[string]interface{}{
-		"total":       0,
-		"by_type":     map[string]int{},
+		"total":        0,
+		"by_type":      map[string]int{},
 		"total_tokens": 0,
 		"total_cost":   0,
 	}

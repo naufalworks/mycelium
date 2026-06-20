@@ -59,19 +59,19 @@ func init() {
 
 // Entry is a single turn in the mycelium log.jsonl.
 type Entry struct {
-	Turn      int              `json:"turn"`
-	Tier      string           `json:"tier"`
-	Type      string           `json:"type"`
-	Session   string           `json:"session"`
-	Timestamp string           `json:"ts"`
-	Entities  []string         `json:"entities"`
-	User      string           `json:"user"`
-	Assistant string           `json:"assistant"`
-	PrevHash  string           `json:"prev_hash"`
-	Hash      string           `json:"hash"`
-	Finding   *Finding         `json:"finding,omitempty"`
-	Verdict   json.RawMessage  `json:"verdict,omitempty"`
-	rawMap    map[string]any   `json:"-"` // preserves all fields for hash computation
+	Turn      int             `json:"turn"`
+	Tier      string          `json:"tier"`
+	Type      string          `json:"type"`
+	Session   string          `json:"session"`
+	Timestamp string          `json:"ts"`
+	Entities  []string        `json:"entities"`
+	User      string          `json:"user"`
+	Assistant string          `json:"assistant"`
+	PrevHash  string          `json:"prev_hash"`
+	Hash      string          `json:"hash"`
+	Finding   *Finding        `json:"finding,omitempty"`
+	Verdict   json.RawMessage `json:"verdict,omitempty"`
+	rawMap    map[string]any  `json:"-"` // preserves all fields for hash computation
 }
 
 // RawMap returns all fields of the entry as a map, preserving any fields not
@@ -96,7 +96,7 @@ var knownEntities = map[string]bool{
 	"mycelium": true, "memgit": true,
 	"page-radar": true, "page radar": true,
 	"companion": true,
-	"hermes": true, "hermes agent": true,
+	"hermes":    true, "hermes agent": true,
 	"claude code": true, "codex": true,
 	"sqlite": true, "jsonl": true, "json": true,
 	"curl": true, "python": true, "bash": true, "git": true, "gh": true, "grep": true, "tail": true,
@@ -199,7 +199,9 @@ func pythonJSON(v any) string {
 	case nil:
 		return "null"
 	case bool:
-		if val { return "true" }
+		if val {
+			return "true"
+		}
 		return "false"
 	case float64:
 		if val == float64(int64(val)) {
@@ -429,11 +431,21 @@ func rawMapFromEntry(entry *Entry) map[string]any {
 	}
 	if entry.Finding != nil {
 		fm := map[string]any{}
-		if entry.Finding.Result != "" { fm["result"] = entry.Finding.Result }
-		if entry.Finding.Target != "" { fm["target"] = entry.Finding.Target }
-		if entry.Finding.Type != "" { fm["type"] = entry.Finding.Type }
-		if entry.Finding.Detail != "" { fm["detail"] = entry.Finding.Detail }
-		if entry.Finding.Severity != "" { fm["severity"] = entry.Finding.Severity }
+		if entry.Finding.Result != "" {
+			fm["result"] = entry.Finding.Result
+		}
+		if entry.Finding.Target != "" {
+			fm["target"] = entry.Finding.Target
+		}
+		if entry.Finding.Type != "" {
+			fm["type"] = entry.Finding.Type
+		}
+		if entry.Finding.Detail != "" {
+			fm["detail"] = entry.Finding.Detail
+		}
+		if entry.Finding.Severity != "" {
+			fm["severity"] = entry.Finding.Severity
+		}
 		m["finding"] = fm
 	}
 	if len(entry.Verdict) > 0 {
@@ -678,11 +690,11 @@ func (b *Brain) Count() int {
 
 // MemoryFact is a structured fact from the memory_facts table.
 type MemoryFact struct {
-	Entity      string
-	Attribute   string
-	Value       string
-	FactType    string
-	Confidence  float64
+	Entity        string
+	Attribute     string
+	Value         string
+	FactType      string
+	Confidence    float64
 	SourceSession string
 }
 
@@ -749,7 +761,6 @@ func (b *Brain) FetchMemoryFacts(query string, limit int) []MemoryFact {
 	}
 	return facts
 }
-
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 

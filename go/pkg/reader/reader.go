@@ -22,8 +22,8 @@ const (
 type Result struct {
 	URL       string `json:"url"`
 	Title     string `json:"title"`
-	Content   string `json:"content"`    // clean markdown-like text
-	TextOnly  string `json:"text_only"`  // plain text, no formatting
+	Content   string `json:"content"`   // clean markdown-like text
+	TextOnly  string `json:"text_only"` // plain text, no formatting
 	WordCount int    `json:"word_count"`
 }
 

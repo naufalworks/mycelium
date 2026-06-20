@@ -10,10 +10,11 @@ import (
 )
 
 // handleArtifactTool intercepts artifact tool calls from Claude:
-//   artifact_run <prompt> <input>  — run a prompt, store result as artifact
-//   artifact_get <id>              — retrieve a stored artifact
-//   artifact_query <sql>           — query artifacts via SQL
-//   artifact_ls [type]             — list artifacts by type
+//
+//	artifact_run <prompt> <input>  — run a prompt, store result as artifact
+//	artifact_get <id>              — retrieve a stored artifact
+//	artifact_query <sql>           — query artifacts via SQL
+//	artifact_ls [type]             — list artifacts by type
 func (p *Proxy) handleArtifactTool(name string, params json.RawMessage) (string, error) {
 	p.initArtifactStore()
 

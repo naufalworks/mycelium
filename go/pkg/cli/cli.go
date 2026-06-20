@@ -79,7 +79,10 @@ func HandleStatus(b *brain.Brain) {
 	}
 	fmt.Println()
 	fmt.Println("  Top entities:")
-	type entity struct{ name string; count int }
+	type entity struct {
+		name  string
+		count int
+	}
 	var ents []entity
 	for name, count := range entityFreq {
 		ents = append(ents, entity{name, count})

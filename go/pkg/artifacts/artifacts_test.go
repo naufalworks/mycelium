@@ -9,13 +9,13 @@ func TestStoreAndGet(t *testing.T) {
 	s := New("/Users/azfar.naufal/Documents/mycelium")
 
 	a := &Artifact{
-		Type: "expense-report",
-		Name: "Test Report",
-		Data: json.RawMessage(`{"total": 150.00, "vendor": "Acme"}`),
-		Prompt: "extract-invoice",
+		Type:          "expense-report",
+		Name:          "Test Report",
+		Data:          json.RawMessage(`{"total": 150.00, "vendor": "Acme"}`),
+		Prompt:        "extract-invoice",
 		PromptVersion: "v1",
-		TokenCost: 150,
-		Tags: map[string]string{"month": "june"},
+		TokenCost:     150,
+		Tags:          map[string]string{"month": "june"},
 	}
 
 	err := s.Store(a)

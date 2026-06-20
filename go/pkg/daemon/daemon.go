@@ -43,9 +43,9 @@ type DaemonState struct {
 
 // Pair represents a user↔assistant message pair from Hermes.
 type Pair struct {
-	AssistantID    int
-	SessionID      string
-	UserContent    string
+	AssistantID      int
+	SessionID        string
+	UserContent      string
 	AssistantContent string
 }
 

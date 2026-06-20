@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/naufalworks/mycelium/go/pkg/reader"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/naufalworks/mycelium/go/pkg/reader"
 )
 
 // handleReaderTool handles a "mycelium_read" tool call from Claude.

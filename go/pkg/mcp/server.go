@@ -27,10 +27,10 @@ type Request struct {
 }
 
 type Response struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      any         `json:"id"`
-	Result  any         `json:"result,omitempty"`
-	Error   *ErrorObj   `json:"error,omitempty"`
+	JSONRPC string    `json:"jsonrpc"`
+	ID      any       `json:"id"`
+	Result  any       `json:"result,omitempty"`
+	Error   *ErrorObj `json:"error,omitempty"`
 }
 
 type ErrorObj struct {
@@ -42,9 +42,9 @@ type ErrorObj struct {
 // ── Tool definitions ────────────────────────────────────────────────────────
 
 type Tool struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	InputSchema *InputSchema  `json:"inputSchema"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	InputSchema *InputSchema `json:"inputSchema"`
 }
 
 type InputSchema struct {
@@ -53,9 +53,9 @@ type InputSchema struct {
 }
 
 type SchemaProperty struct {
-	Type        string   `json:"type"`
-	Description string   `json:"description"`
-	Default     any      `json:"default,omitempty"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	Default     any    `json:"default,omitempty"`
 }
 
 type ToolCallParams struct {
@@ -228,11 +228,11 @@ func (s *Server) tools() []Tool {
 			InputSchema: &InputSchema{
 				Type: "object",
 				Properties: map[string]SchemaProperty{
-					"user":     {Type: "string", Description: "The user message or context to store"},
+					"user":      {Type: "string", Description: "The user message or context to store"},
 					"assistant": {Type: "string", Description: "The assistant response or finding to store"},
-					"type":     {Type: "string", Description: "Entry type: talk, finding, decision, idea, dead-end, tech_verdict (default talk)"},
-					"session":  {Type: "string", Description: "Optional session identifier"},
-					"entities": {Type: "string", Description: "Optional comma-separated entity names for better searchability"},
+					"type":      {Type: "string", Description: "Entry type: talk, finding, decision, idea, dead-end, tech_verdict (default talk)"},
+					"session":   {Type: "string", Description: "Optional session identifier"},
+					"entities":  {Type: "string", Description: "Optional comma-separated entity names for better searchability"},
 				},
 			},
 		},
@@ -376,10 +376,10 @@ func (s *Server) handleGetContext(id any, args map[string]any) {
 	// Collect workspace context
 	session, _ := args["session"].(string)
 	ctx := map[string]any{
-		"timestamp":    timeNow(),
-		"session":      session,
+		"timestamp":     timeNow(),
+		"session":       session,
 		"brain_entries": s.Brain.Count(),
-		"note":         "Live workspace context — extend with git/fs watcher",
+		"note":          "Live workspace context — extend with git/fs watcher",
 	}
 	if session != "" {
 		// Find recent entries for this session
@@ -607,12 +607,15 @@ func formatJSON(v any) string {
 // ── I/O wrappers ────────────────────────────────────────────────────────────
 
 type StdinReader struct{}
+
 func (StdinReader) Read(p []byte) (int, error) { return os.Stdin.Read(p) }
 
 type StdoutWriter struct{}
+
 func (StdoutWriter) Write(p []byte) (int, error) { return os.Stdout.Write(p) }
 
 type noOpReader struct{}
+
 func (noOpReader) Read(p []byte) (int, error) { return 0, io.EOF }
 
 // ── Utilities ───────────────────────────────────────────────────────────────
@@ -655,10 +658,10 @@ func (s *Server) handleArtifactRun(id any, args map[string]any) {
 	// Store the execution as an artifact
 	now := time.Now().UTC().Format(time.RFC3339)
 	a := &artifacts.Artifact{
-		Type:         prompt,
-		Name:         prompt,
-		Data:         json.RawMessage(fmt.Sprintf(`{"prompt":"%s","input":%q}`, prompt, data)),
-		CreatedAt:    now,
+		Type:      prompt,
+		Name:      prompt,
+		Data:      json.RawMessage(fmt.Sprintf(`{"prompt":"%s","input":%q}`, prompt, data)),
+		CreatedAt: now,
 	}
 	if err := s.artifactStore.Store(a); err != nil {
 		s.respondError(id, -32603, err.Error())

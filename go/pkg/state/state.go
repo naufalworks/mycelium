@@ -50,12 +50,12 @@ func Save(b *brain.Brain, state *AgentState) (*brain.Entry, error) {
 	stateJSON, _ = json.Marshal(state) // compact
 
 	entry := &brain.Entry{
-		Type:    "state_snapshot",
-		Tier:    "S",
-		Session: state.Session,
-		User:    fmt.Sprintf("STATE SAVE: %s — %s", state.Session, state.TaskDesc),
+		Type:      "state_snapshot",
+		Tier:      "S",
+		Session:   state.Session,
+		User:      fmt.Sprintf("STATE SAVE: %s — %s", state.Session, state.TaskDesc),
 		Assistant: string(stateJSON),
-		Entities: brain.ExtractEntities(state.TaskDesc + " " + state.Session),
+		Entities:  brain.ExtractEntities(state.TaskDesc + " " + state.Session),
 	}
 
 	appended, err := b.Append(entry)
