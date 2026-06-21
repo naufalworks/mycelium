@@ -935,6 +935,132 @@ def _cmd_cache():
         return
 
 
+def _cmd_workflow():
+    """Define, run, and track structured workflows.
+    Usage: mycelium workflow list
+           mycelium workflow define <name> --steps "build,test,deploy"
+           mycelium workflow run <name>
+           mycelium workflow status <run_id>
+           mycelium workflow log <run_id>
+    """
+    if len(sys.argv) < 3:
+        print("Usage:")
+        print("  mycelium workflow list")
+        print("  mycelium workflow define <name> --steps <steps>")
+        print("  mycelium workflow run <name>")
+        print("  mycelium workflow status <run_id>")
+        print("  mycelium workflow log <run_id>")
+        return
+
+    sub = sys.argv[2]
+    import urllib.request, json, urllib.parse
+
+    API = "http://127.0.0.1:8421/api/workflow"
+
+    if sub == "list":
+        try:
+            req = urllib.request.Request(f"{API}/list")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                data = json.loads(r.read().decode())
+            if data.get("workflows"):
+                print(f"{'Name':25s} {'Steps':6s} {'Description':50s}")
+                print("-" * 85)
+                for w in data["workflows"]:
+                    print(f"{w.get('name',''):25s} {len(w.get('steps',[])):<6d} {w.get('description','')[:50]:50s}")
+            else:
+                print("No workflows defined.")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+    if sub == "define":
+        name = sys.argv[3] if len(sys.argv) > 3 else ""
+        steps_str = ""
+        desc = ""
+        if "--steps" in sys.argv:
+            steps_str = sys.argv[sys.argv.index("--steps") + 1]
+        if "--desc" in sys.argv:
+            desc = sys.argv[sys.argv.index("--desc") + 1]
+        if not name or not steps_str:
+            print("Error: name and --steps are required")
+            return
+
+        steps = [{"name": s.strip(), "order": i+1, "stop_on_fail": True}
+                 for i, s in enumerate(steps_str.split(","))]
+        payload = json.dumps({
+            "name": name, "description": desc,
+            "steps": steps, "stop_on": "failure",
+        }).encode()
+        try:
+            req = urllib.request.Request(f"{API}/define", data=payload,
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                result = json.loads(r.read().decode())
+            if result.get("ok"):
+                print(f"✅ Workflow '{name}' defined ({len(steps)} steps)")
+            else:
+                print(f"Error: {result}")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+    if sub == "run":
+        name = sys.argv[3] if len(sys.argv) > 3 else ""
+        if not name:
+            print("Error: workflow name required")
+            return
+        try:
+            req = urllib.request.Request(f"{API}/run/{urllib.parse.quote(name)}", method="POST")
+            with urllib.request.urlopen(req, timeout=10) as r:
+                result = json.loads(r.read().decode())
+            if result.get("run_id"):
+                print(f"▶ Workflow '{name}' started")
+                print(f"   Run ID: {result['run_id']}")
+                print(f"   Status: {result.get('status','')}")
+            else:
+                print(f"Error: {result}")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+    if sub == "status":
+        run_id = sys.argv[3] if len(sys.argv) > 3 else ""
+        if not run_id:
+            print("Error: run ID required")
+            return
+        try:
+            req = urllib.request.Request(f"{API}/status/{urllib.parse.quote(run_id)}")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                result = json.loads(r.read().decode())
+            if result.get("id"):
+                print(f"Workflow: {result.get('workflow')}")
+                print(f"Run ID:   {result.get('id')}")
+                print(f"Status:   {result.get('status')}")
+                print(f"Step:     {result.get('current_step',0)}/{len(result.get('step_results',[]))}")
+                for sr in result.get("step_results", []):
+                    icon = {"passed":"✅","failed":"❌","running":"▶","pending":"☐","skipped":"⏭"}.get(sr.get("status",""),"☐")
+                    print(f"  {icon} {sr.get('name','')}")
+            else:
+                print(f"Run {run_id} not found.")
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+    if sub == "log":
+        run_id = sys.argv[3] if len(sys.argv) > 3 else ""
+        if not run_id:
+            print("Error: run ID required")
+            return
+        try:
+            req = urllib.request.Request(f"{API}/log/{urllib.parse.quote(run_id)}")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                result = json.loads(r.read().decode())
+            print(result.get("log", "No log available"))
+        except Exception as e:
+            print(f"Error: {e}")
+        return
+
+
 # ─── Main dispatcher ────────────────────────────────────────
 def main():
     if len(sys.argv) < 2:
@@ -961,6 +1087,7 @@ def main():
               prompt              Manage compiled prompts (define, list, run)
               task                Manage async tasks (create, status, list)
               cache               Manage speculative cache (stats, clear)
+              workflow            Define, run, and track structured workflows
         """))
         return
 
@@ -1010,6 +1137,8 @@ def main():
         _cmd_task()
     elif cmd == "cache":
         _cmd_cache()
+    elif cmd == "workflow":
+        _cmd_workflow()
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

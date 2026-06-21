@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mycelium Global</title>
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    background: #010102;
+    color: #f7f8f8;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 40px; padding-bottom: 20px;
+    border-bottom: 1px solid #23252a;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 22px; font-weight: 600; color: #f7f8f8; letter-spacing: -0.5px; }
+  .logo-sub { font-size: 13px; color: #8a8f98; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .time { font-size: 13px; color: #62666d; font-variant-numeric: tabular-nums; }
+  .badge {
+    font-size: 11px; padding: 4px 10px; border-radius: 6px;
+    background: #141516; color: #8a8f98; border: 1px solid #23252a;
+  }
+  .badge-green { background: #27a64415; color: #27a644; border-color: #27a64430; }
+
+  .section-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #62666d; margin-bottom: 16px;
+  }
+
+  .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 48px; }
+  .status-card {
+    background: #0f1011; border: 1px solid #23252a; border-radius: 10px;
+    padding: 16px; display: flex; align-items: center; gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .status-card:hover { border-color: #34343a; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: #27a644; box-shadow: 0 0 6px #27a64440; }
+  .dot-red { background: #ee0000; box-shadow: 0 0 6px #ee000040; }
+  .dot-yellow { background: #f5a623; box-shadow: 0 0 6px #f5a62340; }
+  .dot-gray { background: #34343a; }
+  .status-info { flex: 1; min-width: 0; }
+  .status-name { font-size: 14px; font-weight: 500; color: #f7f8f8; }
+  .status-desc { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .status-meta { font-size: 11px; color: #62666d; text-align: right; flex-shrink: 0; }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 48px;
+  }
+  .stat-item {
+    background: #0f1011; border: 1px solid #23252a; border-radius: 10px;
+    padding: 14px 16px; text-align: center;
+  }
+  .stat-value { font-size: 24px; font-weight: 600; color: #f7f8f8; letter-spacing: -0.5px; }
+  .stat-label { font-size: 11px; color: #62666d; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .config-section { margin-bottom: 48px; }
+  .config-group { margin-bottom: 16px; }
+  .config-group-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
+    color: #62666d; margin-bottom: 8px; padding: 0 4px;
+  }
+  .config-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 8px;
+    background: #0f1011; border: 1px solid #23252a;
+    margin-bottom: 4px; min-height: 40px;
+  }
+  .config-row:hover { border-color: #34343a; }
+  .config-label { font-size: 13px; color: #8a8f98; min-width: 120px; }
+  .config-value { font-size: 13px; color: #f7f8f8; font-family: 'SF Mono', 'JetBrains Mono', monospace; flex: 1; text-align: right; margin-left: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .config-edit {
+    font-size: 11px; color: #5e6ad2; cursor: pointer; padding: 4px 8px;
+    border-radius: 4px; margin-left: 8px; flex-shrink: 0; background: none; border: none;
+    font-family: inherit; transition: background 0.15s;
+  }
+  .config-edit:hover { background: #5e6ad215; }
+  .config-input {
+    background: #141516; border: 1px solid #5e6ad2; border-radius: 4px;
+    color: #f7f8f8; font-family: 'SF Mono', 'JetBrains Mono', monospace;
+    font-size: 13px; padding: 4px 8px; flex: 1; margin-left: 12px; outline: none; width: 100%;
+  }
+
+  .empty-state { color: #62666d; font-size: 13px; padding: 32px; text-align: center; }
+
+  @media (max-width: 640px) {
+    .status-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .container { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container" x-data="dashboard()">
+  <div class="header">
+    <div class="header-left">
+      <span class="logo">🍄 mycelium</span>
+      <span class="logo-sub">global</span>
+    </div>
+    <div class="header-right">
+      <span class="time" x-text="time"></span>
+      <span class="badge" :class="allHealthy ? 'badge-green' : ''" x-text="allHealthy ? 'all systems' : 'issues'"></span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-value" x-text="stats.turns || '?'">—</div>
+      <div class="stat-label">Brain Turns</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" x-text="stats.facts || '?'">—</div>
+      <div class="stat-label">Memory Facts</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" x-text="stats.artifacts || '?'">—</div>
+      <div class="stat-label">Artifacts</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" x-text="stats.snapshots || '?'">—</div>
+      <div class="stat-label">Snapshots</div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="section-title">Services</div>
+  <div class="status-grid">
+    <template x-for="svc in services" :key="svc.name">
+      <div class="status-card">
+        <div class="status-dot" :class="'dot-' + svc.status"></div>
+        <div class="status-info">
+          <div class="status-name" x-text="svc.label"></div>
+          <div class="status-desc" x-text="svc.port"></div>
+        </div>
+        <div class="status-meta" x-text="svc.meta"></div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Config -->
+  <div class="section-title">Config</div>
+
+  <div class="config-section">
+    <div class="config-group">
+      <div class="config-group-title">Mycelium Root</div>
+      <div class="config-row">
+        <span class="config-label">Path</span>
+        <template x-if="editing !== 'root'">
+          <span class="config-value">/Users/azfar.naufal/Documents/mycelium</span>
+        </template>
+        <template x-if="editing === 'root'">
+          <input class="config-input" x-model="configs.root" @keydown.enter="saveConfig('root')" @keydown.escape="cancelEdit()" autofocus>
+        </template>
+        <button class="config-edit" x-show="editing !== 'root'" @click="startEdit('root')">edit</button>
+        <button class="config-edit" x-show="editing === 'root'" @click="saveConfig('root')" style="color:#27a644;">save</button>
+      </div>
+    </div>
+
+    <div class="config-group">
+      <div class="config-group-title">LLM Default</div>
+      <div class="config-row">
+        <span class="config-label">Host</span>
+        <template x-if="editing !== 'llm_host'">
+          <span class="config-value" x-text="configs.llm_host"></span>
+        </template>
+        <template x-if="editing === 'llm_host'">
+          <input class="config-input" x-model="configs.llm_host" @keydown.enter="saveConfig('llm_host')" @keydown.escape="cancelEdit()" autofocus>
+        </template>
+        <button class="config-edit" x-show="editing !== 'llm_host'" @click="startEdit('llm_host')">edit</button>
+        <button class="config-edit" x-show="editing === 'llm_host'" @click="saveConfig('llm_host')" style="color:#27a644;">save</button>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Model</span>
+        <template x-if="editing !== 'llm_model'">
+          <span class="config-value" x-text="configs.llm_model"></span>
+        </template>
+        <template x-if="editing === 'llm_model'">
+          <input class="config-input" x-model="configs.llm_model" @keydown.enter="saveConfig('llm_model')" @keydown.escape="cancelEdit()" autofocus>
+        </template>
+        <button class="config-edit" x-show="editing !== 'llm_model'" @click="startEdit('llm_model')">edit</button>
+        <button class="config-edit" x-show="editing === 'llm_model'" @click="saveConfig('llm_model')" style="color:#27a644;">save</button>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Key</span>
+        <span class="config-value" style="color:#62666d;">•••••••••••••••••••</span>
+        <button class="config-edit" @click="alert('Key stored in ~/.claude/settings.json')">view</button>
+      </div>
+    </div>
+
+    <div class="config-group">
+      <div class="config-group-title">Proxy Upstream</div>
+      <div class="config-row">
+        <span class="config-label">mycelium-proxy</span>
+        <span class="config-value">:8443 → :8080</span>
+        <button class="config-edit">edit</button>
+      </div>
+      <div class="config-row">
+        <span class="config-label">meshgate</span>
+        <span class="config-value">:8080 → upstream LLM</span>
+        <button class="config-edit">edit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function dashboard() {
+  const API = 'http://127.0.0.1:8421';
+  const PROXY = 'http://127.0.0.1:8443';
+  const DAEMON = 'http://127.0.0.1:20151';
+
+  return {
+    time: new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}),
+    stats: { turns: '—', facts: '—', artifacts: '—', snapshots: '—' },
+    services: [
+      { name:'proxy', label:'mycelium-proxy', port:':8443', status:'gray', meta:'checking...' },
+      { name:'backend', label:'web backend', port:':8421', status:'gray', meta:'checking...' },
+      { name:'daemon', label:'daemon', port:':20151', status:'gray', meta:'checking...' },
+      { name:'meshgate', label:'meshgate', port:':8080', status:'gray', meta:'checking...' },
+      { name:'mcp', label:'MCP server', port:'stdio', status:'gray', meta:'on demand' },
+    ],
+    configs: {
+      root: '/Users/azfar.naufal/Documents/mycelium',
+      llm_host: 'http://127.0.0.1:8443/v1',
+      llm_model: 'kimi-k2.6',
+    },
+    editing: null,
+    editingBackup: '',
+
+    get allHealthy() {
+      return this.services.every(s => s.status === 'green' || s.status === 'gray');
+    },
+
+    init() {
+      setInterval(() => {
+        this.time = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+      }, 30000);
+      this.checkAll();
+      setInterval(() => this.checkAll(), 15000);
+    },
+
+    async checkAll() {
+      await Promise.all([
+        this.checkEndpoint('proxy', PROXY, 'proxy'),
+        this.checkEndpoint('backend', API + '/api/health', 'json'),
+        this.checkEndpoint('daemon', API + '/api/daemon', 'daemon'),
+        this.checkEndpoint('meshgate', 'http://127.0.0.1:8080/', 'meshgate'),
+      ]);
+      this.fetchStats();
+    },
+
+    async checkEndpoint(name, url, type) {
+      const svc = this.services.find(s => s.name === name);
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+        if (type === 'meshgate') {
+          svc.status = r.ok || r.status === 404 ? 'green' : 'red';
+          svc.meta = `HTTP ${r.status}`;
+        } else if (type === 'proxy') {
+          svc.status = r.ok || r.status === 404 ? 'green' : 'red';
+          svc.meta = `HTTP ${r.status}`;
+        } else {
+          svc.status = 'green';
+          svc.meta = 'ok';
+        }
+      } catch {
+        svc.status = 'red';
+        svc.meta = 'unreachable';
+      }
+    },
+
+    async fetchStats() {
+      try {
+        const r = await fetch(API + '/api/status', { signal: AbortSignal.timeout(3000) });
+        const d = await r.json();
+        this.stats.turns = d.total_turns || '?';
+      } catch {}
+      try {
+        const r = await fetch(API + '/api/memory/stats', { signal: AbortSignal.timeout(3000) });
+        const d = await r.json();
+        this.stats.facts = d.total_facts || '?';
+        this.stats.snapshots = d.total_snapshots || '?';
+      } catch {}
+      try {
+        const r = await fetch(API + '/api/artifacts/stats', { signal: AbortSignal.timeout(3000) });
+        const d = await r.json();
+        this.stats.artifacts = d.total || '?';
+      } catch {}
+    },
+
+    startEdit(field) {
+      this.editingBackup = this.configs[field];
+      this.editing = field;
+    },
+
+    saveConfig(field) {
+      this.editing = null;
+      // Config saved to Alpine store — persist later to file
+    },
+
+    cancelEdit() {
+      if (this.editing && this.editingBackup) {
+        this.configs[this.editing] = this.editingBackup;
+      }
+      this.editing = null;
+    },
+  };
+}
+</script>
+</body>
+</html>

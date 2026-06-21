@@ -30,6 +30,7 @@ from .routes_reader import router as reader_router
 from .routes_prompts import router as prompts_router
 from .routes_artifacts import router as artifacts_router
 from .routes_tasks import router as tasks_router
+from .routes_workflow import router as workflow_router
 from .routes_fallback import router as fallback_router
 
 app.include_router(core_router)
@@ -38,6 +39,7 @@ app.include_router(reader_router)
 app.include_router(prompts_router)
 app.include_router(artifacts_router)
 app.include_router(tasks_router)
+app.include_router(workflow_router)
 app.include_router(fallback_router)
 
 app.add_middleware(
