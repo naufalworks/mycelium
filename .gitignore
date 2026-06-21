@@ -75,3 +75,10 @@ go/proxy.log
 mycelium.db
 references/
 index.db*
+
+# Go built binaries (tracked via source)
+go/mcp
+go/mycelium-proxy
+go/mycelium-mcp
+go/mycelium
+go/myceliumd

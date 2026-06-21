@@ -57,7 +57,7 @@ def api_daemon():
         with urllib.request.urlopen(req, timeout=3) as r:
             return json.loads(r.read().decode())
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "running": False, "error": str(e)}
 
 @router.post("/api/verify")
 def api_verify():

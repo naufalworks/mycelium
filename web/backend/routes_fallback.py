@@ -18,6 +18,9 @@ def frontend_fallback(full_path: str):
     artifact_html = FRONTEND_SRC / "artifact_dashboard.html"
     if full_path == "artifact_dashboard.html" and artifact_html.exists():
         return FileResponse(artifact_html)
+    global_html = FRONTEND_SRC / "global.html"
+    if full_path == "global.html" and global_html.exists():
+        return FileResponse(global_html)
     v3_pages = {"v3_dashboard.html", "v3_graph.html", "v3_negations.html", "v3_causal.html"}
     if full_path in v3_pages:
         src_file = FRONTEND_SRC / full_path
