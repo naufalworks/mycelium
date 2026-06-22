@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"strings"
@@ -32,11 +33,11 @@ const (
 	// MyceliumAPI is the web backend URL for hippocampus extraction.
 	MyceliumAPI = "http://127.0.0.1:8421"
 	// Max concurrent requests the proxy will handle
-	MaxConcurrent = 20
-	// Upstream request timeout
-	UpstreamTimeout = 300 * time.Second
+	MaxConcurrent = 5
+	// Upstream request timeout (shorter to prevent goroutine pileup)
+	UpstreamTimeout = 60 * time.Second
 	// Idle connection timeout for keep-alive
-	IdleConnTimeout = 90 * time.Second
+	IdleConnTimeout = 30 * time.Second
 )
 
 // Proxy intercepts Claude Code ↔ Anthropic API traffic.
@@ -97,10 +98,17 @@ func (p *Proxy) Start() error {
 		Addr:         fmt.Sprintf("127.0.0.1:%s", p.Port),
 		Handler:      http.HandlerFunc(p.handleRequest),
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 310 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		WriteTimeout: 70 * time.Second,
+		IdleTimeout:  30 * time.Second,
 	}
 	log.Printf("🧬 Mycelium proxy listening on 127.0.0.1:%s → %s", p.Port, p.Upstream)
+
+	// Start pprof server for CPU profiling
+	go func() {
+		log.Println("🧬 pprof listening on :6060")
+		http.ListenAndServe("127.0.0.1:6060", nil)
+	}()
+
 	return p.server.ListenAndServe()
 }
 

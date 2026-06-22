@@ -713,18 +713,19 @@ func (b *Brain) FetchMemoryFacts(query string, limit int) []MemoryFact {
 	}
 	defer db.Close()
 
-	// Word-level LIKE matching against entity, attribute, and value
+	// Use at most 3 words, value column only
 	words := strings.Fields(query)
+	if len(words) > 3 {
+		words = words[:3]
+	}
 	var conditions []string
 	var args []interface{}
 	for _, w := range words {
 		if len(w) < 3 {
 			continue
 		}
-		like := "%" + strings.ToLower(w) + "%"
-		conditions = append(conditions,
-			"(LOWER(entity) LIKE ? OR LOWER(attribute) LIKE ? OR LOWER(value) LIKE ?)")
-		args = append(args, like, like, like)
+		conditions = append(conditions, "value LIKE ?")
+		args = append(args, "%"+w+"%")
 	}
 
 	if len(conditions) == 0 {
@@ -734,7 +735,7 @@ func (b *Brain) FetchMemoryFacts(query string, limit int) []MemoryFact {
 	sqlQuery := fmt.Sprintf(
 		`SELECT entity, attribute, value, fact_type, confidence, source_session
 		 FROM memory_facts WHERE %s
-		 ORDER BY confidence DESC, tier ASC, updated_at DESC LIMIT ?`,
+		 ORDER BY confidence DESC, rowid DESC LIMIT ?`,
 		strings.Join(conditions, " OR "),
 	)
 	args = append(args, limit)
