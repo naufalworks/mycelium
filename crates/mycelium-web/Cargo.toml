@@ -3,13 +3,21 @@ name = "mycelium-web"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+name = "mycelium_web"
+crate-type = ["lib", "cdylib"]
+
 [dependencies]
 mycelium-core = { path = "../mycelium-core" }
+leptos = { workspace = true, features = ["serde"] }
+leptos_axum.workspace = true
+leptos_router.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 
-[lib]
-name = "mycelium_web"
-path = "src/lib.rs"
+[features]
+default = ["csr"]
+csr = ["leptos/csr"]
+ssr = ["leptos/ssr"]

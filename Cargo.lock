@@ -1202,17 +1202,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mycelium-web"
-version = "0.1.0"
-dependencies = [
- "mycelium-core",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "native-tls"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
