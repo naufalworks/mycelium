@@ -341,7 +341,27 @@ def cmd_archive(days=30):
 
 
 # ─── Search ──────────────────────────────────────────────────
+def _ensure_index_fresh():
+    """Auto-reindex if the index is behind the log file."""
+    from mycelium_lib import reindex, init_index, LOG
+    idx = Path(__file__).resolve().parent.parent / "index.db"
+    log = Path(__file__).resolve().parent.parent / "log.jsonl"
+    if not log.exists() or not idx.exists():
+        return
+    try:
+        conn = init_index(str(idx))
+        (count,) = conn.execute("SELECT COUNT(*) FROM turns").fetchone()
+        conn.close()
+        # Count log lines
+        log_count = sum(1 for _ in open(log) if _.strip())
+        if log_count > count + 5:  # >5 turns behind = stale
+            reindex(LOG, str(idx))
+    except Exception:
+        pass
+
+
 def cmd_search(query):
+    _ensure_index_fresh()
     conn = init_index()
     cur = conn.execute(
         "SELECT turn, tier, type, session, ts, summary FROM turns WHERE ts LIKE ? OR session LIKE ? OR summary LIKE ? ORDER BY turn DESC LIMIT 20",
