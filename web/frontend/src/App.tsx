@@ -168,20 +168,29 @@ function TopBar({ view, status, searchQuery, onSearch }: {
 // ── Dashboard ───────────────────────────────────────
 function DashboardView({ status, stream, daemon, onView }: { status: BrainStatus | null; stream: StreamItem[]; daemon: any; onView: (v: View) => void }) {
   const tiers = status?.tiers ?? {}
-  const types = status?.types ?? {}
   const [proxyActive, setProxyActive] = useState(false)
+  const [activeRun, setActiveRun] = useState<any>(null)
 
   useEffect(() => {
     const check = async () => {
-      try {
-        const r = await fetch('http://127.0.0.1:8443/', { signal: AbortSignal.timeout(2000) })
-        setProxyActive(r.ok || r.status === 404)
-      } catch { setProxyActive(false) }
+      try { const r = await fetch('http://127.0.0.1:8443/', { signal: AbortSignal.timeout(2000) }); setProxyActive(r.ok || r.status === 404) } catch { setProxyActive(false) }
+      try { const r = await fetch(API+'/api/workflow/runs?limit=1'); const d = await r.json(); const a = (d.runs ?? []).find((r:any) => r.status === 'running'); setActiveRun(a || null) } catch {}
     }
-    check()
-    const iv = setInterval(check, 10000)
-    return () => clearInterval(iv)
+    check(); const iv = setInterval(check, 5000); return () => clearInterval(iv)
   }, [])
+
+  const topStream = stream.slice(0, 12)
+
+  const sections: { key: View; label: string; icon: string; desc: string }[] = [
+    { key: 'memory', label: 'Memory', icon: '⟐', desc: 'Browse all turns, search' },
+    { key: 'graph', label: 'Graph', icon: '◎', desc: 'Entity relationships' },
+    { key: 'findings', label: 'Findings', icon: '⚠', desc: 'Critical insights' },
+    { key: 'artifacts', label: 'Artifacts', icon: '◈', desc: 'Stored outputs' },
+    { key: 'causal', label: 'Causal', icon: '↻', desc: 'Cause-effect traces' },
+    { key: 'negations', label: 'Negations', icon: '⊘', desc: 'Negation tracking' },
+    { key: 'workflows', label: 'Workflows', icon: '⇶', desc: 'Runs & history' },
+    { key: 'settings', label: 'Settings', icon: '⚙', desc: 'MCP, proxy config' },
+  ]
 
   return (
     <>
@@ -201,44 +210,31 @@ function DashboardView({ status, stream, daemon, onView }: { status: BrainStatus
       )}
 
       {/* Stats Cards */}
-      <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
-        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
-          <div className="card-body" style={{textAlign:'center'}}>
-            <div style={{fontSize:24,fontWeight:700,color:'var(--accent-cyan)'}}>{status?.total_turns ?? 0}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Turns</div>
-          </div>
+      <div className="stats-grid">
+        <div className="stat-card cyan">
+          <div className="label">Turns</div>
+          <div className="value">{status?.total_turns ?? 0}</div>
+          <div className="sub">{status?.total_sessions ?? 0} sessions</div>
         </div>
-        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
-          <div className="card-body" style={{textAlign:'center'}}>
-            <div style={{fontSize:24,fontWeight:700,color:'var(--accent-purple)'}}>{status?.total_sessions ?? 0}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Sessions</div>
-          </div>
+        <div className="stat-card blue">
+          <div className="label">S-Tier</div>
+          <div className="value">{tiers.S ?? 0}</div>
+          <div className="sub">A: {tiers.A ?? 0}  B: {tiers.B ?? 0}</div>
         </div>
-        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
-          <div className="card-body" style={{textAlign:'center'}}>
-            <div style={{fontSize:24,fontWeight:700,color:'var(--accent-amber)'}}>{status?.storage_bytes ? (status.storage_bytes/1024).toFixed(0) : 0}KB</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Size</div>
-          </div>
+        <div className="stat-card purple">
+          <div className="label">Storage</div>
+          <div className="value">{status?.storage_bytes ? (status.storage_bytes/1024).toFixed(0):0}<small style={{fontSize:14}}> KB</small></div>
+          <div className="sub">brain size</div>
         </div>
-        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
-          <div className="card-body" style={{textAlign:'center'}}>
-            <div style={{fontSize:20,fontWeight:700}}>S <span style={{color:'var(--accent-amber)',fontSize:24}}>{tiers.S||0}</span></div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>A: {tiers.A||0}  B: {tiers.B||0}</div>
-          </div>
+        <div className="stat-card amber">
+          <div className="label">Daemon</div>
+          <div className="value" style={{fontSize:16}}>{daemon?.last_assistant_id != null ? '🟢 Online' : '🔴 Offline'}</div>
+          <div className="sub">{daemon?.imports??0} imports</div>
         </div>
-        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
-          <div className="card-body" style={{textAlign:'center'}}>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Daemon</div>
-            <div style={{fontSize:20}}>{daemon?.last_assistant_id != null ? '🟢' : '🔴'}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{daemon?.imports??0} imports</div>
-          </div>
-        </div>
-        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
-          <div className="card-body" style={{textAlign:'center'}}>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Proxy</div>
-            <div style={{fontSize:20}}>{proxyActive ? '🟢' : '🔴'}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>:8443</div>
-          </div>
+        <div className="stat-card">
+          <div className="label">Proxy</div>
+          <div className="value" style={{fontSize:16}}>{proxyActive ? '🟢 :8443' : '🔴 Offline'}</div>
+          <div className="sub">meshgate → :8080</div>
         </div>
       </div>
 
@@ -827,7 +823,7 @@ function ArtifactsView() {
     <>
       <div className="content-header"><h2>◈ Artifacts</h2></div>
       <div style={{display:'flex',gap:12,marginBottom:16}}>
-        {stats && <div className="card" style={{flex:1}}><div className="card-body" style={{fontSize:13}}>Total: {stats.total ?? 0}<br/>Types: {stats.by_type?.join(', ') ?? '—'}</div></div>}
+        {stats && <div className="card" style={{flex:1}}><div className="card-body" style={{fontSize:13}}>Total: {stats.total ?? 0}<br/>Types: {stats.by_type ? Object.keys(stats.by_type).join(', ') : '—'}</div></div>}
       </div>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search artifacts..." style={{flex:1,padding:'8px 12px',background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:13}} onKeyDown={e => e.key==='Enter'&&search()} />
@@ -917,8 +913,8 @@ function NegationsView() {
           <div key={i} className="wf-run-row">
             <div className="wf-run-status">⊘</div>
             <div className="wf-run-info">
-              <div className="wf-run-name">{n.value || n.text?.slice(0,60)}</div>
-              <div className="wf-run-meta">{n.entity && `Entity: ${n.entity}`}{n.approach && ` · ${n.approach}`}</div>
+              <div className="wf-run-name">{n.result || n.user_msg?.slice(0,80)}</div>
+              <div className="wf-run-meta">{n.entities && `Entity: ${n.entities}`}{n.approach && ` · ${n.approach}`}</div>
             </div>
           </div>
         ))}
