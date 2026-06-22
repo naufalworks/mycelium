@@ -49,6 +49,8 @@ type Cache struct {
 	llmURL    string
 	mu        sync.Mutex
 	stopCh    chan struct{}
+	dbOnce    sync.Once
+	dbConn    *sql.DB
 }
 
 // New creates a speculative cache.
@@ -62,7 +64,13 @@ func New(myceliumRoot, llmURL string) *Cache {
 }
 
 func (c *Cache) db() (*sql.DB, error) {
-	return sql.Open("sqlite3", c.dbPath)
+	c.dbOnce.Do(func() {
+		c.dbConn, _ = sql.Open("sqlite3", c.dbPath)
+	})
+	if c.dbConn == nil {
+		return nil, fmt.Errorf("cache: failed to open db")
+	}
+	return c.dbConn, nil
 }
 
 // Predict generates likely next questions based on context.
@@ -170,7 +178,6 @@ func (c *Cache) Lookup(prompt string) (result string, artifactID string, hit boo
 	if err != nil {
 		return "", "", false
 	}
-	defer db.Close()
 
 	promptLower := strings.ToLower(prompt)
 
@@ -213,7 +220,6 @@ func (c *Cache) Stats() map[string]interface{} {
 	if err != nil {
 		return map[string]interface{}{"error": err.Error()}
 	}
-	defer db.Close()
 
 	var total int
 	db.QueryRow("SELECT COUNT(*) FROM artifacts WHERE type='speculative'").Scan(&total)
@@ -230,7 +236,6 @@ func (c *Cache) Clear() error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	_, err = db.Exec("DELETE FROM artifacts WHERE type='speculative'")
 	return err
@@ -242,7 +247,6 @@ func (c *Cache) getRecentContext() string {
 	if err != nil {
 		return ""
 	}
-	defer db.Close()
 
 	// Get recent memory facts
 	rows, err := db.Query(
@@ -271,7 +275,6 @@ func (c *Cache) exists(question string) bool {
 	if err != nil {
 		return false
 	}
-	defer db.Close()
 
 	var count int
 	// Simple check by matching against stored artifact data
@@ -333,7 +336,6 @@ func (c *Cache) storePrediction(question, result string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer db.Close()
 
 	// Evict oldest if at capacity
 	var count int

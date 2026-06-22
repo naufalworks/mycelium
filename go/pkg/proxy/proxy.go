@@ -14,6 +14,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,12 +33,14 @@ const (
 	UpstreamHost    = "localhost"
 	// MyceliumAPI is the web backend URL for hippocampus extraction.
 	MyceliumAPI = "http://127.0.0.1:8421"
-	// Max concurrent requests the proxy will handle
-	MaxConcurrent = 5
+	// Max concurrent requests the proxy will handle (default 20)
+	MaxConcurrent = 20
 	// Upstream request timeout (shorter to prevent goroutine pileup)
 	UpstreamTimeout = 60 * time.Second
 	// Idle connection timeout for keep-alive
 	IdleConnTimeout = 30 * time.Second
+	// Max concurrent hippocampus background extract workers
+	MaxHippocampusWorkers = 5
 )
 
 // Proxy intercepts Claude Code ↔ Anthropic API traffic.
@@ -56,7 +59,8 @@ type Proxy struct {
 	specCache     *cache.Cache      // speculative cache
 	client        *http.Client      // shared HTTP client with connection pooling
 	proxyHandler  *httputil.ReverseProxy // reusable reverse proxy for passthrough
-	sem           chan struct{}     // concurrency semaphore (max 20 concurrent)
+	sem           chan struct{}     // concurrency semaphore
+	hippocampusSem chan struct{}    // hippocampus extract workers semaphore
 }
 
 // New creates a new mycelium proxy.
@@ -72,6 +76,12 @@ func New(b *brain.Brain) *Proxy {
 		Transport: transport,
 	}
 	upstreamURL, _ := url.Parse(DefaultUpstream)
+	semSize := MaxConcurrent
+	if v := os.Getenv("MYCELIUM_PROXY_MAX_CONCURRENT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			semSize = n
+		}
+	}
 	p := &Proxy{
 		Brain:         b,
 		Upstream:      DefaultUpstream,
@@ -87,7 +97,8 @@ func New(b *brain.Brain) *Proxy {
 			},
 			Transport: transport,
 		},
-		sem: make(chan struct{}, MaxConcurrent),
+		sem: make(chan struct{}, semSize),
+		hippocampusSem: make(chan struct{}, MaxHippocampusWorkers),
 	}
 	return p
 }
@@ -248,7 +259,15 @@ func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 		// Hippocampus: real-time fact extraction after every exchange.
 		// Non-blocking — the response is never delayed.
-		go p.hippocampusExtract(userMsg, assistantMsg, session)
+		select {
+		case p.hippocampusSem <- struct{}{}:
+			go func() {
+				defer func() { <-p.hippocampusSem }()
+				p.hippocampusExtract(userMsg, assistantMsg, session)
+			}()
+		default:
+			log.Println("[hippocampus] dropping extraction — all workers busy")
+		}
 	}
 
 	// Return the response
@@ -270,7 +289,7 @@ func (p *Proxy) passthroughWithBody(w http.ResponseWriter, r *http.Request, body
 // forwardAndCapture forwards the request and captures the full response.
 // Returns the raw response body and the extracted assistant message text.
 func (p *Proxy) forwardAndCapture(r *http.Request, body []byte) ([]byte, string) {
-	req, err := http.NewRequest(r.Method, p.Upstream+r.URL.Path, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, p.Upstream+r.URL.Path, bytes.NewReader(body))
 	if err != nil {
 		return body, ""
 	}
@@ -633,6 +652,11 @@ func writeJSON(w http.ResponseWriter, data interface{}) {
 // hippocampusExtract sends a single exchange to the fact extraction endpoint.
 // Called as a goroutine — never blocks the response.
 func (p *Proxy) hippocampusExtract(user, assistant, session string) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Printf("⚠️  [hippocampus] panic in extract goroutine: %v", rec)
+		}
+	}()
 	payload, err := json.Marshal(map[string]string{
 		"user":      user,
 		"assistant": assistant,
@@ -652,7 +676,7 @@ func (p *Proxy) hippocampusExtract(user, assistant, session string) {
 		log.Printf("[hippocampus] extract call failed: %v", err)
 		return
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 	log.Printf("[hippocampus] extracted facts from exchange")
 }
 

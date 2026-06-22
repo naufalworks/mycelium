@@ -283,6 +283,22 @@ type Brain struct {
 	mu       sync.Mutex
 	Mycelium string
 	LogPath  string
+	db       *sql.DB
+	dbOnce   sync.Once
+}
+
+// indexDB returns the Brain's shared index.db handle, opening it lazily on first call.
+func (b *Brain) indexDB() *sql.DB {
+	b.dbOnce.Do(func() {
+		path := filepath.Join(b.Mycelium, "index.db")
+		db, err := sql.Open("sqlite3", path)
+		if err != nil {
+			log.Printf("brain: cannot open index db %s: %v", path, err)
+			return
+		}
+		b.db = db
+	})
+	return b.db
 }
 
 // New opens or creates a mycelium brain at the given root directory.
@@ -296,7 +312,9 @@ func New(root string) (*Brain, error) {
 	}
 	logPath := filepath.Join(abs, "log.jsonl")
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
-		os.MkdirAll(abs, 0755)
+		if err := os.MkdirAll(abs, 0755); err != nil {
+			return nil, fmt.Errorf("brain: cannot create mycelium dir %s: %w", abs, err)
+		}
 		f, err := os.Create(logPath)
 		if err != nil {
 			return nil, fmt.Errorf("brain: cannot create %s: %w", logPath, err)
@@ -599,15 +617,11 @@ func (b *Brain) SearchMultiKeyword(query string, limit int) []*Entry {
 // SearchFTS uses the existing SQLite index.db for faster search.
 // Falls back to SearchMultiKeyword if the index isn't available.
 func (b *Brain) SearchFTS(query string, limit int) []*Entry {
-	// The index.db path is in the same directory as log.jsonl
-	indexPath := filepath.Join(b.Mycelium, "index.db")
-
-	db, err := sql.Open("sqlite3", indexPath)
-	if err != nil {
-		log.Printf("brain: FTS fallback (can't open index: %v)", err)
+	db := b.indexDB()
+	if db == nil {
+		log.Printf("brain: FTS fallback (can't open index.db)")
 		return b.SearchMultiKeyword(query, limit)
 	}
-	defer db.Close()
 
 	// Use LIKE on the turns table (index.db is populated by mycelium.py on the Python side)
 	rows, err := db.Query(
@@ -706,12 +720,10 @@ func (b *Brain) FetchMemoryFacts(query string, limit int) []MemoryFact {
 		return nil
 	}
 
-	indexPath := filepath.Join(b.Mycelium, "index.db")
-	db, err := sql.Open("sqlite3", indexPath)
-	if err != nil {
+	db := b.indexDB()
+	if db == nil {
 		return nil
 	}
-	defer db.Close()
 
 	// Use at most 3 words, value column only
 	words := strings.Fields(query)

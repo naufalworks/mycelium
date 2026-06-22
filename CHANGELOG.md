@@ -1,5 +1,15 @@
 # Mycelium Changelog
 
+## 2026-06-23
+
+### 🛡️ Stability & Reliability
+- **Marked `resp.Body.Close` as `defer`** in `hippocampusExtract` — prevents Goroutine leak when the response body is not closed on early return
+- **Added panic recovery** to `hippocampusExtract` goroutine — background fact extraction no longer crashes the entire proxy on unexpected errors
+- **Checked `os.MkdirAll` error** in `brain.New` — returns a proper error instead of silently ignoring directory creation failure
+- **Propagated request context** to upstream calls — client disconnects now cancel the upstream request, freeing resources early
+- **Added hippocampus worker semaphore** (max 5 concurrent extractors, drops when saturated) — prevents goroutine pile-up under heavy proxy load
+- **Made SQLite connections persistent** in brain (`indexDB()`) and cache (`db()`) — lazy singleton via `sync.Once` instead of open/close per call, reducing GC pressure under load
+
 ## 2026-06-22
 
 ### 🔧 Proxy Reliability Fix
