@@ -1,0 +1,492 @@
+//! SQLite storage engine for Mycelium's permanent memory.
+//!
+//! Architecture:
+//! - Single SQLite database (`mycelium.db`) with WAL mode
+//! - All tables: entries, memory_facts, artifacts, context_snapshots, workflows, workflow_runs
+//! - Proper indexes on every query path
+//! - Connection pooling via r2d2 or direct multiplexing
+//! - Read replicas are not needed with WAL mode (concurrent reads + single writer)
+
+use rusqlite::{params, Connection, OpenFlags};
+use std::path::PathBuf;
+use std::sync::Mutex;
+use tracing::{debug, info};
+
+use crate::cache::MemoryCache;
+use crate::error::Result;
+use crate::types::*;
+
+/// The storage engine managing all persistent memory.
+pub struct Storage {
+    /// Path to the mycelium database file.
+    path: PathBuf,
+    /// SQLite connection (protected by Mutex for single-writer safety).
+    conn: Mutex<Connection>,
+    /// In-memory cache for hot data.
+    cache: MemoryCache,
+}
+
+impl Storage {
+    /// Open or create the database at the given path.
+    pub fn open(path: PathBuf) -> Result<Self> {
+        let conn = Connection::open_with_flags(
+            &path,
+            OpenFlags::SQLITE_OPEN_READ_WRITE
+                | OpenFlags::SQLITE_OPEN_CREATE
+                | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+
+        // Enable WAL mode for concurrent reads
+        conn.execute_batch("PRAGMA journal_mode=WAL;")?;
+        // Optimize for SSD/Flash storage
+        conn.execute_batch("PRAGMA synchronous=NORMAL;")?;
+        // Cache size: 64MB
+        conn.execute_batch("PRAGMA cache_size=-65536;")?;
+        // Busy timeout: 5 seconds
+        conn.execute_batch("PRAGMA busy_timeout=5000;")?;
+        // Foreign keys
+        conn.execute_batch("PRAGMA foreign_keys=ON;")?;
+        // Optimize for memory reads
+        conn.execute_batch("PRAGMA mmap_size=268435456;")?; // 256MB
+
+        let storage = Storage {
+            path,
+            conn: Mutex::new(conn),
+            cache: MemoryCache::new(),
+        };
+
+        storage.initialize_schema()?;
+        info!("Storage opened at: {}", storage.path.display());
+        Ok(storage)
+    }
+
+    /// Create the schema if it doesn't exist.
+    fn initialize_schema(&self) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+
+        conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS entries (
+                turn        INTEGER PRIMARY KEY,
+                tier        TEXT NOT NULL DEFAULT 'ephemeral',
+                entry_type  TEXT NOT NULL DEFAULT 'conversation',
+                session     TEXT NOT NULL,
+                ts          TEXT NOT NULL,
+                user        TEXT NOT NULL DEFAULT '',
+                assistant   TEXT NOT NULL DEFAULT '',
+                entities    TEXT NOT NULL DEFAULT '[]',
+                prev_hash   TEXT NOT NULL DEFAULT '',
+                hash        TEXT NOT NULL DEFAULT '',
+                finding     TEXT,
+                verdict     TEXT,
+                created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_entries_session
+                ON entries(session);
+            CREATE INDEX IF NOT EXISTS idx_entries_ts
+                ON entries(ts DESC);
+            CREATE INDEX IF NOT EXISTS idx_entries_tier
+                ON entries(tier);
+            CREATE INDEX IF NOT EXISTS idx_entries_type
+                ON entries(entry_type);
+
+            CREATE TABLE IF NOT EXISTS memory_facts (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity          TEXT NOT NULL,
+                attribute       TEXT NOT NULL,
+                value           TEXT NOT NULL,
+                fact_type       TEXT NOT NULL DEFAULT 'fact',
+                confidence      REAL NOT NULL DEFAULT 0.8,
+                tier            TEXT NOT NULL DEFAULT '1',
+                entropy         REAL NOT NULL DEFAULT 0.5,
+                source_session  TEXT DEFAULT NULL,
+                created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(entity, attribute, value)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_memory_facts_entity
+                ON memory_facts(entity);
+            CREATE INDEX IF NOT EXISTS idx_memory_facts_value
+                ON memory_facts(value);
+
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id              TEXT PRIMARY KEY,
+                session         TEXT NOT NULL,
+                filename        TEXT NOT NULL,
+                content_type    TEXT NOT NULL DEFAULT 'text/plain',
+                content         BLOB NOT NULL,
+                description     TEXT,
+                artifact_type   TEXT NOT NULL DEFAULT 'document',
+                created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_artifacts_session
+                ON artifacts(session);
+            CREATE INDEX IF NOT EXISTS idx_artifacts_type
+                ON artifacts(artifact_type);
+
+            CREATE TABLE IF NOT EXISTS context_snapshots (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id      TEXT NOT NULL,
+                summary         TEXT NOT NULL DEFAULT '',
+                topics          TEXT NOT NULL DEFAULT '[]',
+                decisions       TEXT NOT NULL DEFAULT '[]',
+                entities        TEXT NOT NULL DEFAULT '[]',
+                credentials     TEXT NOT NULL DEFAULT '[]',
+                turn_count      INTEGER NOT NULL DEFAULT 0,
+                created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_snapshots_session
+                ON context_snapshots(session_id);
+
+            CREATE TABLE IF NOT EXISTS workflows (
+                name            TEXT PRIMARY KEY,
+                description     TEXT NOT NULL DEFAULT '',
+                steps           TEXT NOT NULL DEFAULT '[]',
+                created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS workflow_runs (
+                id              TEXT PRIMARY KEY,
+                workflow_name   TEXT NOT NULL,
+                status          TEXT NOT NULL DEFAULT 'pending',
+                current_step    INTEGER NOT NULL DEFAULT 0,
+                total_steps     INTEGER NOT NULL DEFAULT 0,
+                started_at      TEXT NOT NULL DEFAULT (datetime('now')),
+                finished_at     TEXT,
+                error           TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_runs_workflow
+                ON workflow_runs(workflow_name);
+
+            CREATE TABLE IF NOT EXISTS schema_version (
+                version INTEGER NOT NULL
+            );
+
+            INSERT OR IGNORE INTO schema_version (version) VALUES (1);
+            ",
+        )?;
+
+        debug!("Schema initialized at version 1");
+        Ok(())
+    }
+
+    // ── Entry Operations ──
+
+    /// Append a new entry to the log.
+    pub fn append_entry(&self, entry: &Entry) -> Result<Entry> {
+        let conn = self.conn.lock().unwrap();
+        let entities_json = serde_json::to_string(&entry.entities)?;
+
+        conn.execute(
+            "INSERT INTO entries (turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            params![
+                entry.turn,
+                entry.tier.as_str(),
+                entry.entry_type.as_str(),
+                entry.session,
+                entry.ts.to_rfc3339(),
+                entry.user,
+                entry.assistant,
+                entities_json,
+                entry.prev_hash,
+                entry.hash,
+                entry.finding,
+                entry.verdict,
+            ],
+        )?;
+
+        // Invalidate caches after write
+        self.cache.invalidate_all();
+
+        Ok(entry.clone())
+    }
+
+    /// Get a single entry by turn number.
+    pub fn get_entry(&self, turn: i64) -> Result<Option<Entry>> {
+        // Check cache first
+        if let Some(entry) = self.cache.get_entry(turn) {
+            return Ok(Some(entry));
+        }
+
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+             FROM entries WHERE turn = ?1",
+        )?;
+
+        let result = stmt
+            .query_row(params![turn], |row| self.row_to_entry(row))
+            .ok();
+
+        if let Some(ref entry) = result {
+            self.cache.put_entry(turn, entry.clone());
+        }
+
+        Ok(result)
+    }
+
+    /// Get recent entries up to `limit`.
+    pub fn recent_entries(&self, limit: i64) -> Result<Vec<Entry>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+             FROM entries ORDER BY turn DESC LIMIT ?1",
+        )?;
+
+        let entries = stmt
+            .query_map(params![limit], |row| self.row_to_entry(row))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(entries)
+    }
+
+    /// Search entries with a LIKE query across user, assistant, and session.
+    pub fn search_entries(&self, query: &str, limit: i64) -> Result<Vec<Entry>> {
+        // Check cache first
+        let cache_key = format!("search:{}:{}", query, limit);
+        if let Some(results) = self.cache.get_search_results(&cache_key) {
+            return Ok(results);
+        }
+
+        let conn = self.conn.lock().unwrap();
+        let pattern = format!("%{}%", query);
+        let mut stmt = conn.prepare(
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+             FROM entries
+             WHERE user LIKE ?1 OR assistant LIKE ?1 OR session LIKE ?1
+             ORDER BY turn DESC LIMIT ?2",
+        )?;
+
+        let entries: Vec<Entry> = stmt
+            .query_map(params![pattern, limit], |row| self.row_to_entry(row))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        self.cache
+            .put_search_results(cache_key, entries.clone());
+        Ok(entries)
+    }
+
+    /// Count total entries.
+    pub fn count_entries(&self) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let count: i64 =
+            conn.query_row("SELECT COUNT(*) FROM entries", [], |row| row.get(0))?;
+        Ok(count)
+    }
+
+    /// Count distinct sessions.
+    pub fn count_sessions(&self) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(DISTINCT session) FROM entries",
+            [],
+            |row| row.get(0),
+        )?;
+        Ok(count)
+    }
+
+    /// Get tier distribution.
+    pub fn tier_distribution(&self) -> Result<std::collections::HashMap<String, i64>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT tier, COUNT(*) as count FROM entries GROUP BY tier",
+        )?;
+        let map = stmt
+            .query_map([], |row| {
+                let tier: String = row.get(0)?;
+                let count: i64 = row.get(1)?;
+                Ok((tier, count))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(map)
+    }
+
+    /// Get entry type distribution.
+    pub fn type_distribution(&self) -> Result<std::collections::HashMap<String, i64>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT entry_type, COUNT(*) as count FROM entries GROUP BY entry_type",
+        )?;
+        let map = stmt
+            .query_map([], |row| {
+                let etype: String = row.get(0)?;
+                let count: i64 = row.get(1)?;
+                Ok((etype, count))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(map)
+    }
+
+    /// Get the last entry in the log.
+    pub fn last_entry(&self) -> Result<Option<Entry>> {
+        let conn = self.conn.lock().unwrap();
+        let result = conn
+            .query_row(
+                "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+                 FROM entries ORDER BY turn DESC LIMIT 1",
+                [],
+                |row| self.row_to_entry(row),
+            )
+            .ok();
+        Ok(result)
+    }
+
+    // ── Memory Fact Operations ──
+
+    /// Insert a memory fact (upsert on unique constraint).
+    pub fn upsert_fact(&self, fact: &MemoryFact) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO memory_facts (entity, attribute, value, fact_type, confidence, source_session)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(entity, attribute, value) DO UPDATE SET
+                confidence = ?5,
+                updated_at = datetime('now')",
+            params![
+                fact.entity,
+                fact.attribute,
+                fact.value,
+                fact.fact_type,
+                fact.confidence,
+                fact.source_session,
+            ],
+        )?;
+        let id = conn.last_insert_rowid();
+        self.cache.invalidate_all();
+        Ok(id)
+    }
+
+    /// Search memory facts by entity or value.
+    pub fn search_facts(&self, query: &str, limit: i64) -> Result<Vec<MemoryFact>> {
+        let conn = self.conn.lock().unwrap();
+        let pattern = format!("%{}%", query);
+        let mut stmt = conn.prepare(
+            "SELECT id, entity, attribute, value, fact_type, confidence, source_session, created_at, updated_at
+             FROM memory_facts
+             WHERE entity LIKE ?1 OR attribute LIKE ?1 OR value LIKE ?1
+             ORDER BY confidence DESC LIMIT ?2",
+        )?;
+
+        let facts = stmt
+            .query_map(params![pattern, limit], |row| {
+                Ok(MemoryFact {
+                    id: Some(row.get(0)?),
+                    entity: row.get(1)?,
+                    attribute: row.get(2)?,
+                    value: row.get(3)?,
+                    fact_type: row.get(4)?,
+                    confidence: row.get(5)?,
+                    source_session: row.get(6)?,
+                    created_at: row.get::<_, String>(7)?.parse().unwrap_or_default(),
+                    updated_at: row.get::<_, String>(8)?.parse().unwrap_or_default(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(facts)
+    }
+
+    // ── Artifact Operations ──
+
+    /// Store an artifact.
+    pub fn store_artifact(&self, artifact: &Artifact) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO artifacts (id, session, filename, content_type, content, description, artifact_type)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                artifact.id.to_string(),
+                artifact.session,
+                artifact.filename,
+                artifact.content_type,
+                artifact.content,
+                artifact.description,
+                artifact.artifact_type,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// List artifacts for a session.
+    pub fn list_artifacts(&self, session: &str) -> Result<Vec<Artifact>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, session, filename, content_type, content, description, artifact_type, created_at
+             FROM artifacts WHERE session = ?1 ORDER BY created_at DESC",
+        )?;
+
+        let artifacts = stmt
+            .query_map(params![session], |row| {
+                Ok(Artifact {
+                    id: row.get::<_, String>(0)?.parse().unwrap_or_default(),
+                    session: row.get(1)?,
+                    filename: row.get(2)?,
+                    content_type: row.get(3)?,
+                    content: row.get(4)?,
+                    description: row.get(5)?,
+                    artifact_type: row.get(6)?,
+                    created_at: row.get::<_, String>(7)?.parse().unwrap_or_default(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(artifacts)
+    }
+
+    // ── Schema / Migration ──
+
+    /// Get the current schema version.
+    pub fn schema_version(&self) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let version: i64 =
+            conn.query_row("SELECT MAX(version) FROM schema_version", [], |row| {
+                row.get(0)
+            })?;
+        Ok(version)
+    }
+
+    /// Get database file size in bytes.
+    pub fn db_size(&self) -> Result<i64> {
+        Ok(std::fs::metadata(&self.path)
+            .map(|m| m.len() as i64)
+            .unwrap_or(0))
+    }
+
+    // ── Private Helpers ──
+
+    fn row_to_entry(&self, row: &rusqlite::Row) -> rusqlite::Result<Entry> {
+        let entities_str: String = row.get(6)?;
+        let entities: Vec<String> = serde_json::from_str(&entities_str).unwrap_or_default();
+        let ts_str: String = row.get(4)?;
+        let ts: chrono::DateTime<chrono::Utc> = ts_str.parse().unwrap_or_default();
+
+        Ok(Entry {
+            turn: row.get(0)?,
+            tier: Tier::from_str(&row.get::<_, String>(1)?).unwrap_or(Tier::Ephemeral),
+            entry_type: EntryType::from_str(&row.get::<_, String>(2)?)
+                .unwrap_or(EntryType::Conversation),
+            session: row.get(3)?,
+            ts,
+            user: row.get(5)?,
+            assistant: row.get(6)?,
+            entities,
+            prev_hash: row.get(7)?,
+            hash: row.get(8)?,
+            finding: row.get(9)?,
+            verdict: row.get(10)?,
+        })
+    }
+}

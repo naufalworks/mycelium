@@ -1,0 +1,17 @@
+[package]
+name = "mycelium-proxy"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+mycelium-core = { path = "../mycelium-core" }
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+reqwest.workspace = true
+
+[lib]
+name = "mycelium_proxy"
+path = "src/lib.rs"

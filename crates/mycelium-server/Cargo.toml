@@ -1,0 +1,17 @@
+[package]
+name = "mycelium-server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+mycelium-core = { path = "../mycelium-core" }
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+axum.workspace = true
+
+[lib]
+name = "mycelium_server"
+path = "src/lib.rs"
