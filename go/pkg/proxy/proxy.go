@@ -27,10 +27,16 @@ import (
 
 const (
 	DefaultPort     = "8443"
-	DefaultUpstream = "https://api.anthropic.com"
-	UpstreamHost    = "api.anthropic.com"
+	DefaultUpstream = "http://localhost:8080" // meshgate
+	UpstreamHost    = "localhost"
 	// MyceliumAPI is the web backend URL for hippocampus extraction.
 	MyceliumAPI = "http://127.0.0.1:8421"
+	// Max concurrent requests the proxy will handle
+	MaxConcurrent = 20
+	// Upstream request timeout
+	UpstreamTimeout = 300 * time.Second
+	// Idle connection timeout for keep-alive
+	IdleConnTimeout = 90 * time.Second
 )
 
 // Proxy intercepts Claude Code ↔ Anthropic API traffic.
@@ -47,24 +53,52 @@ type Proxy struct {
 	readerTool    bool              // enable reader tool
 	taskQueue     *tasks.Queue      // async task queue
 	specCache     *cache.Cache      // speculative cache
+	client        *http.Client      // shared HTTP client with connection pooling
+	proxyHandler  *httputil.ReverseProxy // reusable reverse proxy for passthrough
+	sem           chan struct{}     // concurrency semaphore (max 20 concurrent)
 }
 
 // New creates a new mycelium proxy.
 func New(b *brain.Brain) *Proxy {
-	return &Proxy{
+	transport := &http.Transport{
+		MaxIdleConns:        50,
+		MaxIdleConnsPerHost: 20,
+		IdleConnTimeout:     IdleConnTimeout,
+		DisableCompression:  false,
+	}
+	client := &http.Client{
+		Timeout:   UpstreamTimeout,
+		Transport: transport,
+	}
+	upstreamURL, _ := url.Parse(DefaultUpstream)
+	p := &Proxy{
 		Brain:         b,
 		Upstream:      DefaultUpstream,
 		Port:          DefaultPort,
 		sessionLoaded: make(map[string]bool),
 		injectedTurns: make(map[int]bool),
+		client:        client,
+		proxyHandler: &httputil.ReverseProxy{
+			Director: func(req *http.Request) {
+				req.URL.Scheme = upstreamURL.Scheme
+				req.URL.Host = upstreamURL.Host
+				req.Host = upstreamURL.Host
+			},
+			Transport: transport,
+		},
+		sem: make(chan struct{}, MaxConcurrent),
 	}
+	return p
 }
 
 // Start begins listening on the configured port.
 func (p *Proxy) Start() error {
 	p.server = &http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%s", p.Port),
-		Handler: http.HandlerFunc(p.handleRequest),
+		Addr:         fmt.Sprintf("127.0.0.1:%s", p.Port),
+		Handler:      http.HandlerFunc(p.handleRequest),
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 310 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 	log.Printf("🧬 Mycelium proxy listening on 127.0.0.1:%s → %s", p.Port, p.Upstream)
 	return p.server.ListenAndServe()
@@ -80,6 +114,23 @@ func (p *Proxy) Stop() error {
 
 // handleRequest is the main HTTP handler. It acts as a transparent proxy.
 func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
+	// Panic recovery
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Printf("⚠️  Panic in handler: %v", rec)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
+	}()
+
+	// Concurrency limiter: acquire semaphore slot
+	select {
+	case p.sem <- struct{}{}:
+		defer func() { <-p.sem }()
+	default:
+		http.Error(w, "too many requests", http.StatusServiceUnavailable)
+		return
+	}
+
 	// Handle proxy-local API routes (reader, prompts)
 	if strings.HasPrefix(r.URL.Path, "/api/") {
 		p.handleAPIRequest(w, r)
@@ -198,12 +249,7 @@ func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 // passthrough forwards a request without interception.
 func (p *Proxy) passthrough(w http.ResponseWriter, r *http.Request) {
-	proxy := httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			p.directRequest(req, r)
-		},
-	}
-	proxy.ServeHTTP(w, r)
+	p.proxyHandler.ServeHTTP(w, r)
 }
 
 // passthroughWithBody forwards a request with a replaced body.
@@ -237,8 +283,7 @@ func (p *Proxy) forwardAndCapture(r *http.Request, body []byte) ([]byte, string)
 		isStream = s.(bool)
 	}
 
-	client := &http.Client{Timeout: 300 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return body, ""
 	}
@@ -590,8 +635,7 @@ func (p *Proxy) hippocampusExtract(user, assistant, session string) {
 		return
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Post(
+	resp, err := p.client.Post(
 		MyceliumAPI+"/api/memory/extract",
 		"application/json",
 		bytes.NewReader(payload),

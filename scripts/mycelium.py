@@ -938,10 +938,11 @@ def _cmd_cache():
 def _cmd_workflow():
     """Define, run, and track structured workflows.
     Usage: mycelium workflow list
-           mycelium workflow define <name> --steps "build,test,deploy"
+           mycelium workflow define <name> --steps <steps>
            mycelium workflow run <name>
            mycelium workflow status <run_id>
            mycelium workflow log <run_id>
+           mycelium workflow runs
     """
     if len(sys.argv) < 3:
         print("Usage:")
@@ -963,14 +964,14 @@ def _cmd_workflow():
             with urllib.request.urlopen(req, timeout=5) as r:
                 data = json.loads(r.read().decode())
             if data.get("workflows"):
-                print(f"{'Name':25s} {'Steps':6s} {'Description':50s}")
-                print("-" * 85)
+                print(f"\n  {'Name':25s} {'Steps':6s} {'Description':45s}")
+                print(f"  {'─'*76}")
                 for w in data["workflows"]:
-                    print(f"{w.get('name',''):25s} {len(w.get('steps',[])):<6d} {w.get('description','')[:50]:50s}")
+                    print(f"  {w.get('name',''):25s} {w.get('step_count',0):<6d} {w.get('description','')[:45]:45s}")
             else:
-                print("No workflows defined.")
+                print("  No workflows defined.")
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"  Error: {e}")
         return
 
     if sub == "define":
@@ -1007,62 +1008,289 @@ def _cmd_workflow():
     if sub == "run":
         name = sys.argv[3] if len(sys.argv) > 3 else ""
         if not name:
-            print("Error: workflow name required")
+            print("  Error: workflow name required")
             return
         try:
             req = urllib.request.Request(f"{API}/run/{urllib.parse.quote(name)}", method="POST")
             with urllib.request.urlopen(req, timeout=10) as r:
                 result = json.loads(r.read().decode())
-            if result.get("run_id"):
-                print(f"▶ Workflow '{name}' started")
-                print(f"   Run ID: {result['run_id']}")
-                print(f"   Status: {result.get('status','')}")
-            else:
-                print(f"Error: {result}")
+            if not result.get("run_id"):
+                print(f"  Error: {result}")
+                return
+
+            run_id = result["run_id"]
+            total = result.get("total_steps", 0)
+            print(f"  ▶ Workflow '{name}' started  (run: {run_id[:16]}…, {total} steps)\n")
+
+            # Live polling loop
+            spinner = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+            idx = 0
+            prev_status = ""
+            while True:
+                time.sleep(2)
+                try:
+                    req = urllib.request.Request(f"{API}/status/{urllib.parse.quote(run_id)}")
+                    with urllib.request.urlopen(req, timeout=5) as r:
+                        state = json.loads(r.read().decode())
+                except Exception:
+                    continue
+
+                status = state.get("status", "running")
+                cur = state.get("current_step", 0)
+                results = state.get("step_results", [])
+                steps = state.get("steps", [])
+
+                # Clear previous lines + redraw
+                if prev_status:
+                    n_clear = 2 + len(results) + 1
+                    print(f"\033[{n_clear}A\033[J", end="")
+
+                # Draw step tree
+                for i, step in enumerate(steps):
+                    step_name = step.get("name", f"step-{i}")
+                    if i < len(results):
+                        sr = results[i]
+                        if sr.get("status") == "passed":
+                            icon = "✅"
+                        elif sr.get("status") == "failed":
+                            icon = "❌"
+                        else:
+                            icon = "✅"
+                    elif i < cur:
+                        icon = "✅"
+                    elif i == cur and status == "running":
+                        spin = spinner[idx % len(spinner)]
+                        icon = f"\033[36m{spin}\033[0m"
+                    else:
+                        icon = "☐"
+
+                    dur = ""
+                    if i < len(results):
+                        d = results[i].get("duration_s", 0)
+                        if d:
+                            dur = f" \033[90m({d}s)\033[0m"
+
+                    err = ""
+                    if i < len(results) and results[i].get("status") == "failed":
+                        err = " \033[31m✗ failed\033[0m"
+
+                    print(f"  {icon} {step_name}{dur}{err}")
+
+                # Status line
+                if status == "running":
+                    print(f"\n  \033[36m▶ {cur}/{total} steps complete\033[0m")
+                elif status == "done":
+                    passed = sum(1 for sr in results if sr.get("status") == "passed")
+                    failed = sum(1 for sr in results if sr.get("status") == "failed")
+                    if failed:
+                        print(f"\n  \033[31m✗ Completed with {failed} failure(s)\033[0m")
+                    else:
+                        print(f"\n  \033[32m✅ All {passed} steps passed\033[0m")
+                    break
+                elif status == "failed":
+                    print(f"\n  \033[31m❌ Workflow failed\033[0m")
+                    err_msg = state.get("error", "")
+                    if err_msg:
+                        print(f"  \033[31m  {err_msg}\033[0m")
+                    break
+                elif status == "stopped":
+                    print(f"\n  \033[33m⏹ Stopped\033[0m")
+                    break
+
+                idx += 1
+                prev_status = status
+
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"  Error: {e}")
         return
 
     if sub == "status":
         run_id = sys.argv[3] if len(sys.argv) > 3 else ""
         if not run_id:
-            print("Error: run ID required")
+            print("  Error: run ID required")
             return
         try:
             req = urllib.request.Request(f"{API}/status/{urllib.parse.quote(run_id)}")
             with urllib.request.urlopen(req, timeout=5) as r:
                 result = json.loads(r.read().decode())
-            if result.get("id"):
-                print(f"Workflow: {result.get('workflow')}")
-                print(f"Run ID:   {result.get('id')}")
-                print(f"Status:   {result.get('status')}")
-                print(f"Step:     {result.get('current_step',0)}/{len(result.get('step_results',[]))}")
-                for sr in result.get("step_results", []):
-                    icon = {"passed":"✅","failed":"❌","running":"▶","pending":"☐","skipped":"⏭"}.get(sr.get("status",""),"☐")
-                    print(f"  {icon} {sr.get('name','')}")
+            if result.get("error"):
+                print(f"  {result['error']}")
+                return
+
+            print(f"\n  \033[1mWorkflow:\033[0m {result.get('workflow')}")
+            print(f"  \033[1mRun ID:\033[0m   {result.get('id')}")
+            print(f"  \033[1mStatus:\033[0m   ", end="")
+            s = result.get("status", "")
+            if s == "done":
+                print("\033[32m✅ done\033[0m")
+            elif s == "running":
+                print("\033[36m▶ running\033[0m")
+            elif s == "failed":
+                print("\033[31m❌ failed\033[0m")
+            elif s == "stopped":
+                print("\033[33m⏹ stopped\033[0m")
             else:
-                print(f"Run {run_id} not found.")
+                print(s)
+
+            if result.get("error"):
+                print(f"  \033[31mError: {result['error']}\033[0m")
+
+            print(f"\n  \033[1mSteps:\033[0m")
+            steps = result.get("steps", [])
+            results = result.get("step_results", [])
+            for i, step in enumerate(steps):
+                step_name = step.get("name", f"step-{i}")
+                if i < len(results):
+                    sr = results[i]
+                    if sr.get("status") == "passed":
+                        icon = "\033[32m✅\033[0m"
+                    elif sr.get("status") == "failed":
+                        icon = "\033[31m❌\033[0m"
+                    else:
+                        icon = "\033[33m⚠\033[0m"
+                    dur = f" \033[90m({sr.get('duration_s',0)}s)\033[0m" if sr.get('duration_s') else ""
+                    out = sr.get("stdout", "").strip()
+                    err = sr.get("stderr", "").strip()
+                    extras = ""
+                    if out:
+                        extras += f"\n       \033[90m{out[:200]}\033[0m"
+                    if err:
+                        extras += f"\n       \033[31m{err[:200]}\033[0m"
+                    print(f"  {icon} {step_name}{dur}{extras}")
+                elif i < result.get("current_step", 0):
+                    print(f"  \033[32m✅\033[0m {step_name}")
+                else:
+                    print(f"  \033[90m☐\033[0m {step_name}")
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"  Error: {e}")
         return
 
     if sub == "log":
         run_id = sys.argv[3] if len(sys.argv) > 3 else ""
         if not run_id:
-            print("Error: run ID required")
+            print("  Error: run ID required")
             return
         try:
             req = urllib.request.Request(f"{API}/log/{urllib.parse.quote(run_id)}")
             with urllib.request.urlopen(req, timeout=5) as r:
                 result = json.loads(r.read().decode())
-            print(result.get("log", "No log available"))
+            if result.get("error"):
+                print(f"  {result['error']}")
+                return
+
+            print(f"\n  \033[1mWorkflow:\033[0m {result.get('workflow')}")
+            print(f"  \033[1mRun ID:\033[0m   {result.get('run_id')}")
+            print(f"  \033[1mStatus:\033[0m   {result.get('status')}\n")
+
+            for entry in result.get("log", []):
+                s = entry.get("status", "")
+                if s == "passed":
+                    icon = "\033[32m✅\033[0m"
+                elif s == "failed":
+                    icon = "\033[31m❌\033[0m"
+                else:
+                    icon = "\033[90m☐\033[0m"
+
+                print(f"  {icon} Step {entry.get('step')}: {entry.get('name')}  "
+                      f"\033[90m({entry.get('duration_s',0)}s)\033[0m")
+
+                out = entry.get("stdout", "").strip()
+                err = entry.get("stderr", "").strip()
+                if out:
+                    print(f"    \033[90m└─ {out[:300]}\033[0m")
+                if err:
+                    print(f"    \033[31m└─ {err[:300]}\033[0m")
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"  Error: {e}")
         return
+
+    # ── runs (list recent) ──────────────────────────────
+    if sub == "runs":
+        try:
+            req = urllib.request.Request(f"{API}/runs")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                data = json.loads(r.read().decode())
+            runs = data.get("runs", [])
+            if not runs:
+                print("  No runs yet.")
+                return
+            print(f"\n  {'Run':20s} {'Workflow':20s} {'Status':12s} {'Progress':10s}  {'Updated':25s}")
+            print(f"  {'─'*87}")
+            for run in runs:
+                rid = run.get("id", "")[:16]
+                wf = run.get("workflow_name", "")
+                s = run.get("status", "")
+                if s == "done":
+                    si = "\033[32mdone\033[0m"
+                elif s == "running":
+                    si = "\033[36mrunning\033[0m"
+                elif s == "failed":
+                    si = "\033[31mfailed\033[0m"
+                elif s == "stopped":
+                    si = "\033[33mstopped\033[0m"
+                else:
+                    si = s
+                prog = f"{run.get('current_step',0)}/{run.get('total_steps',0)}"
+                updated = run.get("updated_at", "")[:19].replace("T", " ")
+                print(f"  {rid:20s} {wf:20s} {si:12s} {prog:10s}  {updated:25s}")
+        except Exception as e:
+            print(f"  Error: {e}")
+        return
+
+    print(f"Unknown workflow subcommand: {sub}")
+    print("Try: list, define, run, status, log, runs")
 
 
 # ─── Main dispatcher ────────────────────────────────────────
+def _auto_snapshot_check():
+    """Check if there are unprocessed turns and run snapshot + compact if needed.
+    This ensures the memory layer catches up even when the event-based hook
+    doesn't fire (e.g., entries written through proxy, not append.py).
+    """
+    import json
+    last_file = Path(__file__).resolve().parent.parent / ".last_snapshot_turn"
+    log_file = Path(__file__).resolve().parent.parent / "log.jsonl"
+
+    if not log_file.exists():
+        return
+
+    # Get current turn
+    current_turn = 0
+    with open(log_file) as f:
+        for line in f:
+            if line.strip():
+                try:
+                    current_turn = json.loads(line).get("turn", 0)
+                except json.JSONDecodeError:
+                    continue
+
+    last_turn = 0
+    if last_file.exists():
+        last_turn = int(last_file.read_text().strip() or 0)
+
+    diff = current_turn - last_turn
+    if diff >= 3:
+        import subprocess
+        root = str(Path(__file__).resolve().parent.parent)
+        subprocess.run(
+            [sys.executable, "-m", "scripts.mycelium", "snapshot"],
+            cwd=root, capture_output=True, timeout=120,
+        )
+        subprocess.run(
+            [sys.executable, "-m", "scripts.mycelium", "compact"],
+            cwd=root, capture_output=True, timeout=120,
+        )
+        with open(str(last_file), "w") as f:
+            f.write(str(current_turn))
+
+
 def main():
+    # Auto-catchup: process any turns missed by event-based hook
+    try:
+        _auto_snapshot_check()
+    except Exception:
+        pass  # Non-blocking — never break the CLI
+
     if len(sys.argv) < 2:
         print(textwrap.dedent("""\
             Mycelium — unified CLI

@@ -1,12 +1,12 @@
 // myceliumd — persistent daemon for mycelium safety-net imports.
 //
 // Polls Hermes state.db for completed conversation pairs and imports
-// them into mycelium automatically. Runs as a background service.
+// them into mycelium automatically. Also runs the mycelium proxy
+// (meshgate reverse-proxy) for context injection. Runs as a background service.
 package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -14,33 +14,46 @@ import (
 
 	"github.com/naufalworks/mycelium/go/pkg/brain"
 	"github.com/naufalworks/mycelium/go/pkg/daemon"
+	"github.com/naufalworks/mycelium/go/pkg/proxy"
 )
 
 func main() {
-	port := flag.String("port", daemon.DefaultPort, "Health HTTP port")
-	interval := flag.Duration("interval", daemon.DefaultInterval, "Poll interval")
+	proxyPort := flag.String("proxy-port", proxy.DefaultPort, "Proxy listen port")
+	proxyUpstream := flag.String("proxy-upstream", proxy.DefaultUpstream, "Proxy upstream URL")
 	root := flag.String("root", "", "Mycelium root directory")
 	flag.Parse()
 
 	log.SetFlags(log.Ltime | log.Lshortfile)
 
-	b, err := brain.New(*root)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "❌ Cannot open mycelium: %v\n", err)
-		os.Exit(1)
+	if *root == "" {
+		home, _ := os.UserHomeDir()
+		*root = home + "/Documents/mycelium"
 	}
 
-	d := daemon.New(b)
-	d.Port = *port
-	d.Interval = *interval
+	b, err := brain.New(*root)
+	if err != nil {
+		log.Fatalf("Brain open: %v", err)
+	}
 
-	fmt.Printf(`
+	// Start the mycelium proxy (meshgate reverse-proxy)
+	p := proxy.New(b)
+	p.Port = *proxyPort
+	p.Upstream = *proxyUpstream
+	go func() {
+		log.Printf("🧬 Starting mycelium proxy on :%s → %s", p.Port, p.Upstream)
+		if err := p.Start(); err != nil {
+			log.Printf("Proxy exited: %v", err)
+		}
+	}()
+
+	d := daemon.New(b)
+	log.Printf(`
 🍄 Mycelium Daemon
    Poll:    %s
    Port:    %s
+   Proxy:   :%s → %s
    Brain:   %s (%d entries)
-
-`, d.Interval, d.Port, b.LogPath, b.Count())
+`, d.Interval, d.Port, p.Port, p.Upstream, b.LogPath, b.Count())
 
 	// Handle signals
 	sigCh := make(chan os.Signal, 1)
@@ -49,6 +62,7 @@ func main() {
 	go func() {
 		<-sigCh
 		log.Println("Shutting down...")
+		p.Stop()
 		d.Stop()
 		os.Exit(0)
 	}()

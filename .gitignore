@@ -82,3 +82,4 @@ go/mycelium-proxy
 go/mycelium-mcp
 go/mycelium
 go/myceliumd
+/mycelium-proxy

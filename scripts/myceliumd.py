@@ -28,10 +28,13 @@ DAEMON_STATE = DAEMON_DIR / "state.json"
 DAEMON_LOG = DAEMON_DIR / "myceliumd.log"
 DAEMON_LOCK = DAEMON_DIR / "myceliumd.lock"
 MYCELIUM = Path(__file__).resolve().parent.parent  # runtime dir
+PROXY_BINARY = MYCELIUM / "mycelium-proxy"  # Go proxy binary
 APPEND = MYCELIUM / "scripts/append.py"
 VERIFY = MYCELIUM / "scripts/mycelium.py"
 POLL_INTERVAL = 15
 PORT = 20151
+PROXY_PORT = "8443"
+MESHGATE = "http://localhost:8080"
 
 
 def log(msg):
@@ -265,6 +268,45 @@ def start_http(state):
     return server
 
 
+# ── Proxy ─────────────────────────────────────────────────────────
+
+_proxy_proc = None
+
+
+def start_proxy():
+    """Start the Go mycelium proxy (reverse-proxy to meshgate) as a subprocess."""
+    global _proxy_proc
+    binary = PROXY_BINARY
+    if not binary.exists():
+        # Fallback: check runtime dir (after install)
+        alt = DAEMON_DIR / "mycelium-proxy"
+        if alt.exists():
+            binary = alt
+        else:
+            log(f"PROXY_SKIP binary not found at {binary} or {alt}")
+            return None
+    _proxy_proc = subprocess.Popen(
+        [str(binary), "--port", PROXY_PORT, "--upstream", MESHGATE],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    log(f"PROXY_START pid={_proxy_proc.pid} port={PROXY_PORT} → {MESHGATE}")
+    return _proxy_proc
+
+
+def stop_proxy():
+    global _proxy_proc
+    if _proxy_proc is not None:
+        log(f"PROXY_STOP pid={_proxy_proc.pid}")
+        _proxy_proc.terminate()
+        try:
+            _proxy_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            _proxy_proc.kill()
+            _proxy_proc.wait()
+        _proxy_proc = None
+
+
 def run_once(state):
     pairs = fetch_new_pairs(state["last_assistant_id"])
     for pair in pairs:
@@ -276,6 +318,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--once", action="store_true", help="Run one poll/import cycle, then exit")
     ap.add_argument("--no-http", action="store_true", help="Do not start health HTTP server")
+    ap.add_argument("--no-proxy", action="store_true", help="Do not start the reverse proxy")
     args = ap.parse_args()
 
     lock_file = acquire_lock()
@@ -286,6 +329,7 @@ def main():
     state = load_state()
     log(f"START poll_interval={POLL_INTERVAL}s port={PORT} last_assistant_id={state['last_assistant_id']}")
     server = None if args.no_http else start_http(state)
+    proxy = None if args.no_proxy or args.once else start_proxy()  # launch Go proxy
     try:
         if args.once:
             run_once(state)
@@ -302,6 +346,7 @@ def main():
     finally:
         if server is not None:
             server.shutdown()
+        stop_proxy()
 
 
 if __name__ == "__main__":

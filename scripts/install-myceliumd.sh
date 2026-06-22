@@ -73,6 +73,15 @@ install -m 755 "$ROOT/scripts/myceliumd.py" "$SCRIPTS_DIR/myceliumd.py"
 install -m 755 "$ROOT/scripts/append.py" "$SCRIPTS_DIR/append.py"
 install -m 755 "$ROOT/scripts/mycelium.py" "$SCRIPTS_DIR/mycelium.py"
 
+# Build Go proxy binary (optional — daemon works without it)
+if command -v go &>/dev/null; then
+  echo "Building mycelium-proxy (Go)..."
+  cd "$ROOT/go" && go build -o "$RUNTIME_DIR/mycelium-proxy" ./cmd/proxy/ && cd "$ROOT"
+  echo "  → $RUNTIME_DIR/mycelium-proxy"
+else
+  echo "Warning: Go not found — mycelium-proxy not built. Install Go to enable the proxy."
+fi
+
 link_runtime_data "$ROOT/log.jsonl" "$RUNTIME_DIR/log.jsonl"
 link_runtime_data "$ROOT/index.db" "$RUNTIME_DIR/index.db"
 link_runtime_data "$ROOT/archive" "$RUNTIME_DIR/archive"

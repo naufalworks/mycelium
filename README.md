@@ -52,6 +52,7 @@ mycelium/
   artifact            Manage structured artifacts (run, get, query, ls)
   task                Manage async tasks (create, status, list)
   cache               Manage speculative cache (stats, clear)
+  workflow            Define, run, and track structured workflows
 ```
 
 ## MCP Tools (available to Claude Code)
