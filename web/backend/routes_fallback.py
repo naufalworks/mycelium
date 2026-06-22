@@ -1,31 +1,35 @@
-"""Fallback route — must be included LAST to avoid catching API routes."""
+"""Fallback route — serves the SPA for all non-API paths.
+All legacy paths (v3/*, memory_dashboard, artifact_dashboard, etc.)
+redirect to the unified SPA at the root.
+"""
 
 from pathlib import Path
-from fastapi import APIRouter
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import FileResponse, RedirectResponse
 
 router = APIRouter(tags=["fallback"])
 
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
-FRONTEND_SRC = Path(__file__).resolve().parents[1] / "frontend"
+
+# Legacy paths that should redirect to the unified SPA
+LEGACY_PATHS = {
+    "memory_dashboard.html",
+    "artifact_dashboard.html",
+    "global.html",
+    "v3_dashboard.html",
+    "v3_graph.html",
+    "v3_negations.html",
+    "v3_causal.html",
+}
 
 
 @router.get("/{full_path:path}")
-def frontend_fallback(full_path: str):
-    memory_html = FRONTEND_SRC / "memory_dashboard.html"
-    if full_path == "memory_dashboard.html" and memory_html.exists():
-        return FileResponse(memory_html)
-    artifact_html = FRONTEND_SRC / "artifact_dashboard.html"
-    if full_path == "artifact_dashboard.html" and artifact_html.exists():
-        return FileResponse(artifact_html)
-    global_html = FRONTEND_SRC / "global.html"
-    if full_path == "global.html" and global_html.exists():
-        return FileResponse(global_html)
-    v3_pages = {"v3_dashboard.html", "v3_graph.html", "v3_negations.html", "v3_causal.html"}
-    if full_path in v3_pages:
-        src_file = FRONTEND_SRC / full_path
-        if src_file.exists():
-            return FileResponse(src_file)
+def frontend_fallback(full_path: str, request: Request):
+    # Redirect legacy standalone pages to the SPA root
+    if full_path in LEGACY_PATHS:
+        return RedirectResponse(url="/")
+
+    # Serve the SPA for all other paths (client-side routing)
     index_path = FRONTEND_DIST / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
