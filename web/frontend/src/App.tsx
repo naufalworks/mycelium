@@ -664,46 +664,29 @@ const WF_ICONS: Record<string, string> = {
 }
 
 function WorkflowsView() {
-  const [tab, setTab] = useState<'library' | 'runs'>('library')
-  const [workflows, setWorkflows] = useState<any[]>([])
   const [runs, setRuns] = useState<any[]>([])
   const [selectedRun, setSelectedRun] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
-  const [runLoading, setRunLoading] = useState<Record<string, boolean>>({})
 
   const fetchData = useCallback(async () => {
     try {
-      const [wfRes, runsRes] = await Promise.all([
-        fetch(`${API}/api/workflow/list`),
-        fetch(`${API}/api/workflow/runs?limit=20`),
-      ])
-      const wfData = await wfRes.json()
-      const runsData = await runsRes.json()
-      setWorkflows(wfData.workflows ?? [])
-      setRuns(runsData.runs ?? [])
-    } catch (e) { console.warn('[workflows] fetch error:', e) }
+      const res = await fetch(`${API}/api/workflow/runs?limit=20`)
+      const data = await res.json()
+      setRuns(data.runs ?? [])
+    } catch (e) { console.warn('[workflows] fetch:', e) }
     setLoading(false)
   }, [])
 
   useEffect(() => { fetchData(); const iv = setInterval(fetchData, 5000); return () => clearInterval(iv) }, [fetchData])
 
-  const startWorkflow = async (name: string) => {
-    setRunLoading(prev => ({ ...prev, [name]: true }))
-    try {
-      await fetch(`${API}/api/workflow/run/${encodeURIComponent(name)}`, { method: 'POST' })
-      setTimeout(fetchData, 1000)
-    } catch (e) { console.warn('[workflows] start error:', e) }
-    setTimeout(() => setRunLoading(prev => ({ ...prev, [name]: false })), 2000)
-  }
-
   const viewRunDetail = async (runId: string) => {
     try {
       const res = await fetch(`${API}/api/workflow/status/${encodeURIComponent(runId)}`)
-      const data = await res.json()
-      setSelectedRun(data)
-    } catch (e) { console.warn('[workflows] detail error:', e) }
+      setSelectedRun(await res.json())
+    } catch (e) { console.warn('[workflows] detail:', e) }
   }
 
+  // Run detail view
   if (selectedRun) {
     const r = selectedRun
     const results = r.step_results ?? []
@@ -711,21 +694,19 @@ function WorkflowsView() {
     return (
       <>
         <div className="content-header">
-          <h2>⇶ Workflow Run</h2>
+          <h2>⇶ {r.workflow}</h2>
           <div className="header-actions">
-            <button className="btn btn-sm" onClick={() => setSelectedRun(null)}>← Back to list</button>
+            <button className="btn btn-sm" onClick={() => setSelectedRun(null)}>← Back</button>
           </div>
         </div>
+
         <div className="wf-detail">
           <div className="wf-detail-header">
             <div>
-              <div className="wf-detail-title">{r.workflow}</div>
               <div className="wf-detail-meta">
-                Run: {r.id} &middot;
-                Status: <span className={`wf-status-${r.status}`}>
-                  {WF_ICONS[r.status] ?? '?'} {r.status}
-                </span> &middot;
-                {r.completed_at ? `Completed: ${new Date(r.completed_at).toLocaleTimeString()}` : ''}
+                Run: {r.id?.slice(0, 20)}… &middot;
+                Status: <span className={`wf-status-${r.status}`}>{WF_ICONS[r.status]} {r.status}</span>
+                {r.completed_at ? ` · ${new Date(r.completed_at).toLocaleString()}` : ''}
               </div>
             </div>
             <div className={`wf-badge wf-badge-${r.status}`}>{r.status}</div>
@@ -737,20 +718,20 @@ function WorkflowsView() {
             <div className="wf-step-header">
               <div className="wf-step-status"></div>
               <div className="wf-step-name">Step</div>
-              <div className="wf-step-dur">Duration</div>
-              <div className="wf-step-out">Output</div>
+              <div className="wf-step-criteria">Exit Criteria</div>
+              <div className="wf-step-note">Note</div>
             </div>
             {steps.map((step: any, i: number) => {
               const sr = results[i] ?? { status: i < (r.current_step ?? 0) ? 'passed' : 'pending' }
               return (
                 <div key={i} className={`wf-step-row wf-step-${sr.status}`}>
                   <div className="wf-step-status">{WF_ICONS[sr.status] ?? '☐'}</div>
-                  <div className="wf-step-name">{step.name}</div>
-                  <div className="wf-step-dur">{sr.duration_s ? `${sr.duration_s}s` : sr.duration_ms ? `${sr.duration_ms}ms` : '—'}</div>
-                  <div className="wf-step-out">
-                    {sr.stdout && <span className="wf-step-out-text">{sr.stdout.slice(0, 100)}</span>}
-                    {sr.stderr && <span className="wf-step-err-text">{sr.stderr.slice(0, 100)}</span>}
+                  <div className="wf-step-name">
+                    {step.name}
+                    {step.exit_criteria && <div className="wf-step-criteria-text">{step.exit_criteria}</div>}
                   </div>
+                  <div className="wf-step-criteria">{step.exit_criteria || '—'}</div>
+                  <div className="wf-step-note">{sr.note || ''}</div>
                 </div>
               )
             })}
@@ -760,65 +741,66 @@ function WorkflowsView() {
     )
   }
 
+  if (loading) return <div className="loading"><div className="spinner" /> Loading...</div>
+
+  // Find active run (first running one)
+  const activeRun = runs.find(r => r.status === 'running')
+  const pastRuns = runs.filter(r => r.status !== 'running')
+
   return (
     <>
       <div className="content-header">
         <h2>⇶ Workflows</h2>
-        <div className="header-actions">
-          <button className={`btn btn-sm${tab === 'library' ? ' active' : ''}`} onClick={() => setTab('library')}>Library</button>
-          <button className={`btn btn-sm${tab === 'runs' ? ' active' : ''}`} onClick={() => setTab('runs')}>Runs</button>
-        </div>
       </div>
 
-      {loading ? (
-        <div className="loading"><div className="spinner" /> Loading workflows...</div>
-      ) : tab === 'library' ? (
-        <div className="wf-library">
-          {workflows.length === 0 && <div className="empty-state">No workflows defined. Use <code>mycelium workflow define</code> to create one.</div>}
-          {workflows.map((wf, i) => (
-            <div key={i} className="wf-card">
-              <div className="wf-card-body">
-                <div className="wf-card-name">{wf.name}</div>
-                <div className="wf-card-desc">{wf.description || 'No description'}</div>
-                <div className="wf-card-meta">{wf.step_count ?? wf.steps?.length ?? 0} steps</div>
-              </div>
-              <div className="wf-card-steps">
-                {(wf.steps ?? []).map((s: any, j: number) => (
-                  <div key={j} className="wf-card-step">{s.name}</div>
-                ))}
-              </div>
-              <div className="wf-card-action">
-                <button className="btn btn-primary btn-sm" onClick={() => startWorkflow(wf.name)} disabled={runLoading[wf.name]}>
-                  {runLoading[wf.name] ? '⏳...' : '▶ Run'}
-                </button>
-              </div>
+      {activeRun ? (
+        <div className="wf-section">
+          <h3 style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-secondary)' }}>▶ Active</h3>
+          <div className="wf-run-row active" onClick={() => viewRunDetail(activeRun.id)}>
+            <div className="wf-run-status"><span className="wf-status-running">▶</span></div>
+            <div className="wf-run-info">
+              <div className="wf-run-name">{activeRun.workflow_name}</div>
+              <div className="wf-run-meta">{activeRun.id?.slice(0, 20)}…</div>
             </div>
-          ))}
+            <div className="wf-run-progress">
+              <div className="wf-progress-bar">
+                <div className="wf-progress-fill" style={{ width: `${(activeRun.current_step / Math.max(activeRun.total_steps, 1)) * 100}%` }} />
+              </div>
+              <span className="wf-progress-text">{activeRun.current_step}/{activeRun.total_steps}</span>
+            </div>
+            <div className="wf-run-status-label"><span className="wf-badge wf-badge-running">running</span></div>
+          </div>
         </div>
-      ) : (
-        <div className="wf-runs">
-          {runs.length === 0 && <div className="empty-state">No workflow runs yet.</div>}
-          {runs.map((run, i) => (
-            <div key={i} className="wf-run-row" onClick={() => viewRunDetail(run.id)}>
-              <div className="wf-run-status">
-                <span className={`wf-status-${run.status}`}>{WF_ICONS[run.status] ?? '?'}</span>
-              </div>
-              <div className="wf-run-info">
-                <div className="wf-run-name">{run.workflow_name}</div>
-                <div className="wf-run-meta">{run.id?.slice(0, 20)}…</div>
-              </div>
-              <div className="wf-run-progress">
-                <div className="wf-progress-bar">
-                  <div className="wf-progress-fill" style={{ width: `${(run.current_step / Math.max(run.total_steps, 1)) * 100}%` }} />
+      ) : runs.length === 0 ? (
+        <div className="empty-state">No workflows yet. Tell me what you want to do and I'll create one.</div>
+      ) : null}
+
+      {pastRuns.length > 0 && (
+        <div className="wf-section">
+          <h3 style={{ margin: '16px 0 8px', fontSize: 13, color: 'var(--text-secondary)' }}>History</h3>
+          <div className="wf-runs">
+            {pastRuns.map((run, i) => (
+              <div key={i} className="wf-run-row" onClick={() => viewRunDetail(run.id)}>
+                <div className="wf-run-status">
+                  <span className={`wf-status-${run.status}`}>{WF_ICONS[run.status] ?? '?'}</span>
                 </div>
-                <span className="wf-progress-text">{run.current_step}/{run.total_steps}</span>
+                <div className="wf-run-info">
+                  <div className="wf-run-name">{run.workflow_name}</div>
+                  <div className="wf-run-meta">{run.id?.slice(0, 20)}…</div>
+                </div>
+                <div className="wf-run-progress">
+                  <div className="wf-progress-bar">
+                    <div className="wf-progress-fill" style={{ width: `${(run.current_step / Math.max(run.total_steps, 1)) * 100}%` }} />
+                  </div>
+                  <span className="wf-progress-text">{run.current_step}/{run.total_steps}</span>
+                </div>
+                <div className="wf-run-status-label">
+                  <span className={`wf-badge wf-badge-${run.status}`}>{run.status}</span>
+                </div>
+                <div className="wf-run-time">{run.updated_at?.slice(11, 19) ?? ''}</div>
               </div>
-              <div className="wf-run-status-label">
-                <span className={`wf-badge wf-badge-${run.status}`}>{run.status}</span>
-              </div>
-              <div className="wf-run-time">{run.updated_at?.slice(11, 19) ?? ''}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </>

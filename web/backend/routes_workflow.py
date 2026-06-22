@@ -278,6 +278,115 @@ def api_workflow_run(workflow_name: str):
     }
 
 
+# ── Plan: create a run directly with steps + exit criteria ──
+
+
+@router.post("/plan")
+def api_workflow_plan(payload: dict):
+    """Create a workflow run from a plan (no predefined workflow needed).
+    Payload: {"title": "...", "steps": [{"name": "...", "exit_criteria": "..."}]}
+    """
+    _ensure_table()
+    title = payload.get("title", "workflow")
+    steps = payload.get("steps", [])
+    if not steps:
+        return {"error": "steps required"}
+
+    run_id = f"wf_{uuid.uuid4().hex[:8]}"
+    now = _now()
+
+    normalized = []
+    for i, s in enumerate(steps):
+        normalized.append({
+            "order": i + 1,
+            "name": s.get("name", f"step-{i}"),
+            "exit_criteria": s.get("exit_criteria", ""),
+            "status": "pending",
+        })
+
+    _execute(
+        "INSERT INTO workflow_runs (id, workflow_name, status, current_step, total_steps, steps_json, results_json, created_at, updated_at)"
+        " VALUES (?, ?, 'running', 0, ?, ?, '[]', ?, ?)",
+        (run_id, title, len(steps), json.dumps(normalized), now, now),
+    )
+
+    return {"run_id": run_id, "title": title, "status": "running", "total_steps": len(steps)}
+
+
+# ── Update a single step's status ────────────────────────────
+
+
+@router.patch("/step/{run_id}/{step_index}")
+def api_workflow_update_step(run_id: str, step_index: int, payload: dict):
+    """Update a single step's status, note, etc.
+    Payload: {"status": "running"|"passed"|"failed", "note": "..."}
+    """
+    rows = _query("SELECT steps_json, results_json, current_step FROM workflow_runs WHERE id=?", (run_id,))
+    if not rows:
+        return {"error": f"run {run_id} not found"}
+
+    steps = json.loads(rows[0]["steps_json"])
+    results = json.loads(rows[0]["results_json"])
+    current_step = rows[0]["current_step"]
+
+    if step_index < 0 or step_index >= len(steps):
+        return {"error": f"invalid step index {step_index}"}
+
+    new_status = payload.get("status", "passed")
+    note = payload.get("note", "")
+
+    while len(results) <= step_index:
+        s = steps[len(results)]
+        results.append({"name": s.get("name", f"step-{len(results)}"), "status": "pending"})
+
+    results[step_index]["status"] = new_status
+    if note:
+        results[step_index]["note"] = note
+
+    if step_index + 1 > current_step:
+        current_step = step_index + 1
+
+    now = _now()
+    total_steps = len(steps)
+    # Only done when every step has a result
+    all_done = len(results) >= total_steps and all(r.get("status") in ("passed", "failed") for r in results[:total_steps])
+    run_status = "running"
+    completed_at = ""
+    if all_done:
+        has_failed = any(r.get("status") == "failed" for r in results)
+        if has_failed:
+            run_status = "failed"
+        else:
+            run_status = "done"
+        completed_at = now
+
+    _execute(
+        "UPDATE workflow_runs SET status=?, current_step=?, results_json=?, completed_at=?, updated_at=? WHERE id=?",
+        (run_status, current_step, json.dumps(results), completed_at, now, run_id),
+    )
+    return {"ok": True, "step": step_index, "status": new_status, "run_status": run_status}
+
+
+# ── Update overall run notes ─────────────────────────────────
+
+
+@router.patch("/note/{run_id}")
+def api_workflow_note(run_id: str, payload: dict):
+    """Add a note to the run (shown in UI)."""
+    note = payload.get("note", "")
+    rows = _query("SELECT current_step, total_steps FROM workflow_runs WHERE id=?", (run_id,))
+    if not rows:
+        return {"error": f"run {run_id} not found"}
+
+    results = json.loads(rows[0].get("results_json", "[]") if rows else "[]")
+    results.append({"type": "note", "note": note, "status": "info"})
+    _execute(
+        "UPDATE workflow_runs SET results_json=?, updated_at=? WHERE id=?",
+        (json.dumps(results), _now(), run_id),
+    )
+    return {"ok": True}
+
+
 # ── List all runs ────────────────────────────────────────
 
 
