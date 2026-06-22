@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-type View = 'dashboard' | 'memory' | 'graph' | 'findings' | 'settings' | 'workflows'
+type View = 'dashboard' | 'memory' | 'graph' | 'findings' | 'settings' | 'workflows' | 'artifacts' | 'causal' | 'negations' | 'memory-dashboard'
 
 const API = 'http://127.0.0.1:8421'
 
@@ -25,6 +25,10 @@ const Icons = {
   findings: <span className="icon">⚠</span>,
   settings: <span className="icon">⚙</span>,
   workflows: <span className="icon">⇶</span>,
+  artifacts: <span className="icon">◈</span>,
+  causal: <span className="icon">↻</span>,
+  negations: <span className="icon">⊘</span>,
+  'memory-dashboard': <span className="icon">⬡</span>,
 }
 
 // ── App ──────────────────────────────────────────────
@@ -90,12 +94,16 @@ export default function App() {
             <div className="loading"><div className="spinner" /> Loading brain...</div>
           ) : (
             <>
-              {view === 'dashboard' && <DashboardView status={status} stream={stream} daemon={daemonHealth} />}
+              {view === 'dashboard' && <DashboardView status={status} stream={stream} daemon={daemonHealth} onView={setView} />}
               {view === 'memory' && <MemoryView stream={stream} searchQuery={searchQuery} onSearch={handleSearch} onRefresh={() => fetchStream()} />}
               {view === 'graph' && <GraphView />}
               {view === 'findings' && <FindingsView />}
               {view === 'settings' && <SettingsView daemon={daemonHealth} />}
               {view === 'workflows' && <WorkflowsView />}
+              {view === 'artifacts' && <ArtifactsView />}
+              {view === 'causal' && <CausalView />}
+              {view === 'negations' && <NegationsView />}
+              {view === 'memory-dashboard' && <MemoryDashboardView />}
             </>
           )}
         </div>
@@ -114,7 +122,7 @@ function Sidebar({ view, onView, status }: { view: View; onView: (v: View) => vo
         <small>permanent brain</small>
       </div>
       <div className="sidebar-nav">
-        {(['dashboard', 'memory', 'graph', 'findings', 'workflows', 'settings'] as View[]).map(v => (
+        {(['dashboard', 'memory', 'graph', 'findings', 'artifacts', 'causal', 'negations', 'workflows', 'settings'] as View[]).map(v => (
           <button key={v} className={`sidebar-btn${view === v ? ' active' : ''}`} onClick={() => onView(v)}>
             {Icons[v]} {v.charAt(0).toUpperCase() + v.slice(1)}
           </button>
@@ -158,7 +166,7 @@ function TopBar({ view, status, searchQuery, onSearch }: {
 }
 
 // ── Dashboard ───────────────────────────────────────
-function DashboardView({ status, stream, daemon }: { status: BrainStatus | null; stream: StreamItem[]; daemon: any }) {
+function DashboardView({ status, stream, daemon, onView }: { status: BrainStatus | null; stream: StreamItem[]; daemon: any; onView: (v: View) => void }) {
   const tiers = status?.tiers ?? {}
   const types = status?.types ?? {}
   const [proxyActive, setProxyActive] = useState(false)
@@ -177,105 +185,90 @@ function DashboardView({ status, stream, daemon }: { status: BrainStatus | null;
 
   return (
     <>
-      <div className="stats-grid">
-        <div className="stat-card cyan">
-          <div className="label">Total Turns</div>
-          <div className="value">{status?.total_turns ?? 0}</div>
-          <div className="sub">{status?.total_sessions ?? 0} sessions</div>
-        </div>
-        <div className="stat-card blue">
-          <div className="label">S-Tier</div>
-          <div className="value">{tiers.S ?? 0}</div>
-          <div className="sub">{tiers.A ?? 0} A-Tier</div>
-        </div>
-        <div className="stat-card purple">
-          <div className="label">Findings</div>
-          <div className="value">{types.finding ?? 0}</div>
-          <div className="sub">{types.decision ?? 0} decisions</div>
-        </div>
-        <div className="stat-card amber">
-          <div className="label">Storage</div>
-          <div className="value">{(status?.storage_bytes ?? 0) / 1024 > 1024
-            ? `${((status?.storage_bytes ?? 0) / 1024 / 1024).toFixed(1)} MB`
-            : `${((status?.storage_bytes ?? 0) / 1024).toFixed(0)} KB`}
-          </div>
-          <div className="sub">brain size</div>
-        </div>
-      </div>
-
-      {/* Daemon + Proxy Status */}
-      <div className="card">
-        <div className="card-header">
-          <span>⚡ System Health</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>auto-refreshes every 5s</span>
-        </div>
-        <div className="card-body">
-          <div className="daemon-row">
-            <div className={`status-dot ${daemon?.last_assistant_id != null ? 'green' : 'red'}`} />
-            <div style={{ flex: 1 }}>Daemon</div>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {daemon?.imports ?? 0} imports
-            </span>
-            {daemon?.last_assistant_id != null && (
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                ID: {daemon.last_assistant_id}
-              </span>
-            )}
-          </div>
-          <div className="daemon-row">
-            <div className={`status-dot ${proxyActive ? 'green' : 'red'}`} />
-            <div style={{ flex: 1 }}>Proxy (:8443)</div>
-            <span style={{ fontSize: 12, color: proxyActive ? 'var(--accent-green)' : 'var(--text-muted)' }}>
-              {proxyActive ? 'Active' : 'Offline'}
-            </span>
-          </div>
-          <div className="daemon-row">
-            <div className="status-dot green" />
-            <div style={{ flex: 1 }}>Health API</div>
-            <span style={{ fontSize: 12, color: 'var(--accent-cyan)' }}>
-              {API}/api/health
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Latest Activity */}
-      {stream.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            <span>🕐 Recent Activity</span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>latest turns</span>
-          </div>
-          <div className="card-body" style={{ maxHeight: 350, overflow: 'auto' }}>
-            {stream.slice(0, 15).map(e => {
-              // Clean proxy garbage from assistant text
-              const assistant = e.assistant?.replace(/^data: /, '').replace(/\n/g, ' ').slice(0, 120) || ''
-              const user = e.user?.slice(0, 150) || ''
-              // Skip raw SSE noise
-              if (user.startsWith('data: ') || user.length < 3) return null
-              return (
-                <div key={e.turn} className="entry-item" style={{ marginBottom: 6 }}>
-                  <div className="meta">
-                    <span className={`tier-${e.tier}`}>● {e.tier}</span>
-                    <span>Turn {e.turn}</span>
-                    <span>{e.type}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {e.ts ? new Date(e.ts).toLocaleString() : ''}
-                    </span>
-                    {e.entities?.slice(0, 3).filter(Boolean).map(ent => (
-                      <span key={ent} className="tag">{ent}</span>
-                    ))}
-                  </div>
-                  <div className="user-text">{user}</div>
-                  {assistant && !assistant.startsWith('{"message"') && (
-                    <div className="ai-text">🤖 {assistant}{e.assistant?.length > 120 ? '...' : ''}</div>
-                  )}
-                </div>
-              )
-            })}
+      {activeRun && (
+        <div className="wf-section" style={{marginBottom:16}}>
+          <div className="wf-run-row active" onClick={() => onView('workflows')} style={{cursor:'pointer'}}>
+            <div className="wf-run-status"><span className="wf-status-running">▶</span></div>
+            <div className="wf-run-info">
+              <div className="wf-run-name">{activeRun.workflow_name}</div>
+              <div className="wf-run-meta">{activeRun.current_step}/{activeRun.total_steps} steps</div>
+            </div>
+            <div className="wf-run-progress">
+              <div className="wf-progress-bar"><div className="wf-progress-fill" style={{width:`${(activeRun.current_step/Math.max(activeRun.total_steps,1))*100}%`}} /></div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Stats Cards */}
+      <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
+          <div className="card-body" style={{textAlign:'center'}}>
+            <div style={{fontSize:24,fontWeight:700,color:'var(--accent-cyan)'}}>{status?.total_turns ?? 0}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Turns</div>
+          </div>
+        </div>
+        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
+          <div className="card-body" style={{textAlign:'center'}}>
+            <div style={{fontSize:24,fontWeight:700,color:'var(--accent-purple)'}}>{status?.total_sessions ?? 0}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Sessions</div>
+          </div>
+        </div>
+        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
+          <div className="card-body" style={{textAlign:'center'}}>
+            <div style={{fontSize:24,fontWeight:700,color:'var(--accent-amber)'}}>{status?.storage_bytes ? (status.storage_bytes/1024).toFixed(0) : 0}KB</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Size</div>
+          </div>
+        </div>
+        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
+          <div className="card-body" style={{textAlign:'center'}}>
+            <div style={{fontSize:20,fontWeight:700}}>S <span style={{color:'var(--accent-amber)',fontSize:24}}>{tiers.S||0}</span></div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>A: {tiers.A||0}  B: {tiers.B||0}</div>
+          </div>
+        </div>
+        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
+          <div className="card-body" style={{textAlign:'center'}}>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Daemon</div>
+            <div style={{fontSize:20}}>{daemon?.last_assistant_id != null ? '🟢' : '🔴'}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{daemon?.imports??0} imports</div>
+          </div>
+        </div>
+        <div className="card" style={{flex:'1 1 140px',minWidth:100}}>
+          <div className="card-body" style={{textAlign:'center'}}>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Proxy</div>
+            <div style={{fontSize:20}}>{proxyActive ? '🟢' : '🔴'}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>:8443</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Links Grid */}
+      <h3 style={{fontSize:13,color:'var(--text-secondary)',marginBottom:10}}>Sections</h3>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:8,marginBottom:20}}>
+        {sections.map(s => (
+          <div key={s.key} className="wf-run-row" onClick={() => onView(s.key)} style={{cursor:'pointer',flexDirection:'column',alignItems:'flex-start',gap:4,padding:'12px 14px'}}>
+            <div style={{fontSize:18}}>{s.icon}</div>
+            <div className="wf-run-name" style={{fontSize:13}}>{s.label}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>{s.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent Activity */}
+      <h3 style={{fontSize:13,color:'var(--text-secondary)',marginBottom:10}}>Recent Activity</h3>
+      <div className="wf-runs">
+        {topStream.map((e, i) => (
+          <div key={i} className="wf-run-row" style={{flexDirection:'column',alignItems:'flex-start',gap:4,cursor:'pointer'}} onClick={() => onView('memory')}>
+            <div style={{display:'flex',alignItems:'center',gap:8,width:'100%'}}>
+              <span className={`tier-${e.tier}`} style={{fontSize:11,fontWeight:600}}>T{e.tier}</span>
+              <span style={{fontSize:11,color:'var(--text-muted)'}}>{e.ts?.slice(11,19)}</span>
+              <span className="tag" style={{fontSize:10}}>{e.type}</span>
+            </div>
+            <div className="user-text" style={{fontSize:12,margin:0}}>{e.user?.slice(0,120)}</div>
+            <div className="ai-text" style={{fontSize:11,color:'var(--text-secondary)',margin:0}}>{e.assistant?.slice(0,120)}</div>
+          </div>
+        ))}
+      </div>
     </>
   )
 }
@@ -802,6 +795,209 @@ function WorkflowsView() {
             ))}
           </div>
         </div>
+      )}
+    </>
+  )
+}
+
+// ── Artifacts View ───────────────────────────────────
+function ArtifactsView() {
+  const [stats, setStats] = useState<any>(null)
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [q, setQ] = useState('')
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API}/api/artifacts/stats`).then(r => r.json()),
+      fetch(`${API}/api/artifacts?limit=25`).then(r => r.json()),
+    ]).then(([s, d]) => { setStats(s); setItems(d.artifacts ?? []); setLoading(false) })
+  }, [])
+
+  const search = async () => {
+    if (!q) return
+    setLoading(true)
+    const r = await fetch(`${API}/api/artifacts/query`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})})
+    const d = await r.json()
+    setItems(d.results ?? []); setLoading(false)
+  }
+
+  if (loading) return <div className="loading"><div className="spinner" /> Loading...</div>
+  return (
+    <>
+      <div className="content-header"><h2>◈ Artifacts</h2></div>
+      <div style={{display:'flex',gap:12,marginBottom:16}}>
+        {stats && <div className="card" style={{flex:1}}><div className="card-body" style={{fontSize:13}}>Total: {stats.total ?? 0}<br/>Types: {stats.by_type?.join(', ') ?? '—'}</div></div>}
+      </div>
+      <div style={{display:'flex',gap:8,marginBottom:12}}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search artifacts..." style={{flex:1,padding:'8px 12px',background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:13}} onKeyDown={e => e.key==='Enter'&&search()} />
+        <button className="btn btn-sm" onClick={search}>Search</button>
+      </div>
+      <div className="wf-runs">
+        {items.map((a: any, i: number) => (
+          <div key={i} className="wf-run-row">
+            <div className="wf-run-status"><span className={`wf-badge wf-badge-${a.type === 'output' ? 'done' : 'running'}`} style={{fontSize:10}}>{a.type || '?'}</span></div>
+            <div className="wf-run-info">
+              <div className="wf-run-name">{a.name || a.id?.slice(0,20)}</div>
+              <div className="wf-run-meta">{a.id} · {a.created_at?.slice(0,10)}</div>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <div className="empty-state">No artifacts</div>}
+      </div>
+    </>
+  )
+}
+
+// ── Causal View ──────────────────────────────────────
+function CausalView() {
+  const [regressions, setRegressions] = useState<any[]>([])
+  const [trace, setTrace] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`${API}/api/causal/regressions`).then(r=>r.json()).then(d => { setRegressions(d.regressions ?? []); setLoading(false) }).catch(()=>setLoading(false))
+  }, [])
+
+  if (loading) return <div className="loading"><div className="spinner" /> Loading...</div>
+  return (
+    <>
+      <div className="content-header"><h2>↻ Causal Tracing</h2></div>
+      {regressions.length === 0 ? <div className="empty-state">No regressions detected</div> : (
+        <div className="wf-runs">
+          {regressions.map((r: any, i: number) => (
+            <div key={i} className="wf-run-row" onClick={async () => {
+              const res = await fetch(`${API}/api/causal/trace/${r.turn}`)
+              setTrace(await res.json())
+            }}>
+              <div className="wf-run-status">⚠</div>
+              <div className="wf-run-info">
+                <div className="wf-run-name">Turn {r.turn}</div>
+                <div className="wf-run-meta">{r.description?.slice(0,80)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {trace && (
+        <div className="wf-detail" style={{marginTop:16}}>
+          <h3 style={{fontSize:14,margin:'0 0 8px',color:'var(--accent-amber)'}}>Trace</h3>
+          <pre style={{background:'var(--bg-card)',padding:12,borderRadius:'var(--radius-sm)',fontSize:12,color:'var(--text-secondary)',overflow:'auto',maxHeight:300}}>{JSON.stringify(trace,null,2)}</pre>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ── Negations View ───────────────────────────────────
+function NegationsView() {
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [approach, setApproach] = useState('')
+
+  useEffect(() => {
+    fetch(`${API}/api/negations`).then(r=>r.json()).then(d => { setItems(d.negations ?? []); setLoading(false) }).catch(()=>setLoading(false))
+  }, [])
+
+  const filtered = approach ? items.filter((n:any) => n.approach === approach) : items
+  const approaches = [...new Set(items.map((n:any) => n.approach).filter(Boolean))] as string[]
+
+  if (loading) return <div className="loading"><div className="spinner" /> Loading...</div>
+  return (
+    <>
+      <div className="content-header"><h2>⊘ Negations</h2></div>
+      {approaches.length > 0 && (
+        <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+          <button className={`btn btn-sm${!approach?' active':''}`} onClick={()=>setApproach('')}>All</button>
+          {approaches.map(a => <button key={a} className={`btn btn-sm${approach===a?' active':''}`} onClick={()=>setApproach(a)}>{a}</button>)}
+        </div>
+      )}
+      <div className="wf-runs">
+        {filtered.map((n: any, i: number) => (
+          <div key={i} className="wf-run-row">
+            <div className="wf-run-status">⊘</div>
+            <div className="wf-run-info">
+              <div className="wf-run-name">{n.value || n.text?.slice(0,60)}</div>
+              <div className="wf-run-meta">{n.entity && `Entity: ${n.entity}`}{n.approach && ` · ${n.approach}`}</div>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && <div className="empty-state">No negations found</div>}
+      </div>
+    </>
+  )
+}
+
+// ── Memory Dashboard View ────────────────────────────
+function MemoryDashboardView() {
+  const [stats, setStats] = useState<any>(null)
+  const [facts, setFacts] = useState<any[]>([])
+  const [snapshots, setSnapshots] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [recallQ, setRecallQ] = useState('')
+  const [recallRes, setRecallRes] = useState<any[]>([])
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API}/api/memory/stats`).then(r=>r.json()),
+      fetch(`${API}/api/memory/facts?limit=20`).then(r=>r.json()),
+      fetch(`${API}/api/memory/snapshots`).then(r=>r.json()),
+    ]).then(([s, f, sn]) => { setStats(s); setFacts(f.facts??[]); setSnapshots(sn.snapshots??[]); setLoading(false) })
+  }, [])
+
+  const recall = async () => {
+    if (!recallQ) return
+    const r = await fetch(`${API}/api/memory/recall?q=${encodeURIComponent(recallQ)}`)
+    const d = await r.json()
+    setRecallRes(d.results ?? [])
+  }
+
+  if (loading) return <div className="loading"><div className="spinner" /> Loading...</div>
+  return (
+    <>
+      <div className="content-header"><h2>⬡ Memory Dashboard</h2></div>
+      <div style={{display:'flex',gap:12,marginBottom:16,flexWrap:'wrap'}}>
+        <div className="card" style={{flex:1,minWidth:120}}><div className="card-body"><div style={{fontSize:20,fontWeight:600,color:'var(--accent-cyan)'}}>{stats?.total_facts??0}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>Facts</div></div></div>
+        <div className="card" style={{flex:1,minWidth:120}}><div className="card-body"><div style={{fontSize:20,fontWeight:600,color:'var(--accent-purple)'}}>{stats?.patterns??0}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>Patterns</div></div></div>
+        <div className="card" style={{flex:1,minWidth:120}}><div className="card-body"><div style={{fontSize:20,fontWeight:600,color:'var(--accent-amber)'}}>{stats?.snapshots??0}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>Snapshots</div></div></div>
+      </div>
+      <div style={{display:'flex',gap:8,marginBottom:12}}>
+        <input value={recallQ} onChange={e=>setRecallQ(e.target.value)} placeholder="Semantic recall..." style={{flex:1,padding:'8px 12px',background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:13}} onKeyDown={e=>e.key==='Enter'&&recall()} />
+        <button className="btn btn-sm" onClick={recall}>Recall</button>
+      </div>
+      {recallRes.length > 0 && (
+        <div style={{marginBottom:16}}>
+          <h3 style={{fontSize:13,margin:'0 0 8px',color:'var(--text-secondary)'}}>Recall Results</h3>
+          {recallRes.map((r:any,i:number) => (
+            <div key={i} className="wf-run-row" style={{fontSize:12}}>
+              <div className="wf-run-name">{r.attribute || r.entity}: {r.value?.slice(0,80)}</div>
+              <div className="wf-run-meta">confidence: {r.confidence}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <h3 style={{fontSize:13,margin:'0 0 8px',color:'var(--text-secondary)'}}>Recent Facts</h3>
+      <div className="wf-runs">
+        {facts.map((f:any,i:number) => (
+          <div key={i} className="wf-run-row" style={{fontSize:12}}>
+            <div className="wf-run-info"><span className="wf-run-name">{f.entity}</span> · {f.attribute}: {f.value?.slice(0,60)}</div>
+            <div className="wf-run-meta" style={{fontSize:11}}>{f.fact_type} · {f.confidence}</div>
+          </div>
+        ))}
+        {facts.length === 0 && <div className="empty-state">No facts stored</div>}
+      </div>
+      {snapshots.length > 0 && (
+        <>
+          <h3 style={{fontSize:13,margin:'16px 0 8px',color:'var(--text-secondary)'}}>Snapshots</h3>
+          <div className="wf-runs">
+            {snapshots.map((s:any,i:number) => (
+              <div key={i} className="wf-run-row" style={{fontSize:12}}>
+                <div className="wf-run-info"><span className="wf-run-name">{s.id?.slice(0,20)}</span></div>
+                <div className="wf-run-meta">{s.created_at?.slice(0,10)}</div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </>
   )
