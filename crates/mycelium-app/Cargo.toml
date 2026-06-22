@@ -17,3 +17,5 @@ anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 chrono.workspace = true
+tar = "0.4"
+flate2 = "1"

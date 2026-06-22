@@ -176,15 +176,60 @@ async fn cmd_search(config: &MyceliumConfig, query: &str) -> anyhow::Result<()> 
     Ok(())
 }
 
-async fn cmd_verify(_config: &MyceliumConfig) -> anyhow::Result<()> {
-    println!("⚠️  Hash chain verification not yet implemented");
-    println!("   (Coming in Phase 2)");
+async fn cmd_verify(config: &MyceliumConfig) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    if !db_path.exists() {
+        println!("❌ No database found at {}", db_path.display());
+        return Ok(());
+    }
+
+    let storage = mycelium_core::Storage::open(db_path)?;
+    let count = storage.count_entries()?;
+    println!("📋 Hash Chain Verification ({} entries)", count);
+    println!();
+
+    let failures = storage.verify_hash_chain()?;
+    if failures.is_empty() {
+        println!("✅ Hash chain is intact — all {} entries verified", count);
+    } else {
+        println!("❌ {} hash chain failure(s) found:", failures.len());
+        for (turn, expected, actual) in &failures {
+            println!("   Turn {}: {} | actual: {}", turn, expected, actual);
+        }
+    }
+
     Ok(())
 }
 
-async fn cmd_resume(_config: &MyceliumConfig, _session: Option<&str>) -> anyhow::Result<()> {
-    println!("⚠️  Resume not yet implemented");
-    println!("   (Coming in Phase 2)");
+async fn cmd_resume(config: &MyceliumConfig, session: Option<&str>) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    let session_name = match session {
+        Some(s) => s.to_string(),
+        None => {
+            let sessions = storage.recent_sessions(1)?;
+            sessions.into_iter().next().unwrap_or_default()
+        }
+    };
+
+    if session_name.is_empty() {
+        println!("No sessions found.");
+        return Ok(());
+    }
+
+    println!("📝 Session: {}", session_name);
+    let entries = storage.entries_for_session(&session_name, 10)?;
+    println!("   Last {} entries: {}", entries.len(), entries.len());
+
+    for entry in entries.iter().rev() {
+        let user_preview = entry.user.chars().take(80).collect::<String>();
+        println!();
+        println!("   [#{}] {}", entry.turn, entry.ts);
+        println!("   User: {}", user_preview);
+        println!("   Entities: {}", entry.entities.join(", "));
+    }
+
     Ok(())
 }
 
@@ -199,9 +244,29 @@ async fn cmd_stop(_config: &MyceliumConfig) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn cmd_backup(_config: &MyceliumConfig, _dir: &str) -> anyhow::Result<()> {
-    println!("⚠️  Backup not yet implemented");
-    println!("   (Coming in Phase 2)");
+async fn cmd_backup(config: &MyceliumConfig, dir: &str) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    if !db_path.exists() {
+        println!("❌ No database found at {}", db_path.display());
+        return Ok(());
+    }
+
+    let out_dir = std::path::Path::new(dir);
+    std::fs::create_dir_all(out_dir)?;
+
+    let ts = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let backup_name = format!("mycelium_backup_{}.tar.gz", ts);
+    let backup_path = out_dir.join(&backup_name);
+
+    let file = std::fs::File::create(&backup_path)?;
+    let mut archive = tar::Builder::new(flate2::write::GzEncoder::new(file, flate2::Compression::default()));
+    archive.append_path_with_name(&db_path, "mycelium.db")?;
+    archive.finish()?;
+
+    let metadata = std::fs::metadata(&backup_path)?;
+    println!("✅ Backup created: {}", backup_path.display());
+    println!("   Size: {} KB", metadata.len() / 1024);
+
     Ok(())
 }
 
@@ -215,9 +280,68 @@ async fn cmd_config(config: &MyceliumConfig) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn cmd_migrate(_config: &MyceliumConfig) -> anyhow::Result<()> {
-    println!("⚠️  Migration from existing Go/Python data not yet implemented");
-    println!("   (Coming in Phase 7)");
+async fn cmd_migrate(config: &MyceliumConfig) -> anyhow::Result<()> {
+    let log_path = config.root_dir.join("log.jsonl");
+    if !log_path.exists() {
+        println!("❌ No log.jsonl found at {}", log_path.display());
+        println!("   Run `mycelium config` to see current root.");
+        return Ok(());
+    }
+
+    let db_path = config.root_dir.join("mycelium.db");
+    println!("📦 Migrating {} → {}", log_path.display(), db_path.display());
+
+    let storage = mycelium_core::Storage::open(db_path.clone())?;
+
+    let content = std::fs::read_to_string(&log_path)?;
+    let mut count = 0i64;
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if let Ok(raw) = serde_json::from_str::<serde_json::Value>(line) {
+            let turn = raw.get("turn").and_then(|v| v.as_i64()).unwrap_or(count + 1);
+            let session = raw.get("session").and_then(|v| v.as_str()).unwrap_or("migrated").to_string();
+            let tier = raw.get("tier").and_then(|v| v.as_str()).unwrap_or("ephemeral");
+            let entry_type = raw.get("entry_type").or_else(|| raw.get("type")).and_then(|v| v.as_str()).unwrap_or("conversation");
+            let ts_str = raw.get("ts").and_then(|v| v.as_str()).unwrap_or("");
+            let user = raw.get("user").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let assistant = raw.get("assistant").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let prev_hash = raw.get("prev_hash").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let hash = raw.get("hash").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+            let entities: Vec<String> = raw.get("entities")
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .unwrap_or_default();
+
+            let ts = chrono::DateTime::parse_from_rfc3339(ts_str)
+                .map(|d| d.to_utc())
+                .unwrap_or_else(|_| chrono::Utc::now());
+
+            let entry = mycelium_core::Entry {
+                turn,
+                tier: mycelium_core::Tier::from_str(tier).unwrap_or(mycelium_core::Tier::Ephemeral),
+                entry_type: mycelium_core::EntryType::from_str(entry_type).unwrap_or(mycelium_core::EntryType::Conversation),
+                session,
+                ts,
+                user,
+                assistant,
+                entities,
+                prev_hash,
+                hash,
+                finding: None,
+                verdict: None,
+            };
+
+            if let Err(e) = storage.append_entry(&entry) {
+                eprintln!("   ⚠️  Error on turn {}: {}", entry.turn, e);
+            }
+            count = entry.turn;
+        }
+    }
+
+    println!("✅ Migration complete — {} entries imported", count);
     Ok(())
 }
 
@@ -275,8 +399,11 @@ async fn cmd_fact(config: &MyceliumConfig, command: &FactCommands) -> anyhow::Re
             let id = storage.upsert_fact(&fact)?;
             println!("✅ Added fact #{}: {} | {} | {}", id, entity, attribute, value);
         }
-        FactCommands::Delete { id: _id } => {
-            println!("⚠️  Fact delete not yet implemented");
+        FactCommands::Delete { id } => {
+            match storage.delete_fact(*id)? {
+                true => println!("✅ Deleted fact #{}", id),
+                false => println!("❌ Fact #{} not found", id),
+            }
         }
     }
 

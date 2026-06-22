@@ -342,6 +342,68 @@ impl Storage {
         Ok(result)
     }
 
+    /// Get all entries (for migration, verify, etc).
+    pub fn all_entries(&self) -> Result<Vec<Entry>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+             FROM entries ORDER BY turn ASC",
+        )?;
+        let entries = stmt
+            .query_map([], |row| self.row_to_entry(row))?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(entries)
+    }
+
+    /// Get entries for a specific session.
+    pub fn entries_for_session(&self, session: &str, limit: i64) -> Result<Vec<Entry>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+             FROM entries WHERE session = ?1 ORDER BY turn DESC LIMIT ?2",
+        )?;
+        let entries = stmt
+            .query_map(params![session, limit], |row| self.row_to_entry(row))?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(entries)
+    }
+
+    /// Verify the hash chain integrity for all entries.
+    ///
+    /// Returns a list of entries where the hash chain is broken.
+    /// Each entry shows the turn, expected hash, and actual hash.
+    pub fn verify_hash_chain(&self) -> Result<Vec<(i64, String, String)>> {
+        let entries = self.all_entries()?;
+        let mut failures = Vec::new();
+
+        for entry in &entries {
+            let expected_prev = if entry.turn == 1 {
+                String::new()
+            } else {
+                // Find the previous entry's hash
+                match self.get_entry(entry.turn - 1)? {
+                    Some(prev) => prev.hash,
+                    None => {
+                        failures.push((entry.turn, "prev entry not found".into(), entry.prev_hash.clone()));
+                        continue;
+                    }
+                }
+            };
+
+            if entry.prev_hash != expected_prev {
+                failures.push((
+                    entry.turn,
+                    format!("expected prev_hash: {}", expected_prev),
+                    format!("got: {}", entry.prev_hash),
+                ));
+            }
+        }
+
+        Ok(failures)
+    }
+
     // ── Memory Fact Operations ──
 
     /// Insert a memory fact (upsert on unique constraint).
@@ -365,6 +427,27 @@ impl Storage {
         let id = conn.last_insert_rowid();
         self.cache.invalidate_all();
         Ok(id)
+    }
+
+    /// Delete a memory fact by ID.
+    pub fn delete_fact(&self, fact_id: i64) -> Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let rows = conn.execute("DELETE FROM memory_facts WHERE id = ?1", params![fact_id])?;
+        self.cache.invalidate_all();
+        Ok(rows > 0)
+    }
+
+    /// List recent distinct sessions.
+    pub fn recent_sessions(&self, limit: i64) -> Result<Vec<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT session FROM entries GROUP BY session ORDER BY MAX(turn) DESC LIMIT ?1",
+        )?;
+        let sessions = stmt
+            .query_map(params![limit], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(sessions)
     }
 
     /// Search memory facts by entity or value.
@@ -463,6 +546,11 @@ impl Storage {
         Ok(std::fs::metadata(&self.path)
             .map(|m| m.len() as i64)
             .unwrap_or(0))
+    }
+
+    /// Get the database file path.
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
     }
 
     // ── Private Helpers ──
