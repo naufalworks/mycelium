@@ -17,6 +17,7 @@ use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt as _;
 use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
 use tracing::{error, info};
 
 pub struct AppState {
@@ -56,7 +57,15 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         .route("/api/backups", get(list_backups).post(create_backup))
         .route("/api/verify", get(verify_chain))
         .layer(CorsLayer::permissive())
-        .with_state(state);
+        .with_state(state)
+        .fallback_service(ServeDir::new(
+            std::env::var("MYCELIUM_WEB_ROOT")
+                .unwrap_or_else(|_| {
+                    let root = std::env::var("MYCELIUM_ROOT")
+                        .unwrap_or_else(|_| ".".to_string());
+                    format!("{}/web", root)
+                })
+        ).append_index_html_on_directories(true));
 
     let addr = format!("127.0.0.1:{}", config.server_port);
     info!("Server listening on {}", addr);

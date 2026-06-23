@@ -59,6 +59,7 @@ impl ManagedProcess {
         let child = Command::new(&bin_path)
             .stdout(Stdio::from(out))
             .stderr(Stdio::from(err))
+            .env("MYCELIUM_WEB_ROOT", config.root_dir.join("web"))
             .spawn()
             .map_err(|e| format!("spawn {}: {}", self.name, e))?;
 
