@@ -12,6 +12,7 @@ pub mod storage;
 pub mod cache;
 pub mod search;
 pub mod error;
+pub mod brain;
 
 pub use types::*;
 pub use storage::*;
