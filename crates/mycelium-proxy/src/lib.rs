@@ -278,8 +278,10 @@ async fn forward_to_upstream(
             let resp_body = resp.bytes().await.unwrap_or_default();
             let mut body_vec = resp_body.to_vec();
 
-            // Filter response — strip unsupported content blocks (thinking, etc.)
-            body_vec = interceptor::filter_response(&body_vec);
+            // Filter response — strips thinking blocks if header or env var is set
+            if should_filter_response(headers) {
+                body_vec = interceptor::filter_response(&body_vec);
+            }
 
             let mut response = Response::builder().status(status);
             for (key, value) in resp_headers.iter() {
@@ -300,4 +302,16 @@ async fn forward_to_upstream(
             (response, body)
         }
     }
+}
+
+/// Check if response filtering should be applied.
+/// Triggered by: X-Mycelium-Filter header (per-request) or
+/// MYCELIUM_PROXY_STRIP_BLOCKS env var (global).
+fn should_filter_response(headers: &HeaderMap) -> bool {
+    // Per-request: header from client
+    if headers.contains_key("x-mycelium-filter") || headers.contains_key("X-Mycelium-Filter") {
+        return true;
+    }
+    // Global: env var set on daemon
+    std::env::var("MYCELIUM_PROXY_STRIP_BLOCKS").is_ok()
 }
