@@ -312,33 +312,47 @@ pub fn build_facts_block(facts: &[mycelium_core::MemoryFact]) -> String {
     block
 }
 
-/// Content block types to strip from upstream responses.
-/// Clients like ZCode can't handle e.g. "thinking" blocks.
-const STRIP_BLOCK_TYPES: &[&str] = &["thinking"];
-
 /// Filter upstream response body — strips unsupported content blocks.
 ///
+/// Only active when MYCELIUM_PROXY_STRIP_BLOCKS env var is set.
+/// Value: comma-separated block types to strip, e.g. "thinking,thinking_redacted"
+///
 /// Handles both SSE streaming and JSON non-streaming formats.
-/// Auto-detects format and strips blocks whose type is in STRIP_BLOCK_TYPES.
 pub fn filter_response(body: &[u8]) -> Vec<u8> {
-    let text = String::from_utf8_lossy(body);
+    let strip_types = get_strip_types();
+    if strip_types.is_empty() {
+        return body.to_vec(); // No filtering configured
+    }
 
-    // Detect format: SSE if lines start with "data: " or "event: "
+    let text = String::from_utf8_lossy(body);
+    let strip_types = get_strip_types();
+    if strip_types.is_empty() {
+        return body.to_vec();
+    }
+
     if text.contains("\ndata: ") || text.starts_with("data: ") {
-        filter_sse(&text).into_bytes()
+        filter_sse(&text, &strip_types).into_bytes()
     } else {
-        // Try JSON non-streaming
-        filter_json(&text).into_bytes()
+        filter_json(&text, &strip_types).into_bytes()
     }
 }
 
-/// Filter SSE response body — strips content blocks matching STRIP_BLOCK_TYPES.
+/// Read strip types from environment (comma-separated).
+/// Example: MYCELIUM_PROXY_STRIP_BLOCKS=thinking,thinking_redacted
+fn get_strip_types() -> Vec<String> {
+    let raw = match std::env::var("MYCELIUM_PROXY_STRIP_BLOCKS") {
+        Ok(v) => v,
+        Err(_) => return vec![],
+    };
+    raw.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+}
+
+/// Filter SSE response body — strips content blocks matching strip_types.
 ///
 /// State machine:
 /// - idle: waiting for content_block_start
-/// - tracking(index, type): in a content block, tracking events for it
 /// - skip(index): in a content block we want to strip, skip events until its stop
-fn filter_sse(text: &str) -> String {
+fn filter_sse(text: &str, strip_types: &[String]) -> String {
     let mut output = String::new();
     let mut skip_index: Option<usize> = None;
 
@@ -386,7 +400,7 @@ fn filter_sse(text: &str) -> String {
                         .pointer("/content_block/type")
                         .and_then(|v| v.as_str())
                         .unwrap_or("");
-                    if STRIP_BLOCK_TYPES.contains(&block_type) {
+                    if strip_types.contains(&block_type.to_string()) {
                         let idx = event.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
                         skip_index = Some(idx);
                         continue; // Skip the start event
@@ -402,8 +416,8 @@ fn filter_sse(text: &str) -> String {
     output
 }
 
-/// Filter JSON response body — removes content blocks matching STRIP_BLOCK_TYPES.
-fn filter_json(text: &str) -> String {
+/// Filter JSON response body — removes content blocks matching strip_types.
+fn filter_json(text: &str, strip_types: &[String]) -> String {
     let mut resp: serde_json::Value = match serde_json::from_str(text) {
         Ok(v) => v,
         Err(_) => return text.to_string(), // Not valid JSON, return as-is
@@ -413,7 +427,7 @@ fn filter_json(text: &str) -> String {
     if let Some(content) = resp.get_mut("content").and_then(|v| v.as_array_mut()) {
         content.retain(|block| {
             let block_type = block.get("type").and_then(|v| v.as_str()).unwrap_or("");
-            !STRIP_BLOCK_TYPES.contains(&block_type)
+            !strip_types.contains(&block_type.to_string())
         });
     }
 
