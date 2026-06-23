@@ -233,14 +233,66 @@ async fn cmd_resume(config: &MyceliumConfig, session: Option<&str>) -> anyhow::R
     Ok(())
 }
 
-async fn cmd_start(_config: &MyceliumConfig) -> anyhow::Result<()> {
-    println!("⚠️  Start daemon not yet implemented");
-    println!("   (Coming in Phase 3)");
+async fn cmd_start(config: &MyceliumConfig) -> anyhow::Result<()> {
+    let pid_dir = config.root_dir.join("run");
+    std::fs::create_dir_all(&pid_dir)?;
+
+    let server_pid = pid_dir.join("server.pid");
+    if server_pid.exists() {
+        println!("⚠️  Server PID file exists — might already be running");
+    } else {
+        let server_bin = std::env::current_exe()?
+            .parent().map(|p| p.join("mycelium-server"))
+            .unwrap_or_else(|| "mycelium-server".into());
+        let child = std::process::Command::new(&server_bin)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
+        std::fs::write(&server_pid, child.id().to_string())?;
+        println!("✅ Server started (PID {})", child.id());
+    }
+
+    let proxy_pid = pid_dir.join("proxy.pid");
+    if proxy_pid.exists() {
+        println!("⚠️  Proxy PID file exists — might already be running");
+    } else {
+        let proxy_bin = std::env::current_exe()?
+            .parent().map(|p| p.join("mycelium-proxy"))
+            .unwrap_or_else(|| "mycelium-proxy".into());
+        let child = std::process::Command::new(&proxy_bin)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
+        std::fs::write(&proxy_pid, child.id().to_string())?;
+        println!("✅ Proxy started (PID {})", child.id());
+    }
+
+    println!("\n📋 Status:  mycelium status");
+    println!("📋 Stop:    mycelium stop");
     Ok(())
 }
 
-async fn cmd_stop(_config: &MyceliumConfig) -> anyhow::Result<()> {
-    println!("⚠️  Stop not yet implemented");
+async fn cmd_stop(config: &MyceliumConfig) -> anyhow::Result<()> {
+    let pid_dir = config.root_dir.join("run");
+    let mut any_stopped = false;
+
+    for (name, file) in [("Server", "server.pid"), ("Proxy", "proxy.pid")] {
+        let path = pid_dir.join(file);
+        if path.exists() {
+            let pid_str = std::fs::read_to_string(&path)?;
+            if let Ok(pid) = pid_str.trim().parse::<u32>() {
+                #[cfg(unix)]
+                { std::process::Command::new("kill").arg(pid.to_string()).spawn().ok(); }
+                std::fs::remove_file(&path)?;
+                println!("✅ {} stopped (PID {})", name, pid);
+                any_stopped = true;
+            }
+        }
+    }
+
+    if !any_stopped {
+        println!("ℹ️  No services were running");
+    }
     Ok(())
 }
 
