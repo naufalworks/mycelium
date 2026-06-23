@@ -152,12 +152,14 @@ async fn list_entries(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Json<serde_json::Value> {
-    let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(50);
-    let entries = match state.storage.recent_entries(limit) {
+    let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20);
+    let offset: i64 = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+    let total = state.storage.count_entries().unwrap_or(0);
+    let entries = match state.storage.recent_entries_offset(limit, offset) {
         Ok(e) => e,
         Err(e) => { error!("list_entries: {}", e); vec![] }
     };
-    Json(serde_json::json!(entries))
+    Json(serde_json::json!({"entries": entries, "total": total}))
 }
 
 async fn get_entry(
@@ -299,12 +301,15 @@ async fn search_all(
 ) -> Json<serde_json::Value> {
     let query = params.get("q").map(|s| s.as_str()).unwrap_or("");
     let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20);
+    let offset: i64 = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
 
-    let entries = state.storage.search_fts(query, limit).unwrap_or_default();
+    let total = state.storage.count_search_entries(query).unwrap_or(0);
+    let entries = state.storage.search_fts_offset(query, limit, offset).unwrap_or_default();
     let facts = state.storage.search_facts(query, limit).unwrap_or_default();
 
     Json(serde_json::json!({
         "entries": entries,
+        "total": total,
         "facts": facts,
     }))
 }

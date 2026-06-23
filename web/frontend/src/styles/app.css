@@ -523,6 +523,63 @@ body {
   border-color: transparent;
 }
 
+.tab:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Pagination Bar
+   -------------------------------------------------------------------------- */
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pagination-info .tab {
+  min-width: 32px;
+  text-align: center;
+  padding: 6px 10px;
+}
+
+.pagination-ellipsis {
+  color: var(--text-2);
+  padding: 0 4px;
+  font-size: 13px;
+}
+
+.pagination-summary {
+  text-align: center;
+  color: var(--text-2);
+  font-size: 11px;
+  margin-top: 10px;
+  font-family: var(--font-sans);
+}
+
+.pagination-loading {
+  color: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 /* --------------------------------------------------------------------------
    Entry List (Memory / Findings)
    -------------------------------------------------------------------------- */

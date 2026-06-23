@@ -72,9 +72,9 @@ def api_verify():
         return {"ok": False, "error": str(e)}
 
 @router.get("/api/stream")
-def api_stream():
+def api_stream(limit: int = 50, offset: int = 0, q: str = ""):
     try:
-        return get_stream()
+        return get_stream(limit=limit, offset=offset, q=q or None)
     except Exception:
         return {"stream": []}
 

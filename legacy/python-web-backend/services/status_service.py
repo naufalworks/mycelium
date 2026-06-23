@@ -163,6 +163,7 @@ def get_daemon_state() -> Dict[str, Any]:
 def get_stream(
     *,
     limit: int = 100,
+    offset: int = 0,
     session: str | None = None,
     tier: str | None = None,
     item_type: str | None = None,
@@ -186,8 +187,12 @@ def get_stream(
             if ql not in blob:
                 continue
         items.append(entry)
-    sliced = items[-limit:]
-    return {"total": len(items), "items": sliced}
+    total = len(items)
+    end = total - offset
+    start = max(0, end - limit)
+    sliced = items[start:end] if end > 0 else []
+    sliced.reverse()  # newest first
+    return {"total": total, "items": sliced}
 
 
 def get_session_detail(session_name: str) -> Dict[str, Any]:

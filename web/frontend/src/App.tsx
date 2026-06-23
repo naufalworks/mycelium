@@ -96,7 +96,7 @@ export default function App() {
           ) : (
             <>
               {view === 'dashboard' && <DashboardView status={status} stream={stream} daemon={daemonHealth} onView={setView} />}
-              {view === 'memory' && <MemoryView stream={stream} searchQuery={searchQuery} onSearch={handleSearch} onRefresh={() => fetchStream()} />}
+              {view === 'memory' && <MemoryView searchQuery={searchQuery} />}
               {view === 'graph' && <GraphView />}
               {view === 'findings' && <FindingsView />}
               {view === 'settings' && <SettingsView daemon={daemonHealth} />}
@@ -341,22 +341,61 @@ function DashboardView({ status, stream, daemon, onView }: {
 }
 
 // ── Memory View ─────────────────────────────────────
-function MemoryView({ stream, searchQuery, onSearch, onRefresh }: {
-  stream: StreamItem[]; searchQuery: string; onSearch: (q: string) => void; onRefresh: () => void
+function MemoryView({ searchQuery }: {
+  searchQuery: string;
 }) {
+  const [items, setItems] = useState<StreamItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const limit = 20
+
+  const totalPages = Math.ceil(total / limit)
+  const currentPage = page + 1
+
+  const fetchPage = useCallback(async (p: number, q?: string) => {
+    setLoading(true)
+    try {
+      const offset = p * limit
+      const base = `${API}/api/stream?limit=${limit}&offset=${offset}`
+      const url = q ? `${base}&q=${encodeURIComponent(q)}` : base
+      const r = await fetch(url)
+      const d = await r.json()
+      setItems(d.items ?? [])
+      setTotal(d.total ?? 0)
+    } catch (e) { console.warn('[mycelium] stream:', e) }
+    setLoading(false)
+  }, [limit])
+
+  useEffect(() => {
+    fetchPage(0, searchQuery || undefined)
+    setPage(0)
+  }, [searchQuery, fetchPage])
+
+  const goToPage = (p: number) => {
+    if (p < 0 || p >= totalPages) return
+    setPage(p)
+    fetchPage(p, searchQuery || undefined)
+  }
+
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [tierFilter, setTierFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
 
   const filtered = useMemo(() => {
-    let items = stream
-    if (tierFilter) items = items.filter(e => e.tier === tierFilter)
-    if (typeFilter) items = items.filter(e => e.type === typeFilter)
-    return items
-  }, [stream, tierFilter, typeFilter])
+    let result = items
+    if (tierFilter) result = result.filter(e => e.tier === tierFilter)
+    if (typeFilter) result = result.filter(e => e.type === typeFilter)
+    return result
+  }, [items, tierFilter, typeFilter])
 
-  const distinctTiers = [...new Set(stream.map(e => e.tier))]
-  const distinctTypes = [...new Set(stream.map(e => e.type))]
+  const distinctTiers = [...new Set(items.map(e => e.tier))]
+  const distinctTypes = [...new Set(items.map(e => e.type))]
+
+  // Show loading state
+  if (loading && items.length === 0) {
+    return <div className="loading"><div className="spinner" /> Loading memory...</div>
+  }
 
   return (
     <div className="fade-in">
@@ -367,7 +406,7 @@ function MemoryView({ stream, searchQuery, onSearch, onRefresh }: {
           <button key={t} className={`tab ${tierFilter === t ? 'active' : ''}`}
             onClick={() => setTierFilter(tierFilter === t ? '' : t)}>{t}</button>
         ))}
-        <button className="tab" onClick={onRefresh}>⟳ Refresh</button>
+        <button className="tab" onClick={() => fetchPage(page, searchQuery || undefined)}>⟳ Refresh</button>
       </div>
 
       {filtered.length === 0 ? (
@@ -396,6 +435,27 @@ function MemoryView({ stream, searchQuery, onSearch, onRefresh }: {
           ))}
         </div>
       )}
+
+      {/* Pagination */}
+      <div className="pagination-bar">
+        <button className="tab" disabled={page === 0} onClick={() => goToPage(page - 1)}>‹ Prev</button>
+        <div className="pagination-info">
+          {Array.from({ length: Math.min(totalPages, 20) }, (_, i) => i).map(p => (
+            <button
+              key={p}
+              className={`tab ${p === page ? 'active' : ''}`}
+              onClick={() => goToPage(p)}
+            >{p + 1}</button>
+          ))}
+          {totalPages > 20 && <span className="pagination-ellipsis">…</span>}
+        </div>
+        <button className="tab" disabled={page >= totalPages - 1} onClick={() => goToPage(page + 1)}>Next ›</button>
+      </div>
+
+      <div className="pagination-summary">
+        Page {currentPage} of {totalPages || 1} · {total} entries
+        {loading && <span className="pagination-loading"> loading…</span>}
+      </div>
     </div>
   )
 }

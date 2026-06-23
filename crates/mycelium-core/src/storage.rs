@@ -264,14 +264,19 @@ impl Storage {
 
     /// Get recent entries up to `limit`.
     pub fn recent_entries(&self, limit: i64) -> Result<Vec<Entry>> {
+        self.recent_entries_offset(limit, 0)
+    }
+
+    /// Get recent entries with pagination offset.
+    pub fn recent_entries_offset(&self, limit: i64, offset: i64) -> Result<Vec<Entry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
-             FROM entries ORDER BY turn DESC LIMIT ?1",
+             FROM entries ORDER BY turn DESC LIMIT ?1 OFFSET ?2",
         )?;
 
         let entries = stmt
-            .query_map(params![limit], |row| self.row_to_entry(row))?
+            .query_map(params![limit, offset], |row| self.row_to_entry(row))?
             .filter_map(|r| r.ok())
             .collect();
 
@@ -279,11 +284,19 @@ impl Storage {
     }
 
     /// Search entries with a LIKE query across user, assistant, and session.
+    /// Supports pagination via offset.
     pub fn search_entries(&self, query: &str, limit: i64) -> Result<Vec<Entry>> {
-        // Check cache first
-        let cache_key = format!("search:{}:{}", query, limit);
-        if let Some(results) = self.cache.get_search_results(&cache_key) {
-            return Ok(results);
+        self.search_entries_offset(query, limit, 0)
+    }
+
+    /// Search entries with offset pagination.
+    pub fn search_entries_offset(&self, query: &str, limit: i64, offset: i64) -> Result<Vec<Entry>> {
+        // Cache only the first page (offset=0). Paginated queries bypass cache.
+        if offset == 0 {
+            let cache_key = format!("search:{}:{}", query, limit);
+            if let Some(results) = self.cache.get_search_results(&cache_key) {
+                return Ok(results);
+            }
         }
 
         let conn = self.conn.lock().unwrap();
@@ -292,16 +305,17 @@ impl Storage {
             "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
              FROM entries
              WHERE user LIKE ?1 OR assistant LIKE ?1 OR session LIKE ?1
-             ORDER BY turn DESC LIMIT ?2",
+             ORDER BY turn DESC LIMIT ?2 OFFSET ?3",
         )?;
 
         let entries: Vec<Entry> = stmt
-            .query_map(params![pattern, limit], |row| self.row_to_entry(row))?
+            .query_map(params![pattern, limit, offset], |row| self.row_to_entry(row))?
             .filter_map(|r| r.ok())
             .collect();
 
-        self.cache
-            .put_search_results(cache_key, entries.clone());
+        if offset == 0 {
+            self.cache.put_search_results(format!("search:{}:{}", query, limit), entries.clone());
+        }
         Ok(entries)
     }
 
@@ -329,6 +343,23 @@ impl Storage {
         entries.sort_by(|a, b| b.turn.cmp(&a.turn));
         entries.truncate(limit as usize);
         Ok(entries)
+    }
+
+    /// Search entries using LIKE query with pagination offset (no tantivy).
+    pub fn search_fts_offset(&self, query: &str, limit: i64, offset: i64) -> Result<Vec<Entry>> {
+        self.search_entries_offset(query, limit, offset)
+    }
+
+    /// Count entries matching a LIKE search query.
+    pub fn count_search_entries(&self, query: &str) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let pattern = format!("%{}%", query);
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM entries WHERE user LIKE ?1 OR assistant LIKE ?1 OR session LIKE ?1",
+            params![pattern],
+            |row| row.get(0),
+        )?;
+        Ok(count)
     }
 
     /// Count total entries.
