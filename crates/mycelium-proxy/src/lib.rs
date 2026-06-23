@@ -31,24 +31,16 @@ pub struct ProxyState {
     pub http_client: reqwest::Client,
     pub session_loaded: Mutex<HashMap<String, bool>>,
     pub injected_turns: Mutex<HashSet<i64>>,
-    pub filter_enabled: bool,
 }
 
 /// Start the proxy server.
 pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
-    let start_turn = Storage::open(config.root_dir.join("mycelium.db"))
-        .ok()
-        .and_then(|s| s.count_entries().ok())
-        .unwrap_or(0) + 1;
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = Storage::open(db_path)?;
+    let start_turn = storage.count_entries().unwrap_or(0) + 1;
 
-    let router = Router::new()
-        .route("/v1/messages", post(intercept_and_forward))
-        .route("/v1/chat/completions", post(handle_openai))
-        .route("/{*path}", any(passthrough));
-
-    // Port 1: unfiltered (Claude Code)
-    let state1 = Arc::new(ProxyState {
-        storage: Storage::open(config.root_dir.join("mycelium.db"))?,
+    let state = Arc::new(ProxyState {
+        storage,
         config: config.clone(),
         semaphore: Semaphore::new(config.max_concurrent),
         turn_counter: AtomicI64::new(start_turn),
@@ -57,40 +49,23 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
             .build()?,
         session_loaded: Mutex::new(HashMap::new()),
         injected_turns: Mutex::new(HashSet::new()),
-        filter_enabled: false,
     });
-    let app1 = router.clone().with_state(state1);
 
-    // Port 2: filtered + 1 (ZCode — strips thinking blocks)
-    let state2 = Arc::new(ProxyState {
-        storage: Storage::open(config.root_dir.join("mycelium.db"))?,
-        config: config.clone(),
-        semaphore: Semaphore::new(config.max_concurrent),
-        turn_counter: AtomicI64::new(start_turn + 10000),
-        http_client: reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(120))
-            .build()?,
-        session_loaded: Mutex::new(HashMap::new()),
-        injected_turns: Mutex::new(HashSet::new()),
-        filter_enabled: true,
-    });
-    let app2 = router.with_state(state2);
+    let app = Router::new()
+        .route("/v1/messages", post(intercept_and_forward))
+        .route("/v1/chat/completions", post(handle_openai))
+        .route("/{*path}", any(passthrough))
+        .with_state(state);
 
     let addr = format!("127.0.0.1:{}", config.proxy_port);
-    let addr2 = format!("127.0.0.1:{}", config.proxy_port + 1);
-    info!("Proxy listening on {} (plain) and {} (filtered)", addr, addr2);
+    info!("Proxy listening on {}", addr);
     println!("🧬 Mycelium Proxy → {}", config.upstream_url);
     println!("   Unfiltered (Claude Code):  :{}", config.proxy_port);
     println!("   Filtered (ZCode):          :{}", config.proxy_port + 1);
     println!("   Max concurrent: {}", config.max_concurrent);
 
-    let listener1 = tokio::net::TcpListener::bind(&addr).await?;
-    let listener2 = tokio::net::TcpListener::bind(&addr2).await?;
-
-    tokio::select! {
-        r = axum::serve(listener1, app1) => r?,
-        r = axum::serve(listener2, app2) => r?,
-    }
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
@@ -306,9 +281,7 @@ async fn forward_to_upstream(
 
             // Filter response — strips thinking blocks if header or env var is set
             // Filter response — strips thinking blocks on filtered port
-            if state.filter_enabled || should_filter_response(headers) {
-                body_vec = interceptor::filter_response(&body_vec, state.filter_enabled);
-            }
+            body_vec = interceptor::filter_response(&body_vec);
 
             let mut response = Response::builder().status(status);
             for (key, value) in resp_headers.iter() {
@@ -331,14 +304,3 @@ async fn forward_to_upstream(
     }
 }
 
-/// Check if response filtering should be applied.
-/// Triggered by: X-Mycelium-Filter header (per-request) or
-/// MYCELIUM_PROXY_STRIP_BLOCKS env var (global).
-fn should_filter_response(headers: &HeaderMap) -> bool {
-    // Per-request: header from client
-    if headers.contains_key("x-mycelium-filter") || headers.contains_key("X-Mycelium-Filter") {
-        return true;
-    }
-    // Global: env var set on daemon
-    std::env::var("MYCELIUM_PROXY_STRIP_BLOCKS").is_ok()
-}
