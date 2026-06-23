@@ -556,7 +556,7 @@ impl Storage {
     // ── Private Helpers ──
 
     fn row_to_entry(&self, row: &rusqlite::Row) -> rusqlite::Result<Entry> {
-        let entities_str: String = row.get(6)?;
+        let entities_str: String = row.get(7)?;
         let entities: Vec<String> = serde_json::from_str(&entities_str).unwrap_or_default();
         let ts_str: String = row.get(4)?;
         let ts: chrono::DateTime<chrono::Utc> = ts_str.parse().unwrap_or_default();
@@ -571,10 +571,10 @@ impl Storage {
             user: row.get(5)?,
             assistant: row.get(6)?,
             entities,
-            prev_hash: row.get(7)?,
-            hash: row.get(8)?,
-            finding: row.get(9)?,
-            verdict: row.get(10)?,
+            prev_hash: row.get(8)?,
+            hash: row.get(9)?,
+            finding: row.get(10)?,
+            verdict: row.get(11)?,
         })
     }
 }
