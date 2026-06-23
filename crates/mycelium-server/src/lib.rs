@@ -291,7 +291,7 @@ async fn search_all(
     let query = params.get("q").map(|s| s.as_str()).unwrap_or("");
     let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20);
 
-    let entries = state.storage.search_entries(query, limit).unwrap_or_default();
+    let entries = state.storage.search_fts(query, limit).unwrap_or_default();
     let facts = state.storage.search_facts(query, limit).unwrap_or_default();
 
     Json(serde_json::json!({

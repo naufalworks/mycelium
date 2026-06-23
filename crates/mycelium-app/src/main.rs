@@ -218,7 +218,7 @@ async fn cmd_search(config: &MyceliumConfig, query: &str) -> anyhow::Result<()> 
     }
 
     let storage = mycelium_core::Storage::open(db_path)?;
-    let entries = storage.search_entries(query, 20)?;
+    let entries = storage.search_fts(query, 20)?;
 
     if entries.is_empty() {
         println!("No results for: {}", query);
@@ -398,7 +398,7 @@ async fn cmd_infer(config: &MyceliumConfig, context: &str) -> anyhow::Result<()>
     let storage = mycelium_core::Storage::open(db_path)?;
 
     let facts = storage.search_facts(context, 5)?;
-    let entries = storage.search_entries(context, 5)?;
+    let entries = storage.search_fts(context, 5)?;
 
     println!("🔮 Context analysis: \"{}\"", context.chars().take(60).collect::<String>());
     println!();
@@ -556,7 +556,7 @@ async fn cmd_findings(config: &MyceliumConfig) -> anyhow::Result<()> {
     let db_path = config.root_dir.join("mycelium.db");
     let storage = mycelium_core::Storage::open(db_path)?;
 
-    let entries = storage.search_entries("finding", 50)?;
+    let entries = storage.search_fts("finding", 50)?;
     let findings: Vec<_> = entries.iter().filter(|e| e.finding.is_some()).collect();
 
     if findings.is_empty() {

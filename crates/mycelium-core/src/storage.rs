@@ -14,6 +14,7 @@ use tracing::{debug, info};
 
 use crate::cache::MemoryCache;
 use crate::error::Result;
+use crate::search::SearchIndex;
 use crate::types::*;
 
 /// The storage engine managing all persistent memory.
@@ -24,6 +25,8 @@ pub struct Storage {
     conn: Mutex<Connection>,
     /// In-memory cache for hot data.
     cache: MemoryCache,
+    /// Full-text search index (tantivy).
+    search_index: Option<SearchIndex>,
 }
 
 impl Storage {
@@ -49,10 +52,15 @@ impl Storage {
         // Optimize for memory reads
         conn.execute_batch("PRAGMA mmap_size=268435456;")?; // 256MB
 
+        let search_index = SearchIndex::open(
+            path.parent().map(|p| p.join("search_index")).unwrap_or_else(|| PathBuf::from("search_index")),
+        ).ok();
+
         let storage = Storage {
             path,
             conn: Mutex::new(conn),
             cache: MemoryCache::new(),
+            search_index,
         };
 
         storage.initialize_schema()?;
@@ -222,6 +230,11 @@ impl Storage {
         // Invalidate caches after write
         self.cache.invalidate_all();
 
+        // Index for full-text search
+        if let Some(ref idx) = self.search_index {
+            let _ = idx.index_entry(&entry);
+        }
+
         Ok(entry.clone())
     }
 
@@ -290,6 +303,24 @@ impl Storage {
         self.cache
             .put_search_results(cache_key, entries.clone());
         Ok(entries)
+    }
+
+    /// Search entries using full-text search (tantivy).
+    /// Falls back to LIKE search if the index isn't available.
+    pub fn search_fts(&self, query: &str, limit: i64) -> Result<Vec<Entry>> {
+        // Try tantivy first
+        if let Some(ref idx) = self.search_index {
+            let results = idx.search(query, limit as usize)?;
+            if !results.is_empty() {
+                let entries: Vec<Entry> = results
+                    .iter()
+                    .filter_map(|turn| self.get_entry(*turn).ok().flatten())
+                    .collect();
+                return Ok(entries);
+            }
+        }
+        // Fallback to LIKE search
+        self.search_entries(query, limit)
     }
 
     /// Count total entries.
