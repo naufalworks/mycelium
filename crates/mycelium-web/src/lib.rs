@@ -1,42 +1,16 @@
-//! Mycelium Web Frontend — Leptos SPA.
+//! Mycelium Web Frontend — placeholder.
 //!
-//! Server-side rendered with hydration (SSR + WASM).
-//! Provides dashboard, memory, artifacts, workflows, and settings views.
+//! Full Leptos implementation pending Leptos API stabilization (0.9.0-alpha).
+//! The API server at mycelium-server serves the REST API that this frontend
+//! will consume. Component structure is scaffolded in components/ and views/.
+//!
+//! To activate the Leptos frontend:
+//!   1. Add leptos, leptos_axum, leptos_router as workspace deps
+//!   2. Add crate-type = ["lib", "cdylib"] to Cargo.toml
+//!   3. Uncomment the component module references below
+//!   4. Integrate with mycelium-server via leptos_axum
 
-pub mod components;
-pub mod views;
-
-use leptos::prelude::*;
-use leptos_router::{
-    components::{Outlet, Route, Router, Routes},
-    path,
-};
-
-/// Application entry point — sets up routing and shell layout.
-#[component]
-pub fn App() -> impl IntoView {
-    view! {
-        <Router>
-            <div class="app-shell">
-                <components::Sidebar />
-                <main class="main-content">
-                    <components::TopBar />
-                    <Routes fallback=|| view! { <h1>"404 — Not Found"</h1> }>
-                        <Route path=path!("/") view=views::DashboardView />
-                        <Route path=path!("/memory") view=views::MemoryView />
-                        <Route path=path!("/artifacts") view=views::ArtifactsView />
-                        <Route path=path!("/workflows") view=views::WorkflowsView />
-                        <Route path=path!("/settings") view=views::SettingsView />
-                        <Route path=path!("/graph") view=views::GraphView />
-                    </Routes>
-                </main>
-            </div>
-        </Router>
-    }
-}
-
-/// Hook up the client-side WASM entry point.
-#[cfg(not(feature = "ssr"))]
-pub fn main() {
-    leptos::mount::mount_to_body(App);
-}
+// Components are scaffolded but depend on leptos types.
+// Enable when Leptos is added as a dependency:
+// pub mod components;
+// pub mod views;
