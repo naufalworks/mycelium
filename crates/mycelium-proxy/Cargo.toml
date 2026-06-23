@@ -3,15 +3,19 @@ name = "mycelium-proxy"
 version.workspace = true
 edition.workspace = true
 
+[[bin]]
+name = "mycelium-proxy"
+path = "src/main.rs"
+
 [dependencies]
 mycelium-core = { path = "../mycelium-core" }
 serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
-reqwest.workspace = true
-
-[lib]
-name = "mycelium_proxy"
-path = "src/lib.rs"
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+reqwest = { workspace = true, features = ["json"] }
+axum = { workspace = true, features = ["tokio"] }
+hyper = "1"
+http-body-util = "0.1"
