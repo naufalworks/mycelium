@@ -307,7 +307,7 @@ async fn forward_to_upstream(
             // Filter response — strips thinking blocks if header or env var is set
             // Filter response — strips thinking blocks on filtered port
             if state.filter_enabled || should_filter_response(headers) {
-                body_vec = interceptor::filter_response(&body_vec);
+                body_vec = interceptor::filter_response(&body_vec, state.filter_enabled);
             }
 
             let mut response = Response::builder().status(status);

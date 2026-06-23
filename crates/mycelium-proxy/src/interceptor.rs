@@ -314,12 +314,15 @@ pub fn build_facts_block(facts: &[mycelium_core::MemoryFact]) -> String {
 
 /// Filter upstream response body — strips unsupported content blocks.
 ///
-/// Only active when MYCELIUM_PROXY_STRIP_BLOCKS env var is set.
-/// Value: comma-separated block types to strip, e.g. "thinking,thinking_redacted"
-///
+/// When `filter_enabled` is true, strips "thinking" blocks by default.
+/// MYCELIUM_PROXY_STRIP_BLOCKS env var can override the block types list.
 /// Handles both SSE streaming and JSON non-streaming formats.
-pub fn filter_response(body: &[u8]) -> Vec<u8> {
-    let strip_types = get_strip_types();
+pub fn filter_response(body: &[u8], filter_enabled: bool) -> Vec<u8> {
+    let mut strip_types = get_strip_types();
+    // Default: strip "thinking" blocks when portal flag is on
+    if strip_types.is_empty() && filter_enabled {
+        strip_types.push("thinking".to_string());
+    }
     if strip_types.is_empty() {
         return body.to_vec(); // No filtering configured
     }
