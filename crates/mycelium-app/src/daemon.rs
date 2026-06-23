@@ -28,16 +28,18 @@ struct ManagedProcess {
     child: Option<Child>,
     consecutive_failures: u32,
     restart_count: u32,
+    pid_path: std::path::PathBuf,
 }
 
 impl ManagedProcess {
-    fn new(name: &'static str, binary: &'static str) -> Self {
+    fn new(name: &'static str, binary: &'static str, pid_dir: &std::path::Path) -> Self {
         Self {
             name,
             binary,
             child: None,
             consecutive_failures: 0,
             restart_count: 0,
+            pid_path: pid_dir.join(format!("{}.pid", name)),
         }
     }
 
@@ -63,6 +65,7 @@ impl ManagedProcess {
         info!("Started {} (PID {})", self.name, child.id());
         self.child = Some(child);
         self.restart_count += 1;
+        let _ = std::fs::write(&self.pid_path, self.child.as_ref().map(|c| c.id()).unwrap_or(0).to_string());
         Ok(())
     }
 
@@ -138,8 +141,8 @@ pub fn run_daemon(config: &MyceliumConfig) -> Result<(), String> {
     .map_err(|e| format!("signal handler: {}", e))?;
 
     // Initialize managed processes
-    let mut server = ManagedProcess::new("server", "mycelium-server");
-    let mut proxy = ManagedProcess::new("proxy", "mycelium-proxy");
+    let mut server = ManagedProcess::new("server", "mycelium-server", &pid_dir);
+    let mut proxy = ManagedProcess::new("proxy", "mycelium-proxy", &pid_dir);
 
     // Start both processes
     if let Err(e) = server.start(config) {
