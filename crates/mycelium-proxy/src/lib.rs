@@ -12,12 +12,15 @@ use axum::{
     Router,
 };
 use mycelium_core::{EntryType, MyceliumConfig, Storage, Tier};
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 
 pub mod interceptor;
+
+const CONTEXT_HEADER: &str = "\n<mycelium-memory>\nRecent memory context:\n";
 
 /// Shared proxy state.
 pub struct ProxyState {
@@ -26,6 +29,8 @@ pub struct ProxyState {
     pub semaphore: Semaphore,
     pub turn_counter: AtomicI64,
     pub http_client: reqwest::Client,
+    pub session_loaded: Mutex<HashMap<String, bool>>,
+    pub injected_turns: Mutex<HashSet<i64>>,
 }
 
 /// Start the proxy server.
@@ -42,6 +47,8 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         http_client: reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(120))
             .build()?,
+        session_loaded: Mutex::new(HashMap::new()),
+        injected_turns: Mutex::new(HashSet::new()),
     });
 
     let app = Router::new()
@@ -86,22 +93,48 @@ async fn intercept_and_forward(
         }
     };
 
-    // Try to intercept: parse, inject memory context, forward
-    let (modified_body, session, user_msg) = match interceptor::process_request(&body_bytes, &state.storage) {
+    // Try to intercept: parse, inject memory context
+    let (mut req_body, session, user_msg) = match interceptor::process_request(&body_bytes, &state.storage) {
         Some(result) => result,
         None => {
-            // Request doesn't need interception (no user message, etc.)
-            // Forward unchanged
             let (result, _) = forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await;
             return result;
         }
     };
 
-    // Forward the modified request and capture the response
-    let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &modified_body).await;
+    // A1/A2: Session context injection
+    {
+        let mut is_loaded = state.session_loaded.lock().unwrap();
+        let loaded = is_loaded.entry(session.clone()).or_insert(false);
+        if !*loaded {
+            let context_entries = state.storage
+                .entries_for_session(&session, 5)
+                .ok()
+                .unwrap_or_default();
+            if !context_entries.is_empty() {
+                let mut ctx_lines = String::from(CONTEXT_HEADER);
+                for entry in &context_entries {
+                    let preview: String = entry.user.chars().take(100).collect();
+                    ctx_lines.push_str(&format!("  [#{}] {}: {}\n", entry.turn, entry.session, preview));
+                }
+                ctx_lines.push_str("</mycelium-memory>");
+                if let Ok(mut json) = serde_json::from_slice::<serde_json::Value>(&req_body) {
+                    let existing = json.get("system").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    json["system"] = serde_json::Value::String(format!("{}\n\n{}", existing, ctx_lines));
+                    req_body = serde_json::to_vec(&json).unwrap_or(req_body);
+                    let mut injected = state.injected_turns.lock().unwrap();
+                    for entry in &context_entries { injected.insert(entry.turn); }
+                }
+            }
+            *loaded = true;
+        }
+    }
 
-    // Extract assistant message from the upstream response
-    let assistant_msg = extract_assistant_message(&resp_body);
+    // Forward to upstream, capture response
+    let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &req_body).await;
+
+    // Extract assistant message
+    let assistant_msg = interceptor::extract_assistant_response(&resp_body);
 
     // Log the conversation if we have both user and assistant messages
     if !user_msg.is_empty() && !assistant_msg.is_empty() {
@@ -212,8 +245,4 @@ async fn forward_to_upstream(
             (response, body)
         }
     }
-}
-
-fn extract_assistant_message(body: &[u8]) -> String {
-    interceptor::extract_assistant_response(body)
 }
