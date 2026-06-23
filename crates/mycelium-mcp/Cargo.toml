@@ -15,3 +15,5 @@ anyhow.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+uuid.workspace = true
+chrono.workspace = true

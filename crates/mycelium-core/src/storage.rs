@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tracing::{debug, info};
 
+use crate::error::MyceliumError;
 use crate::cache::MemoryCache;
 use crate::error::Result;
 use crate::search::SearchIndex;
@@ -703,6 +704,57 @@ impl Storage {
             .collect();
 
         Ok(artifacts)
+    }
+
+    /// Get a single artifact by ID.
+    pub fn get_artifact(&self, id: &uuid::Uuid) -> Result<Option<Artifact>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, session, filename, content_type, content, description, artifact_type, created_at
+             FROM artifacts WHERE id = ?1",
+        )?;
+
+        let mut rows = stmt.query_map(params![id.to_string()], |row| {
+            Ok(Artifact {
+                id: row.get::<_, String>(0)?.parse().unwrap_or_default(),
+                session: row.get(1)?,
+                filename: row.get(2)?,
+                content_type: row.get(3)?,
+                content: row.get(4)?,
+                description: row.get(5)?,
+                artifact_type: row.get(6)?,
+                created_at: row.get::<_, String>(7)?.parse().unwrap_or_default(),
+            })
+        })?;
+
+        match rows.next() {
+            Some(Ok(artifact)) => Ok(Some(artifact)),
+            _ => Ok(None),
+        }
+    }
+
+    /// Run a raw SELECT query over the artifacts table (for artifact_query tool).
+    /// Only SELECT statements are allowed for safety.
+    pub fn query_artifacts(&self, sql: &str) -> Result<Vec<serde_json::Value>> {
+        let trimmed = sql.trim().to_uppercase();
+        if !trimmed.starts_with("SELECT") {
+            return Err(MyceliumError::InvalidInput("Only SELECT queries are allowed".into()));
+        }
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(sql)?;
+        let columns: Vec<String> = stmt.column_names().iter().map(|c| c.to_string()).collect();
+        let rows = stmt
+            .query_map([], |row| {
+                let mut map = serde_json::Map::new();
+                for (i, col) in columns.iter().enumerate() {
+                    let val: String = row.get::<_, Option<String>>(i)?.unwrap_or_default();
+                    map.insert(col.to_string(), serde_json::Value::String(val));
+                }
+                Ok(serde_json::Value::Object(map))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(rows)
     }
 
     /// Re-index all entries in the tantivy search index.
