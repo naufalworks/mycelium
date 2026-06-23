@@ -55,6 +55,8 @@ enum Commands {
     Config,
     /// Migrate existing data from Go/Python
     Migrate,
+    /// Run health checks
+    Precheck,
     /// Memory fact operations
     Fact {
         #[command(subcommand)]
@@ -119,6 +121,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Backup { dir } => cmd_backup(&config, dir).await?,
         Commands::Config => cmd_config(&config).await?,
         Commands::Migrate => cmd_migrate(&config).await?,
+        Commands::Precheck => cmd_precheck(&config).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
     }
@@ -345,6 +348,44 @@ async fn cmd_config(config: &MyceliumConfig) -> anyhow::Result<()> {
     println!("   Server port:  {}", config.server_port);
     println!("   Upstream URL: {}", config.upstream_url);
     println!("   Max concurrent: {}", config.max_concurrent);
+    Ok(())
+}
+
+async fn cmd_precheck(config: &MyceliumConfig) -> anyhow::Result<()> {
+    println!("🔍 Mycelium Health Check");
+    println!();
+
+    let db_path = config.root_dir.join("mycelium.db");
+    if db_path.exists() {
+        match mycelium_core::Storage::open(db_path.clone()) {
+            Ok(storage) => {
+                println!("✅ Database: {} ({} KB, v{})", db_path.display(), storage.db_size().unwrap_or(0) / 1024, storage.schema_version().unwrap_or(0));
+                println!("✅ Entries: {}", storage.count_entries().unwrap_or(0));
+                println!("✅ Sessions: {}", storage.count_sessions().unwrap_or(0));
+            }
+            Err(e) => println!("❌ Database: {} — {}", db_path.display(), e),
+        }
+    } else {
+        println!("❌ Database not found at {}", db_path.display());
+    }
+
+    let log_path = config.root_dir.join("log.jsonl");
+    if log_path.exists() {
+        println!("✅ Legacy log: {} ({} KB)", log_path.display(), std::fs::metadata(&log_path).map(|m| m.len() / 1024).unwrap_or(0));
+    } else {
+        println!("ℹ️  Legacy log: not found (migrated?)", );
+    }
+
+    // Check if server port is in use
+    if std::net::TcpStream::connect_timeout(
+        &format!("127.0.0.1:{}", config.server_port).parse().unwrap(),
+        std::time::Duration::from_secs(1),
+    ).is_ok() {
+        println!("✅ Server: running on :{}", config.server_port);
+    } else {
+        println!("ℹ️  Server: not running on :{}", config.server_port);
+    }
+
     Ok(())
 }
 
