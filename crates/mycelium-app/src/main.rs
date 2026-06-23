@@ -69,6 +69,16 @@ enum Commands {
         #[command(subcommand)]
         command: WorkflowCommands,
     },
+    /// Predict likely next questions from context
+    Infer {
+        /// Context text to analyze
+        context: String,
+    },
+    /// Read a URL into memory
+    Read {
+        /// URL to fetch
+        url: String,
+    },
     /// Memory fact operations
     Fact {
         #[command(subcommand)]
@@ -143,6 +153,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Context { session } => cmd_context(&config, session).await?,
         Commands::Findings => cmd_findings(&config).await?,
         Commands::Workflow { command } => cmd_workflow(&config, command).await?,
+        Commands::Infer { context } => cmd_infer(&config, context).await?,
+        Commands::Read { url } => cmd_read(&config, url).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
     }
@@ -369,6 +381,63 @@ async fn cmd_config(config: &MyceliumConfig) -> anyhow::Result<()> {
     println!("   Server port:  {}", config.server_port);
     println!("   Upstream URL: {}", config.upstream_url);
     println!("   Max concurrent: {}", config.max_concurrent);
+    Ok(())
+}
+
+async fn cmd_infer(config: &MyceliumConfig, context: &str) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    // Find relevant facts and entries
+    let facts = storage.search_facts(context, 5)?;
+    let entries = storage.search_entries(context, 5)?;
+
+    println!("🔮 Context analysis: \"{}\"", context.chars().take(60).collect::<String>());
+    println!();
+    println!("   Related facts ({}):", facts.len());
+    for f in &facts {
+        println!("     [{}] {}.{} = {}", f.fact_type, f.entity, f.attribute, f.value.chars().take(60).collect::<String>());
+    }
+    println!();
+    println!("   Related entries ({}):", entries.len());
+    for e in &entries {
+        let preview: String = e.user.chars().take(80).collect();
+        println!("     [#{}] {}", e.turn, preview);
+    }
+
+    Ok(())
+}
+
+async fn cmd_read(config: &MyceliumConfig, url: &str) -> anyhow::Result<()> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+
+    println!("📖 Reading: {}", url);
+    let resp = client.get(url).send().await?;
+    let text = resp.text().await?;
+    let preview: String = text.chars().take(200).collect();
+
+    println!("   Content ({}/{})", text.len(), text.len());
+    println!("   Preview: {}", preview);
+
+    // Store as artifact
+    let artifact = mycelium_core::Artifact {
+        id: uuid::Uuid::new_v4(),
+        session: "rust-cli".to_string(),
+        filename: url.trim_start_matches("https://").trim_start_matches("http://").replace("/", "_"),
+        content_type: "text/html".to_string(),
+        content: text.into_bytes(),
+        description: Some(format!("Read from {}", url)),
+        artifact_type: "web-page".to_string(),
+        created_at: chrono::Utc::now(),
+    };
+
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+    storage.store_artifact(&artifact)?;
+    println!("✅ Stored as artifact: {}", artifact.id);
+
     Ok(())
 }
 

@@ -17,5 +17,7 @@ anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 chrono.workspace = true
+uuid.workspace = true
+reqwest = { workspace = true, features = ["json"] }
 tar = "0.4"
 flate2 = "1"
