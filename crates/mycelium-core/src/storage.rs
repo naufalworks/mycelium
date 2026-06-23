@@ -305,22 +305,30 @@ impl Storage {
         Ok(entries)
     }
 
-    /// Search entries using full-text search (tantivy).
-    /// Falls back to LIKE search if the index isn't available.
+    /// Search entries using LIKE query (primary) with tantivy boost (secondary).
     pub fn search_fts(&self, query: &str, limit: i64) -> Result<Vec<Entry>> {
-        // Try tantivy first
-        if let Some(ref idx) = self.search_index {
-            let results = idx.search(query, limit as usize)?;
-            if !results.is_empty() {
-                let entries: Vec<Entry> = results
-                    .iter()
-                    .filter_map(|turn| self.get_entry(*turn).ok().flatten())
-                    .collect();
-                return Ok(entries);
+        // Primary: LIKE search (always works, finds everything)
+        let mut entries = self.search_entries(query, limit)?;
+
+        // Secondary: try tantivy for additional results if LIKE returned less than limit
+        if entries.len() < limit as usize {
+            if let Some(ref idx) = self.search_index {
+                if let Ok(results) = idx.search(query, limit as usize) {
+                    for turn in results {
+                        if !entries.iter().any(|e| e.turn == turn) {
+                            if let Ok(Some(entry)) = self.get_entry(turn) {
+                                entries.push(entry);
+                            }
+                        }
+                    }
+                }
             }
         }
-        // Fallback to LIKE search
-        self.search_entries(query, limit)
+
+        // Sort by turn DESC and trim to limit
+        entries.sort_by(|a, b| b.turn.cmp(&a.turn));
+        entries.truncate(limit as usize);
+        Ok(entries)
     }
 
     /// Count total entries.
@@ -664,6 +672,20 @@ impl Storage {
             .collect();
 
         Ok(artifacts)
+    }
+
+    /// Re-index all entries in the tantivy search index.
+    pub fn reindex_search(&self) -> Result<usize> {
+        let mut count = 0;
+        if let Some(ref idx) = self.search_index {
+            let entries = self.all_entries()?;
+            if let Err(e) = idx.index_entries(&entries) {
+                tracing::warn!("reindex failed: {}", e);
+            } else {
+                count = entries.len();
+            }
+        }
+        Ok(count)
     }
 
     // ── Schema / Migration ──

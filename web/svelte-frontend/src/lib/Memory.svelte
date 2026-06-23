@@ -7,7 +7,7 @@
 		if (!query.trim()) return;
 		loading = true;
 		try {
-			const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=20`);
+			const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=100`);
 			if (!res.ok) throw new Error('Search failed');
 			const data = await res.json();
 			entries = data.entries ?? [];
