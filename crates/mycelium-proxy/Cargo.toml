@@ -19,3 +19,5 @@ reqwest = { workspace = true, features = ["json"] }
 axum = { workspace = true, features = ["tokio"] }
 hyper = "1"
 http-body-util = "0.1"
+chrono.workspace = true
+uuid.workspace = true
