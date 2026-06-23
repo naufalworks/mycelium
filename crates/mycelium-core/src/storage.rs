@@ -498,6 +498,95 @@ impl Storage {
         Ok(facts)
     }
 
+    // ── Context Snapshot Operations ──
+
+    /// Create a context snapshot for a session.
+    pub fn create_snapshot(
+        &self,
+        session_id: &str,
+        summary: &str,
+        topics: &[String],
+        decisions: &[String],
+        entities: &[String],
+        credentials: &[String],
+    ) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO context_snapshots (session_id, summary, topics, decisions, entities, credentials)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                session_id,
+                summary,
+                &serde_json::to_string(topics).unwrap_or_default(),
+                &serde_json::to_string(decisions).unwrap_or_default(),
+                &serde_json::to_string(entities).unwrap_or_default(),
+                &serde_json::to_string(credentials).unwrap_or_default(),
+            ],
+        )?;
+        let id = conn.last_insert_rowid();
+        self.cache.invalidate_all();
+        Ok(id)
+    }
+
+    /// List recent context snapshots.
+    pub fn list_snapshots(&self, limit: i64) -> Result<Vec<ContextSnapshot>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, summary, topics, decisions, entities, credentials, turn_count, created_at
+             FROM context_snapshots ORDER BY created_at DESC LIMIT ?1",
+        )?;
+        let snapshots = stmt
+            .query_map(params![limit], |row| {
+                Ok(ContextSnapshot {
+                    id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    summary: row.get(2)?,
+                    topics: serde_json::from_str(&row.get::<_, String>(3)?).unwrap_or_default(),
+                    decisions: serde_json::from_str(&row.get::<_, String>(4)?).unwrap_or_default(),
+                    entities: serde_json::from_str(&row.get::<_, String>(5)?).unwrap_or_default(),
+                    credentials: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
+                    turn_count: row.get(7)?,
+                    created_at: row.get::<_, String>(8)?.parse().unwrap_or_default(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(snapshots)
+    }
+
+    /// Get snapshots for a specific session.
+    pub fn snapshots_for_session(&self, session_id: &str, limit: i64) -> Result<Vec<ContextSnapshot>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, summary, topics, decisions, entities, credentials, turn_count, created_at
+             FROM context_snapshots WHERE session_id = ?1 ORDER BY created_at DESC LIMIT ?2",
+        )?;
+        let snapshots = stmt
+            .query_map(params![session_id, limit], |row| {
+                Ok(ContextSnapshot {
+                    id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    summary: row.get(2)?,
+                    topics: serde_json::from_str(&row.get::<_, String>(3)?).unwrap_or_default(),
+                    decisions: serde_json::from_str(&row.get::<_, String>(4)?).unwrap_or_default(),
+                    entities: serde_json::from_str(&row.get::<_, String>(5)?).unwrap_or_default(),
+                    credentials: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
+                    turn_count: row.get(7)?,
+                    created_at: row.get::<_, String>(8)?.parse().unwrap_or_default(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(snapshots)
+    }
+
+    /// Delete a context snapshot by ID.
+    pub fn delete_snapshot(&self, id: i64) -> Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let rows = conn.execute("DELETE FROM context_snapshots WHERE id = ?1", params![id])?;
+        Ok(rows > 0)
+    }
+
     // ── Artifact Operations ──
 
     /// Store an artifact.

@@ -60,6 +60,11 @@ enum Commands {
         #[command(subcommand)]
         command: FactCommands,
     },
+    /// Context snapshot operations
+    Snapshot {
+        #[command(subcommand)]
+        command: SnapshotCommands,
+    },
 }
 
 #[derive(Subcommand)]
@@ -76,6 +81,16 @@ enum FactCommands {
     },
     /// Delete a fact
     Delete { id: i64 },
+}
+
+#[derive(Subcommand)]
+enum SnapshotCommands {
+    /// List recent snapshots
+    List,
+    /// Get snapshots for a session
+    Session { session: String },
+    /// Create a snapshot for a session
+    Create { session: String, summary: String },
 }
 
 #[tokio::main]
@@ -105,6 +120,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Config => cmd_config(&config).await?,
         Commands::Migrate => cmd_migrate(&config).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
+        Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
     }
 
     Ok(())
@@ -456,6 +472,40 @@ async fn cmd_fact(config: &MyceliumConfig, command: &FactCommands) -> anyhow::Re
                 true => println!("✅ Deleted fact #{}", id),
                 false => println!("❌ Fact #{} not found", id),
             }
+        }
+    }
+
+    Ok(())
+}
+
+async fn cmd_snapshot(config: &MyceliumConfig, command: &SnapshotCommands) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    match command {
+        SnapshotCommands::List => {
+            let snapshots = storage.list_snapshots(20)?;
+            if snapshots.is_empty() {
+                println!("No snapshots found.");
+                return Ok(());
+            }
+            for s in &snapshots {
+                println!("   [{}] {} — {}", s.id, s.session_id, s.summary.chars().take(60).collect::<String>());
+            }
+        }
+        SnapshotCommands::Session { session } => {
+            let snapshots = storage.snapshots_for_session(session, 10)?;
+            if snapshots.is_empty() {
+                println!("No snapshots for session: {}", session);
+                return Ok(());
+            }
+            for s in &snapshots {
+                println!("   [{}] {} at {}", s.id, s.session_id, s.created_at);
+            }
+        }
+        SnapshotCommands::Create { session, summary } => {
+            let id = storage.create_snapshot(session, summary, &[], &[], &[], &[])?;
+            println!("✅ Created snapshot #{} for session {}", id, session);
         }
     }
 
