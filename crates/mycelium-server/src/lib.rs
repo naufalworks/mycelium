@@ -17,7 +17,7 @@ use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt as _;
 use tower_http::cors::CorsLayer;
-use tracing::info;
+use tracing::{error, info};
 
 pub struct AppState {
     pub storage: Storage,
@@ -114,7 +114,13 @@ async fn stream(
 async fn list_sessions(
     State(state): State<Arc<AppState>>,
 ) -> Json<Vec<String>> {
-    Json(state.storage.recent_sessions(100).unwrap_or_default())
+    match state.storage.recent_sessions(100) {
+        Ok(sessions) => Json(sessions),
+        Err(e) => {
+            error!("list_sessions: {}", e);
+            Json(Vec::new())
+        }
+    }
 }
 
 async fn get_session(
@@ -134,7 +140,10 @@ async fn list_entries(
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Json<serde_json::Value> {
     let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(50);
-    let entries = state.storage.recent_entries(limit).unwrap_or_default();
+    let entries = match state.storage.recent_entries(limit) {
+        Ok(e) => e,
+        Err(e) => { error!("list_entries: {}", e); vec![] }
+    };
     Json(serde_json::json!(entries))
 }
 
@@ -161,7 +170,10 @@ async fn search_facts(
 ) -> Json<serde_json::Value> {
     let query = params.q.unwrap_or_default();
     let limit = params.limit.unwrap_or(20);
-    let facts = state.storage.search_facts(&query, limit).unwrap_or_default();
+    let facts = match state.storage.search_facts(&query, limit) {
+        Ok(f) => f,
+        Err(e) => { error!("search_facts: {}", e); vec![] }
+    };
     Json(serde_json::json!({"facts": facts, "count": facts.len()}))
 }
 
