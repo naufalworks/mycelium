@@ -269,35 +269,45 @@ After these optimizations: ~30 bytes per position × 6.5M = ~195MB. Still larger
 4. **Edge explosion** — every pair of atoms in an entry gets +0.1 → edges saturate fast
 5. **Working memory thrashing** — too many queries touch different atoms
 
-## 7. Open Decisions
+## 7. Locked Decisions
 
-1. **Stop words**: filter common words ("the", "a", "is") before atom extraction? Reduces noise but may miss patterns.
-2. **Synonym handling**: use LLM to canonicalize ("running" → "run") during extraction? Costs $$ but improves atom reuse.
-3. **Atom naming collisions**: case-insensitive? Unicode normalization? De-dupe "café" vs "cafe"?
-4. **Where does brain live**: new crate `mycelium-brain`, or module in `mycelium-core`?
-5. **Concurrency**: brain updates during active session vs background daemon only?
+1. **Stop words** (novel approach): **statistical detection, not hardcoded list.** After the first 500 entries, compute per-word occurrence frequency. Words appearing in >70% of entries are auto-flagged as stop words for the user's domain. Domain-specific: "return" in code is meaningful, but "the" never is. The brain *learns* its own stop words from the data. Initial 500-entry window uses a small English fallback list (top 30 words).
+
+2. **Synonym handling**: text-only normalization. Lowercase + strip `-ing`/`-ed`/`-s` suffixes + trim whitespace. **No LLM calls.** Cost is zero; benefit is 70-80% of synonym merging.
+
+3. **Atom name normalization**: lowercase + NFKD (Unicode Compatibility Decomposition). Not full case folding (preserves language-specific characters correctly).
+
+4. **Where does brain live**: **module in `mycelium-core`** (`brain.rs`), alongside `storage.rs`, `search.rs`, `cache.rs`. Refactor to its own crate later if it grows.
+
+5. **Update timing**: **durable queue pattern.** New entries are atomically enqueued into a `pending_brain_work` table inside the same `append_entry` transaction. A background daemon periodically pops batches from the queue, runs atom extraction and edge updates, marks entries as processed. Querying the queue depth gives full observability: "X entries pending, Y processed in last hour". Queue lag is acceptable because most sessions don't query the brain in the same turn they write.
 
 ## 8. Implementation Plan (sketch)
 
 ### Phase 1: Core data structures (1 day)
 - New module in `mycelium-core`: `brain.rs`
-- Tables: atoms, positions, edges
-- Functions: extract_atoms(), upsert_atom(), record_positions(), increment_edge()
+- Tables: atoms, positions, edges, pending_brain_work, brain_stop_words
+- Functions: extract_atoms(), upsert_atom(), record_positions(), increment_edge(), normalize()
 
-### Phase 2: Consolidation daemon (1 day)
-- Background task: reads new permanent entries, builds brain
-- Triggered on schedule (every 5 min) or on entry append
+### Phase 2: Consolidation daemon + queue (1 day)
+- Background task polls `pending_brain_work` every 5 seconds
+- Processes batches: extract atoms → upsert atoms → record positions → increment edges → mark done
+- Atomic with permanent memory: enqueue happens inside `append_entry` transaction
 
-### Phase 3: Query interface (1 day)
+### Phase 3: Stop word detection (0.5 day)
+- After 500 entries: compute word frequency distribution
+- Words in >70% of entries become auto-stop-words
+- First 500 entries use fallback list (top 30 English)
+
+### Phase 4: Query interface (1 day)
 - brain.recall(phrase) → atoms + positions
 - brain.clusters(atom_id, limit) → top-N neighbors
 - brain.when(phrase) → first_seen / last_seen
+- brain.queue_status() → observability
 
-### Phase 4: MCP exposure (0.5 day)
-- New MCP tool: `brain_recall(phrase)` 
-- New MCP tool: `brain_clusters(phrase)`
+### Phase 5: MCP exposure (0.5 day)
+- New MCP tools: `brain_recall(phrase)`, `brain_clusters(phrase)`, `brain_when(phrase)`, `brain_status()`
 
-### Phase 5: Verification (1 day)
+### Phase 6: Verification (1 day)
 - Replay test on 10K real entries
 - Measure all metrics in §6.2
 - Document results, adjust design if needed
