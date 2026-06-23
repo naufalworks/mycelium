@@ -13,6 +13,10 @@
 
 use clap::{Parser, Subcommand};
 use mycelium_core::MyceliumConfig;
+use std::process::{Command, Stdio};
+use tracing::{error, info};
+
+mod daemon;
 
 #[derive(Parser)]
 #[command(name = "mycelium", about = "Permanent memory for AI agents", version)]
@@ -79,6 +83,18 @@ enum Commands {
         /// URL to fetch
         url: String,
     },
+    /// Run the daemon process (foreground)
+    Daemon,
+    /// Start daemon in background
+    DaemonStart,
+    /// Stop daemon + all services
+    DaemonStop,
+    /// Show daemon and services status
+    DaemonStatus,
+    /// Install launchd plist for auto-start
+    DaemonInstall,
+    /// Remove launchd plist
+    DaemonUninstall,
     /// Prompt registry operations
     Prompt {
         #[command(subcommand)]
@@ -172,6 +188,12 @@ async fn main() -> anyhow::Result<()> {
         Commands::Workflow { command } => cmd_workflow(&config, command).await?,
         Commands::Infer { context } => cmd_infer(&config, context).await?,
         Commands::Read { url } => cmd_read(&config, url).await?,
+        Commands::Daemon => run_daemon(&config),
+        Commands::DaemonStart => daemon_start(&config),
+        Commands::DaemonStop => daemon_stop(&config),
+        Commands::DaemonStatus => daemon_status(&config),
+        Commands::DaemonInstall => daemon_install(&config),
+        Commands::DaemonUninstall => daemon_uninstall(),
         Commands::Prompt { command } => cmd_prompt(&config, command).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
@@ -508,6 +530,86 @@ async fn cmd_read(config: &MyceliumConfig, url: &str) -> anyhow::Result<()> {
     println!("✅ Stored as artifact: {}", artifact.id);
 
     Ok(())
+}
+
+fn run_daemon(config: &MyceliumConfig) {
+    match daemon::run_daemon(config) {
+        Ok(()) => info!("Daemon exited normally"),
+        Err(e) => error!("Daemon error: {}", e),
+    }
+}
+
+fn daemon_start(config: &MyceliumConfig) {
+    let pid_dir = config.root_dir.join("run");
+    let daemon_pid = pid_dir.join("daemon.pid");
+    if daemon_pid.exists() {
+        println!("⚠️  Daemon already running? Remove {} to force", daemon_pid.display());
+        return;
+    }
+
+    let bin_path = std::env::current_exe().unwrap();
+    match Command::new(&bin_path)
+        .arg("daemon")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .stdin(Stdio::null())
+        .spawn()
+    {
+        Ok(child) => {
+            println!("✅ Daemon started (PID {})", child.id());
+        }
+        Err(e) => println!("❌ Failed to start daemon: {}", e),
+    }
+}
+
+fn daemon_stop(config: &MyceliumConfig) {
+    let pid_dir = config.root_dir.join("run");
+    let daemon_pid = pid_dir.join("daemon.pid");
+    if daemon_pid.exists() {
+        let pid = std::fs::read_to_string(&daemon_pid)
+            .ok()
+            .and_then(|s| s.trim().parse::<u32>().ok());
+        if let Some(pid) = pid {
+            #[cfg(unix)]
+            {
+                let _ = Command::new("kill").arg(pid.to_string()).spawn();
+            }
+            println!("✅ Daemon stopping (PID {})", pid);
+        }
+        let _ = std::fs::remove_file(&daemon_pid);
+    } else {
+        // Fallback to old start/stop mechanism
+        println!("ℹ️  No daemon PID file found, stopping server + proxy directly...");
+        let _ = Command::new("kill")
+            .args(["-9", &std::fs::read_to_string(pid_dir.join("server.pid")).unwrap_or_default().trim()])
+            .spawn();
+        let _ = Command::new("kill")
+            .args(["-9", &std::fs::read_to_string(pid_dir.join("proxy.pid")).unwrap_or_default().trim()])
+            .spawn();
+        let _ = std::fs::remove_file(pid_dir.join("server.pid"));
+        let _ = std::fs::remove_file(pid_dir.join("proxy.pid"));
+    }
+}
+
+fn daemon_status(config: &MyceliumConfig) {
+    match daemon::show_status(config) {
+        Ok(()) => {}
+        Err(e) => println!("❌ Status error: {}", e),
+    }
+}
+
+fn daemon_install(config: &MyceliumConfig) {
+    match daemon::install_launchd(config) {
+        Ok(()) => println!("✅ launchd plist installed"),
+        Err(e) => println!("❌ Install error: {}", e),
+    }
+}
+
+fn daemon_uninstall() {
+    match daemon::uninstall_launchd() {
+        Ok(()) => println!("✅ launchd plist removed"),
+        Err(e) => println!("❌ Uninstall error: {}", e),
+    }
 }
 
 async fn cmd_workflow(config: &MyceliumConfig, command: &WorkflowCommands) -> anyhow::Result<()> {
