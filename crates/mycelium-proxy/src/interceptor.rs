@@ -45,23 +45,14 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
     if !facts.is_empty() {
         debug!("Injecting {} memory facts for: {}", facts.len(), user_msg.chars().take(60).collect::<String>());
 
-        let mut fact_lines = String::from(FACTS_BLOCK_HEADER);
-        for fact in &facts {
-            let value = if fact.value.len() > 80 {
-                format!("{}...", &fact.value[..80])
-            } else {
-                fact.value.clone()
-            };
-            fact_lines.push_str(&format!("  [{}] {}.{} = {}\n", fact.fact_type, fact.entity, fact.attribute, value));
-        }
-        fact_lines.push_str("</mycelium-facts>");
+        let block = build_facts_block(&facts);
 
         if let Some(system) = req.get_mut("system") {
             if let Some(s) = system.as_str() {
-                *system = Value::String(format!("{}\n\n{}", s, fact_lines));
+                *system = Value::String(format!("{}\n\n{}", s, block));
             }
         } else {
-            req["system"] = Value::String(fact_lines);
+            req["system"] = Value::String(block);
         }
     }
 
@@ -69,7 +60,7 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
     Some((modified_body, session, user_msg))
 }
 
-/// Extract the last user message from the request.
+/// Extract the last user message from an Anthropic request.
 pub fn extract_user_message(req: &Value) -> Option<String> {
     let messages = req.get("messages")?.as_array()?;
 
@@ -184,4 +175,139 @@ fn extract_assistant_from_json(resp: &Value) -> String {
     }
 
     String::new()
+}
+
+/// Process an OpenAI /v1/chat/completions request — inject memory context.
+///
+/// Returns `(modified_body, session, user_message)` if interceptable,
+/// or `None` for pass-through.
+pub fn process_openai(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, String, String)> {
+    let mut req: Value = match serde_json::from_slice(body) {
+        Ok(v) => v,
+        Err(e) => {
+            debug!("Failed to parse OpenAI request body: {}", e);
+            return None;
+        }
+    };
+
+    // Extract user message from messages array
+    let user_msg = extract_openai_user_message(&req)?;
+
+    // Generate session ID from model + user field
+    let session = req
+        .get("user")
+        .and_then(|v| v.as_str())
+        .map(|s| format!("openai:{}", s))
+        .unwrap_or_else(|| format!("openai:{}", user_msg.chars().take(16).collect::<String>()));
+
+    // Query memory facts
+    let facts = storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
+
+    if !facts.is_empty() {
+        debug!("Injecting {} memory facts for OpenAI request", facts.len());
+
+        let block = build_facts_block(&facts);
+
+        // Inject as a system message in the messages array
+        if let Some(messages) = req.get_mut("messages").and_then(|v| v.as_array_mut()) {
+            // Prepend a system message with memory context
+            let sys_msg = serde_json::json!({
+                "role": "system",
+                "content": block
+            });
+            messages.insert(0, sys_msg);
+        }
+    }
+
+    let modified_body = serde_json::to_vec(&req).unwrap_or_else(|_| body.to_vec());
+    Some((modified_body, session, user_msg))
+}
+
+/// Extract the last user message from an OpenAI request array.
+fn extract_openai_user_message(req: &Value) -> Option<String> {
+    let messages = req.get("messages")?.as_array()?;
+
+    for msg in messages.iter().rev() {
+        let role = msg.get("role")?.as_str()?;
+        if role != "user" {
+            continue;
+        }
+
+        // Content can be a string or array of content blocks
+        let content = msg.get("content")?;
+        match content {
+            Value::String(s) => {
+                let s = s.trim();
+                if !s.is_empty() {
+                    return Some(s.to_string());
+                }
+            }
+            Value::Array(blocks) => {
+                for block in blocks {
+                    if let Some(text) = block.get("text").and_then(|v| v.as_str()) {
+                        let t = text.trim();
+                        if !t.is_empty() {
+                            return Some(t.to_string());
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    None
+}
+
+/// Extract assistant response from an OpenAI response (streaming or non-streaming).
+pub fn extract_openai_response(body: &[u8]) -> String {
+    // Try non-streaming JSON first
+    if let Ok(resp) = serde_json::from_slice::<Value>(body) {
+        if let Some(msg) = resp.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+            return msg.to_string();
+        }
+    }
+
+    // Streaming SSE: parse choices[0].delta.content events
+    let text = String::from_utf8_lossy(body);
+    let mut full_text = String::new();
+
+    for line in text.lines() {
+        let line = line.trim();
+        if !line.starts_with("data: ") {
+            continue;
+        }
+
+        let data = line.strip_prefix("data: ").unwrap_or("");
+        if data == "[DONE]" {
+            break;
+        }
+
+        if let Ok(event) = serde_json::from_str::<Value>(data) {
+            if let Some(delta) = event.pointer("/choices/0/delta/content").and_then(|v| v.as_str()) {
+                full_text.push_str(delta);
+            }
+        }
+    }
+
+    full_text
+}
+
+/// Build the `<mycelium-facts>` XML block from memory facts.
+pub fn build_facts_block(facts: &[mycelium_core::MemoryFact]) -> String {
+    if facts.is_empty() {
+        return String::new();
+    }
+
+    let mut block = String::from(FACTS_BLOCK_HEADER);
+    for fact in facts {
+        let value = if fact.value.len() > 80 {
+            format!("{}...", &fact.value[..80])
+        } else {
+            fact.value.clone()
+        };
+        block.push_str(&format!("  [{}] {}.{} = {}\n", fact.fact_type, fact.entity, fact.attribute, value));
+    }
+    block.push_str("</mycelium-facts>");
+    block
 }

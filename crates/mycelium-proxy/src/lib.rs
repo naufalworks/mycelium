@@ -53,6 +53,7 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/v1/messages", post(intercept_and_forward))
+        .route("/v1/chat/completions", post(handle_openai))
         .route("/{*path}", any(passthrough))
         .with_state(state);
 
@@ -137,31 +138,82 @@ async fn intercept_and_forward(
     let assistant_msg = interceptor::extract_assistant_response(&resp_body);
 
     // Log the conversation if we have both user and assistant messages
-    if !user_msg.is_empty() && !assistant_msg.is_empty() {
-        let turn = state.turn_counter.fetch_add(1, Ordering::SeqCst);
-        let now = chrono::Utc::now();
+    log_conversation(&state, &session, &user_msg, &assistant_msg);
 
-        let entry = mycelium_core::Entry {
-            turn,
-            tier: Tier::Ephemeral,
-            entry_type: EntryType::Conversation,
-            session: session.clone(),
-            ts: now,
-            user: user_msg.chars().take(500).collect(),
-            assistant: assistant_msg.chars().take(2000).collect(),
-            entities: Vec::new(),
-            prev_hash: String::new(),
-            hash: String::new(),
-            finding: None,
-            verdict: None,
-        };
+    upstream_resp
+}
 
-        if let Err(e) = state.storage.append_entry(&entry) {
-            error!("Failed to log conversation: {}", e);
-        } else {
-            info!("Logged exchange for session {}", session);
-        }
+/// Shared helper to log a user↔assistant exchange to storage.
+fn log_conversation(state: &ProxyState, session: &str, user_msg: &str, assistant_msg: &str) {
+    if user_msg.is_empty() || assistant_msg.is_empty() {
+        return;
     }
+
+    let turn = state.turn_counter.fetch_add(1, Ordering::SeqCst);
+    let now = chrono::Utc::now();
+
+    let entry = mycelium_core::Entry {
+        turn,
+        tier: Tier::Ephemeral,
+        entry_type: EntryType::Conversation,
+        session: session.to_string(),
+        ts: now,
+        user: user_msg.chars().take(500).collect(),
+        assistant: assistant_msg.chars().take(2000).collect(),
+        entities: Vec::new(),
+        prev_hash: String::new(),
+        hash: String::new(),
+        finding: None,
+        verdict: None,
+    };
+
+    if let Err(e) = state.storage.append_entry(&entry) {
+        error!("Failed to log conversation: {}", e);
+    } else {
+        info!("Logged exchange for session {}", session);
+    }
+}
+
+/// Handles OpenAI-format requests (/v1/chat/completions) — injects memory, logs.
+async fn handle_openai(
+    State(state): State<Arc<ProxyState>>,
+    method: Method,
+    uri: Uri,
+    headers: HeaderMap,
+    body: Body,
+) -> Response {
+    let _permit = match state.semaphore.try_acquire() {
+        Ok(permit) => permit,
+        Err(_) => {
+            return (StatusCode::SERVICE_UNAVAILABLE, "too many requests").into_response();
+        }
+    };
+
+    let body_bytes = match axum::body::to_bytes(body, 10 * 1024 * 1024).await {
+        Ok(b) => b,
+        Err(e) => {
+            error!("Failed to read request body: {}", e);
+            return (StatusCode::BAD_REQUEST, "failed to read body").into_response();
+        }
+    };
+
+    // Intercept with OpenAI handler
+    let (req_body, session, user_msg) = match interceptor::process_openai(&body_bytes, &state.storage) {
+        Some(result) => result,
+        None => {
+            let (result, _) = forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await;
+            return result;
+        }
+    };
+
+    // Forward to upstream
+    let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &req_body).await;
+
+    // Extract assistant message
+    let assistant_msg = interceptor::extract_openai_response(&resp_body);
+
+    // Log conversation
+    log_conversation(&state, &session, &user_msg, &assistant_msg);
 
     upstream_resp
 }
