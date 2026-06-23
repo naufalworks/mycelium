@@ -48,6 +48,9 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         .route("/api/entries/{turn}", get(get_entry))
         .route("/api/memory/facts", get(search_facts).post(create_fact))
         .route("/api/memory/facts/{id}", delete(delete_fact))
+        .route("/api/memory/snapshots", get(list_snapshots).post(create_snapshot))
+        .route("/api/memory/snapshots/{id}", delete(delete_snapshot))
+        .route("/api/daemon", get(daemon_status))
         .route("/api/artifacts", get(list_artifacts))
         .route("/api/search", get(search_all))
         .route("/api/backups", get(list_backups).post(create_backup))
@@ -216,6 +219,55 @@ async fn delete_fact(
         Ok(false) => StatusCode::NOT_FOUND,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
+}
+
+async fn list_snapshots(
+    State(state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
+    match state.storage.list_snapshots(50) {
+        Ok(snapshots) => Json(serde_json::json!(snapshots)),
+        Err(e) => {
+            error!("list_snapshots: {}", e);
+            Json(serde_json::json!([]))
+        }
+    }
+}
+
+async fn create_snapshot(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<serde_json::Value>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let session_id = payload.get("session_id").and_then(|v| v.as_str()).unwrap_or("default");
+    let summary = payload.get("summary").and_then(|v| v.as_str()).unwrap_or("");
+    match state.storage.create_snapshot(session_id, summary, &[], &[], &[], &[]) {
+        Ok(id) => (StatusCode::CREATED, Json(serde_json::json!({"id": id}))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))),
+    }
+}
+
+async fn delete_snapshot(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+) -> StatusCode {
+    match state.storage.delete_snapshot(id) {
+        Ok(true) => StatusCode::NO_CONTENT,
+        Ok(false) => StatusCode::NOT_FOUND,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+async fn daemon_status(
+    State(state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
+    let db_size = state.storage.db_size().unwrap_or(0);
+    let running = true; // We're running if we can respond
+
+    Json(serde_json::json!({
+        "running": running,
+        "pid": std::process::id(),
+        "db_size_mb": db_size as f64 / 1048576.0,
+        "version": "0.1.0",
+    }))
 }
 
 async fn list_artifacts(
