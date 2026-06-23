@@ -276,7 +276,10 @@ async fn forward_to_upstream(
             let status = resp.status();
             let resp_headers = resp.headers().clone();
             let resp_body = resp.bytes().await.unwrap_or_default();
-            let body_vec = resp_body.to_vec();
+            let mut body_vec = resp_body.to_vec();
+
+            // Filter response — strip unsupported content blocks (thinking, etc.)
+            body_vec = interceptor::filter_response(&body_vec);
 
             let mut response = Response::builder().status(status);
             for (key, value) in resp_headers.iter() {

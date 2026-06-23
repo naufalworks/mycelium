@@ -311,3 +311,113 @@ pub fn build_facts_block(facts: &[mycelium_core::MemoryFact]) -> String {
     block.push_str("</mycelium-facts>");
     block
 }
+
+/// Content block types to strip from upstream responses.
+/// Clients like ZCode can't handle e.g. "thinking" blocks.
+const STRIP_BLOCK_TYPES: &[&str] = &["thinking"];
+
+/// Filter upstream response body — strips unsupported content blocks.
+///
+/// Handles both SSE streaming and JSON non-streaming formats.
+/// Auto-detects format and strips blocks whose type is in STRIP_BLOCK_TYPES.
+pub fn filter_response(body: &[u8]) -> Vec<u8> {
+    let text = String::from_utf8_lossy(body);
+
+    // Detect format: SSE if lines start with "data: " or "event: "
+    if text.contains("\ndata: ") || text.starts_with("data: ") {
+        filter_sse(&text).into_bytes()
+    } else {
+        // Try JSON non-streaming
+        filter_json(&text).into_bytes()
+    }
+}
+
+/// Filter SSE response body — strips content blocks matching STRIP_BLOCK_TYPES.
+///
+/// State machine:
+/// - idle: waiting for content_block_start
+/// - tracking(index, type): in a content block, tracking events for it
+/// - skip(index): in a content block we want to strip, skip events until its stop
+fn filter_sse(text: &str) -> String {
+    let mut output = String::new();
+    let mut skip_index: Option<usize> = None;
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+
+        // Forward non-event lines (separators, comments, empty)
+        if !trimmed.starts_with("data: ") && !trimmed.starts_with("event: ") {
+            output.push_str(line);
+            output.push('\n');
+            continue;
+        }
+
+        // Check if we need to skip this event
+        if let Some(skip) = skip_index {
+            // Check for content_block_stop at this index
+            if trimmed.starts_with("data: ") {
+                let data = trimmed.strip_prefix("data: ").unwrap_or("");
+                if let Ok(event) = serde_json::from_str::<serde_json::Value>(data) {
+                    let event_type = event.get("type").and_then(|v| v.as_str());
+                    if event_type == Some("content_block_stop") {
+                        let idx = event.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                        if idx == skip {
+                            skip_index = None;
+                            continue; // Skip the stop event
+                        }
+                    }
+                }
+            }
+            // All events for other indices pass through
+            output.push_str(line);
+            output.push('\n');
+            continue;
+        }
+
+        // Parse data events to check content block type
+        if trimmed.starts_with("data: ") {
+            let data = trimmed.strip_prefix("data: ").unwrap_or("");
+            if let Ok(event) = serde_json::from_str::<serde_json::Value>(data) {
+                let event_type = event.get("type").and_then(|v| v.as_str());
+
+                // Check for content_block_start with type we want to strip
+                if event_type == Some("content_block_start") {
+                    let block_type = event
+                        .pointer("/content_block/type")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    if STRIP_BLOCK_TYPES.contains(&block_type) {
+                        let idx = event.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                        skip_index = Some(idx);
+                        continue; // Skip the start event
+                    }
+                }
+            }
+        }
+
+        output.push_str(line);
+        output.push('\n');
+    }
+
+    output
+}
+
+/// Filter JSON response body — removes content blocks matching STRIP_BLOCK_TYPES.
+fn filter_json(text: &str) -> String {
+    let mut resp: serde_json::Value = match serde_json::from_str(text) {
+        Ok(v) => v,
+        Err(_) => return text.to_string(), // Not valid JSON, return as-is
+    };
+
+    // Try Anthropic format: content[{type, text}]
+    if let Some(content) = resp.get_mut("content").and_then(|v| v.as_array_mut()) {
+        content.retain(|block| {
+            let block_type = block.get("type").and_then(|v| v.as_str()).unwrap_or("");
+            !STRIP_BLOCK_TYPES.contains(&block_type)
+        });
+    }
+
+    // OpenAI format: choices[0].message.content — this is a string, no blocks to strip
+
+    serde_json::to_string(&resp).unwrap_or_else(|_| text.to_string())
+}
