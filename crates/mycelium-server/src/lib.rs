@@ -54,8 +54,6 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         .route("/api/artifacts", get(list_artifacts))
         .route("/api/search", get(search_all))
         .route("/api/backups", get(list_backups).post(create_backup))
-        .route("/api/prompts", get(list_prompts).post(create_prompt))
-        .route("/api/prompts/{name}", delete(delete_prompt))
         .route("/api/verify", get(verify_chain))
         .layer(CorsLayer::permissive())
         .with_state(state);
@@ -310,55 +308,7 @@ async fn create_backup() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "not implemented"}))
 }
 
-#[derive(Deserialize)]
-struct PromptPayload {
-    name: String,
-    content: String,
-}
 
-async fn list_prompts(
-    State(state): State<Arc<AppState>>,
-) -> Json<serde_json::Value> {
-    let facts = state.storage.search_facts("", 100).unwrap_or_default();
-    let prompts: Vec<_> = facts.iter().filter(|f| f.fact_type == "prompt").map(|f| {
-        serde_json::json!({"name": f.entity, "content": f.value})
-    }).collect();
-    Json(serde_json::json!(prompts))
-}
-
-async fn create_prompt(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<PromptPayload>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    let fact = MemoryFact {
-        id: None,
-        entity: payload.name.clone(),
-        attribute: "content".into(),
-        value: payload.content.clone(),
-        fact_type: "prompt".into(),
-        confidence: 1.0,
-        source_session: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    };
-    match state.storage.upsert_fact(&fact) {
-        Ok(id) => (StatusCode::CREATED, Json(serde_json::json!({"id": id}))),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))),
-    }
-}
-
-async fn delete_prompt(
-    State(state): State<Arc<AppState>>,
-    Path(name): Path<String>,
-) -> StatusCode {
-    let facts = state.storage.search_facts(&name, 10).unwrap_or_default();
-    for f in facts.iter().filter(|f| f.fact_type == "prompt" && f.entity == name) {
-        if let Some(id) = f.id {
-            let _ = state.storage.delete_fact(id);
-        }
-    }
-    StatusCode::NO_CONTENT
-}
 
 async fn verify_chain(
     State(state): State<Arc<AppState>>,

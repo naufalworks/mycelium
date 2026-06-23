@@ -68,11 +68,6 @@ enum Commands {
     },
     /// Show findings/insights
     Findings,
-    /// Workflow management
-    Workflow {
-        #[command(subcommand)]
-        command: WorkflowCommands,
-    },
     /// Predict likely next questions from context
     Infer {
         /// Context text to analyze
@@ -95,11 +90,6 @@ enum Commands {
     DaemonInstall,
     /// Remove launchd plist
     DaemonUninstall,
-    /// Prompt registry operations
-    Prompt {
-        #[command(subcommand)]
-        command: PromptCommands,
-    },
     /// Memory fact operations
     Fact {
         #[command(subcommand)]
@@ -110,18 +100,6 @@ enum Commands {
         #[command(subcommand)]
         command: SnapshotCommands,
     },
-}
-
-#[derive(Subcommand)]
-enum PromptCommands {
-    /// List all prompts
-    List,
-    /// Get a prompt by name
-    Get { name: String },
-    /// Add or update a prompt
-    Set { name: String, content: String },
-    /// Delete a prompt
-    Delete { name: String },
 }
 
 #[derive(Subcommand)]
@@ -148,12 +126,6 @@ enum SnapshotCommands {
     Session { session: String },
     /// Create a snapshot for a session
     Create { session: String, summary: String },
-}
-
-#[derive(Subcommand)]
-enum WorkflowCommands {
-    /// List workflow definitions
-    List,
 }
 
 #[tokio::main]
@@ -185,7 +157,6 @@ async fn main() -> anyhow::Result<()> {
         Commands::Precheck => cmd_precheck(&config).await?,
         Commands::Context { session } => cmd_context(&config, session).await?,
         Commands::Findings => cmd_findings(&config).await?,
-        Commands::Workflow { command } => cmd_workflow(&config, command).await?,
         Commands::Infer { context } => cmd_infer(&config, context).await?,
         Commands::Read { url } => cmd_read(&config, url).await?,
         Commands::Daemon => run_daemon(&config),
@@ -194,7 +165,6 @@ async fn main() -> anyhow::Result<()> {
         Commands::DaemonStatus => daemon_status(&config),
         Commands::DaemonInstall => daemon_install(&config),
         Commands::DaemonUninstall => daemon_uninstall(),
-        Commands::Prompt { command } => cmd_prompt(&config, command).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
     }
@@ -423,63 +393,10 @@ async fn cmd_config(config: &MyceliumConfig) -> anyhow::Result<()> {
     println!("   Max concurrent: {}", config.max_concurrent);
     Ok(())
 }
-
-async fn cmd_prompt(config: &MyceliumConfig, command: &PromptCommands) -> anyhow::Result<()> {
-    let db_path = config.root_dir.join("mycelium.db");
-    let storage = mycelium_core::Storage::open(db_path)?;
-
-    match command {
-        PromptCommands::List => {
-            let facts = storage.search_facts("", 100)?;
-            let prompts: Vec<_> = facts.iter().filter(|f| f.fact_type == "prompt").collect();
-            if prompts.is_empty() {
-                println!("No prompts registered.");
-                return Ok(());
-            }
-            for p in &prompts {
-                println!("   {}: {}", p.entity, p.value.chars().take(80).collect::<String>());
-            }
-        }
-        PromptCommands::Get { name } => {
-            let facts = storage.search_facts(name, 10)?;
-            for f in facts.iter().filter(|f| f.fact_type == "prompt" && f.entity == *name) {
-                println!("{}", f.value);
-            }
-        }
-        PromptCommands::Set { name, content } => {
-            let fact = mycelium_core::MemoryFact {
-                id: None,
-                entity: name.clone(),
-                attribute: "content".into(),
-                value: content.clone(),
-                fact_type: "prompt".into(),
-                confidence: 1.0,
-                source_session: None,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            };
-            storage.upsert_fact(&fact)?;
-            println!("✅ Prompt '{}' saved", name);
-        }
-        PromptCommands::Delete { name } => {
-            let facts = storage.search_facts(name, 10)?;
-            for f in facts.iter().filter(|f| f.fact_type == "prompt" && f.entity == *name) {
-                if let Some(id) = f.id {
-                    storage.delete_fact(id)?;
-                }
-            }
-            println!("✅ Prompt '{}' deleted", name);
-        }
-    }
-
-    Ok(())
-}
-
 async fn cmd_infer(config: &MyceliumConfig, context: &str) -> anyhow::Result<()> {
     let db_path = config.root_dir.join("mycelium.db");
     let storage = mycelium_core::Storage::open(db_path)?;
 
-    // Find relevant facts and entries
     let facts = storage.search_facts(context, 5)?;
     let entries = storage.search_entries(context, 5)?;
 
@@ -610,26 +527,6 @@ fn daemon_uninstall() {
         Ok(()) => println!("✅ launchd plist removed"),
         Err(e) => println!("❌ Uninstall error: {}", e),
     }
-}
-
-async fn cmd_workflow(config: &MyceliumConfig, command: &WorkflowCommands) -> anyhow::Result<()> {
-    let db_path = config.root_dir.join("mycelium.db");
-    let storage = mycelium_core::Storage::open(db_path)?;
-
-    match command {
-        WorkflowCommands::List => {
-            let workflows = storage.list_workflows()?;
-            if workflows.is_empty() {
-                println!("No workflows defined.");
-                return Ok(());
-            }
-            for w in &workflows {
-                println!("   {} — {} ({} steps)", w.name, w.description, w.steps.len());
-            }
-        }
-    }
-
-    Ok(())
 }
 
 async fn cmd_context(config: &MyceliumConfig, session: &str) -> anyhow::Result<()> {
