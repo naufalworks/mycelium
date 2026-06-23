@@ -17,7 +17,6 @@ const FACTS_BLOCK_HEADER: &str = "\n<mycelium-facts>\nVerified facts from perman
 /// Returns `(modified_body, session, user_message)` if the request should be intercepted,
 /// or `None` if it should pass through unchanged.
 pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, String, String)> {
-    // Parse the request body as JSON
     let mut req: Value = match serde_json::from_slice(body) {
         Ok(v) => v,
         Err(e) => {
@@ -26,16 +25,13 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
         }
     };
 
-    // Extract user message from the content blocks
     let user_msg = extract_user_message(&req)?;
 
-    // Extract or generate a session ID
     let session = req
         .get("session_id")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
         .unwrap_or_else(|| {
-            // Generate session ID from metadata or use default
             req.get("metadata")
                 .and_then(|m| m.get("session_id"))
                 .and_then(|v| v.as_str())
@@ -49,7 +45,6 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
     if !facts.is_empty() {
         debug!("Injecting {} memory facts for: {}", facts.len(), user_msg.chars().take(60).collect::<String>());
 
-        // Build the <mycelium-facts> block
         let mut fact_lines = String::from(FACTS_BLOCK_HEADER);
         for fact in &facts {
             let value = if fact.value.len() > 80 {
@@ -61,27 +56,21 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
         }
         fact_lines.push_str("</mycelium-facts>");
 
-        // Inject into the system prompt
-        let block = fact_lines;
         if let Some(system) = req.get_mut("system") {
             if let Some(s) = system.as_str() {
-                *system = Value::String(format!("{}\n\n{}", s, block));
+                *system = Value::String(format!("{}\n\n{}", s, fact_lines));
             }
         } else {
-            req["system"] = Value::String(block);
+            req["system"] = Value::String(fact_lines);
         }
     }
 
-    // Serialize the modified request
     let modified_body = serde_json::to_vec(&req).unwrap_or_else(|_| body.to_vec());
-
     Some((modified_body, session, user_msg))
 }
 
 /// Extract the last user message from the request.
-/// Returns None if no user message is found (e.g., tool_use requests, system pings).
-fn extract_user_message(req: &Value) -> Option<String> {
-    // Look for the last user turn in the messages array
+pub fn extract_user_message(req: &Value) -> Option<String> {
     let messages = req.get("messages")?.as_array()?;
 
     for msg in messages.iter().rev() {
@@ -90,7 +79,6 @@ fn extract_user_message(req: &Value) -> Option<String> {
             continue;
         }
 
-        // Extract content — can be a string or an array of content blocks
         let content = msg.get("content")?;
         match content {
             Value::String(s) => {
@@ -114,4 +102,86 @@ fn extract_user_message(req: &Value) -> Option<String> {
     }
 
     None
+}
+
+/// Parse an SSE response body from the Anthropic API and extract the assistant message.
+///
+/// Supports both streaming (SSE events) and non-streaming (JSON) responses.
+/// Returns the full response text accumulated from content_block_delta events.
+pub fn extract_assistant_response(body: &[u8]) -> String {
+    // Try non-streaming JSON first
+    if let Ok(resp) = serde_json::from_slice::<Value>(body) {
+        let msg = extract_assistant_from_json(&resp);
+        if !msg.is_empty() {
+            return msg;
+        }
+    }
+
+    // Streaming: parse SSE events
+    let text = String::from_utf8_lossy(body);
+    let mut full_text = String::new();
+
+    for line in text.lines() {
+        let line = line.trim();
+        if !line.starts_with("data: ") {
+            continue;
+        }
+
+        let data = line.strip_prefix("data: ").unwrap_or("");
+        if data == "[DONE]" {
+            break;
+        }
+
+        if let Ok(event) = serde_json::from_str::<Value>(data) {
+            // Anthropic: content_block_delta with delta.text
+            if event.get("type").and_then(|v| v.as_str()) == Some("content_block_delta") {
+                if let Some(delta_text) = event
+                    .pointer("/delta/text")
+                    .or_else(|| event.pointer("/delta/partial_json"))
+                    .and_then(|v| v.as_str())
+                {
+                    full_text.push_str(delta_text);
+                }
+            }
+
+            // OpenAI-compatible: choices[0].delta.content
+            if let Some(choices) = event.get("choices").and_then(|v| v.as_array()) {
+                if let Some(choice) = choices.first() {
+                    if let Some(delta_text) = choice
+                        .pointer("/delta/content")
+                        .and_then(|v| v.as_str())
+                    {
+                        full_text.push_str(delta_text);
+                    }
+                }
+            }
+        }
+    }
+
+    full_text
+}
+
+/// Extract assistant message from a non-streaming JSON response.
+fn extract_assistant_from_json(resp: &Value) -> String {
+    // Anthropic format: content[{type: "text", text: "..."}]
+    if let Some(content) = resp.get("content").and_then(|v| v.as_array()) {
+        let mut text = String::new();
+        for block in content {
+            if block.get("type").and_then(|v| v.as_str()) == Some("text") {
+                if let Some(t) = block.get("text").and_then(|v| v.as_str()) {
+                    text.push_str(t);
+                }
+            }
+        }
+        if !text.is_empty() {
+            return text;
+        }
+    }
+
+    // OpenAI format: choices[0].message.content
+    if let Some(msg) = resp.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+        return msg.to_string();
+    }
+
+    String::new()
 }

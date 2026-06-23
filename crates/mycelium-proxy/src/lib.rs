@@ -92,16 +92,16 @@ async fn intercept_and_forward(
         None => {
             // Request doesn't need interception (no user message, etc.)
             // Forward unchanged
-            let result = forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await;
+            let (result, _) = forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await;
             return result;
         }
     };
 
     // Forward the modified request and capture the response
-    let upstream_resp = forward_to_upstream(&state, method, &uri, &headers, &modified_body).await;
+    let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &modified_body).await;
 
-    // Extract assistant message from the response
-    let assistant_msg = extract_assistant_message(&upstream_resp);
+    // Extract assistant message from the upstream response
+    let assistant_msg = extract_assistant_message(&resp_body);
 
     // Log the conversation if we have both user and assistant messages
     if !user_msg.is_empty() && !assistant_msg.is_empty() {
@@ -153,17 +153,18 @@ async fn passthrough(
         Err(_) => return (StatusCode::BAD_REQUEST).into_response(),
     };
 
-    forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await
+    forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await.0
 }
 
-/// Forward a request to the upstream API and return the response.
+/// Forward a request to the upstream API.
+/// Returns (Response, response_body_bytes).
 async fn forward_to_upstream(
     state: &ProxyState,
     _method: Method,
     uri: &Uri,
     headers: &HeaderMap,
     body: &[u8],
-) -> Response {
+) -> (Response, Vec<u8>) {
     let upstream_url = format!(
         "{}{}",
         state.config.upstream_url,
@@ -190,6 +191,7 @@ async fn forward_to_upstream(
             let status = resp.status();
             let resp_headers = resp.headers().clone();
             let resp_body = resp.bytes().await.unwrap_or_default();
+            let body_vec = resp_body.to_vec();
 
             let mut response = Response::builder().status(status);
             for (key, value) in resp_headers.iter() {
@@ -197,20 +199,21 @@ async fn forward_to_upstream(
                     response = response.header(key.clone(), value.clone());
                 }
             }
-            response
-                .body(Body::from(resp_body.to_vec()))
-                .unwrap_or_else(|_| Response::new(Body::from("proxy error")))
+            let response = response
+                .body(Body::from(body_vec.clone()))
+                .unwrap_or_else(|_| Response::new(Body::from("proxy error")));
+
+            (response, body_vec)
         }
         Err(e) => {
             error!("Upstream request failed: {}", e);
-            (StatusCode::BAD_GATEWAY, format!("upstream error: {}", e)).into_response()
+            let body = format!("upstream error: {}", e).into_bytes();
+            let response = (StatusCode::BAD_GATEWAY, format!("upstream error: {}", e)).into_response();
+            (response, body)
         }
     }
 }
 
-/// Try to extract the assistant message from an upstream response.
-fn extract_assistant_message(_resp: &Response) -> String {
-    // For SSE streaming responses, we can't easily extract from Response
-    // For non-streaming, try to parse as Anthropic Messages API format
-    String::new()
+fn extract_assistant_message(body: &[u8]) -> String {
+    interceptor::extract_assistant_response(body)
 }
