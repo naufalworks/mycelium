@@ -635,6 +635,31 @@ impl Storage {
         Ok(artifacts)
     }
 
+    // ── Workflow Operations ──
+
+    /// List all workflow definitions.
+    pub fn list_workflows(&self) -> Result<Vec<Workflow>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT name, description, steps, created_at, updated_at FROM workflows ORDER BY name",
+        )?;
+        let workflows = stmt
+            .query_map([], |row| {
+                let steps_str: String = row.get(2)?;
+                let steps: Vec<WorkflowStep> = serde_json::from_str(&steps_str).unwrap_or_default();
+                Ok(Workflow {
+                    name: row.get(0)?,
+                    description: row.get(1)?,
+                    steps,
+                    created_at: row.get::<_, String>(3)?.parse().unwrap_or_default(),
+                    updated_at: row.get::<_, String>(4)?.parse().unwrap_or_default(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(workflows)
+    }
+
     // ── Schema / Migration ──
 
     /// Get the current schema version.

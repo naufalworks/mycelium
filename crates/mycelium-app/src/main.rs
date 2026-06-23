@@ -64,6 +64,11 @@ enum Commands {
     },
     /// Show findings/insights
     Findings,
+    /// Workflow management
+    Workflow {
+        #[command(subcommand)]
+        command: WorkflowCommands,
+    },
     /// Memory fact operations
     Fact {
         #[command(subcommand)]
@@ -102,6 +107,12 @@ enum SnapshotCommands {
     Create { session: String, summary: String },
 }
 
+#[derive(Subcommand)]
+enum WorkflowCommands {
+    /// List workflow definitions
+    List,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -131,6 +142,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Precheck => cmd_precheck(&config).await?,
         Commands::Context { session } => cmd_context(&config, session).await?,
         Commands::Findings => cmd_findings(&config).await?,
+        Commands::Workflow { command } => cmd_workflow(&config, command).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
     }
@@ -357,6 +369,26 @@ async fn cmd_config(config: &MyceliumConfig) -> anyhow::Result<()> {
     println!("   Server port:  {}", config.server_port);
     println!("   Upstream URL: {}", config.upstream_url);
     println!("   Max concurrent: {}", config.max_concurrent);
+    Ok(())
+}
+
+async fn cmd_workflow(config: &MyceliumConfig, command: &WorkflowCommands) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    match command {
+        WorkflowCommands::List => {
+            let workflows = storage.list_workflows()?;
+            if workflows.is_empty() {
+                println!("No workflows defined.");
+                return Ok(());
+            }
+            for w in &workflows {
+                println!("   {} — {} ({} steps)", w.name, w.description, w.steps.len());
+            }
+        }
+    }
+
     Ok(())
 }
 
