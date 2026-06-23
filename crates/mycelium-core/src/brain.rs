@@ -90,6 +90,47 @@ pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
     Ok(())
 }
 
+/// Lowercase + strip common English suffixes (-ing, -ed, -ly, -s).
+/// Unicode NFKD normalization is deferred to a future task.
+pub fn normalize(phrase: &str) -> String {
+    let s = phrase.to_lowercase();
+    if s.ends_with("ing") && s.len() > 4 {
+        s[..s.len() - 3].to_string()
+    } else if s.ends_with("ed") && s.len() > 3 {
+        s[..s.len() - 2].to_string()
+    } else if s.ends_with("ly") && s.len() > 3 {
+        s[..s.len() - 2].to_string()
+    } else if s.ends_with("s") && s.len() > 3 && !s.ends_with("ss") {
+        s[..s.len() - 1].to_string()
+    } else {
+        s
+    }
+}
+
+/// Extract all unique normalized bi-grams and tri-grams from text.
+pub fn extract_atoms(text: &str) -> Vec<String> {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    if words.len() < 2 {
+        return vec![];
+    }
+    let mut atoms: Vec<String> = Vec::new();
+    // bi-grams
+    for w in words.windows(2) {
+        let phrase = format!("{} {}", w[0], w[1]);
+        atoms.push(normalize(&phrase));
+    }
+    // tri-grams
+    if words.len() >= 3 {
+        for w in words.windows(3) {
+            let phrase = format!("{} {} {}", w[0], w[1], w[2]);
+            atoms.push(normalize(&phrase));
+        }
+    }
+    atoms.sort();
+    atoms.dedup();
+    atoms
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -112,5 +153,35 @@ mod tests {
         assert!(tables.contains(&"edges".to_string()));
         assert!(tables.contains(&"pending_brain_work".to_string()));
         assert!(tables.contains(&"brain_stop_words".to_string()));
+    }
+
+    #[test]
+    fn test_normalize_lowercase() {
+        assert_eq!(normalize("Hash Chain"), "hash chain");
+    }
+
+    #[test]
+    fn test_normalize_suffix() {
+        assert_eq!(normalize("running"), "runn");
+        assert_eq!(normalize("hashed"), "hash");
+        assert_eq!(normalize("chains"), "chain");
+    }
+
+    #[test]
+    fn test_extract_atoms_basic() {
+        let text = "discuss hash chain implementation";
+        let atoms = extract_atoms(text);
+        // bi-grams
+        assert!(atoms.contains(&"hash chain".to_string()));
+        // tri-grams
+        assert!(atoms.contains(&"discuss hash chain".to_string()));
+    }
+
+    #[test]
+    fn test_extract_atoms_dedup() {
+        let text = "hash chain hash chain hash chain";
+        let atoms = extract_atoms(text);
+        let count = atoms.iter().filter(|a| *a == "hash chain").count();
+        assert_eq!(count, 1, "deduplicated atoms should appear once");
     }
 }
