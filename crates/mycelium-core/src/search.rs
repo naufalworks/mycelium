@@ -45,7 +45,6 @@ impl SearchIndex {
 
         Ok(SearchIndex {
             index,
-            schema,
             turn,
             session,
             user,
