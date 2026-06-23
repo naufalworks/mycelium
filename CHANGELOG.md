@@ -2,6 +2,23 @@
 
 ## 2026-06-23
 
+### 🗂️ Full Rust Migration — Go+Python Archived
+- **Archived old Go code** (`go/`) to `legacy/go/` — replaced by Rust crates
+- **Archived old Python scripts** (`scripts/`) to `legacy/scripts/` — replaced by Rust CLI
+- **Archived old FastAPI backend** (`web/backend/`) to `legacy/python-web-backend/` — replaced by Axum server
+- **Updated README** with new Rust architecture, CLI reference, and quick start
+- **Cleaned `.gitignore`** for Rust build artifacts and single SQLite DB
+
+### 🔄 Universal Proxy Router
+- **Added OpenAI-compatible endpoint** (`/v1/chat/completions`) alongside existing Anthropic (`/v1/messages`)
+- **OpenAI interceptor** injects memory as system message in messages array
+- **OpenAI response parser** handles both SSE streaming and non-streaming
+- **Auto-detects format** from request path — no config needed
+- **Response filter** strips unsupported content blocks (thinking blocks) via `MYCELIUM_PROXY_STRIP_BLOCKS` env var
+
+### 🔧 Proxy Fixes
+- **Dual-port removed** — single `:8443` port with env-var controlled filtering
+
 ### 🛡️ Stability & Reliability
 - **Marked `resp.Body.Close` as `defer`** in `hippocampusExtract` — prevents Goroutine leak when the response body is not closed on early return
 - **Added panic recovery** to `hippocampusExtract` goroutine — background fact extraction no longer crashes the entire proxy on unexpected errors

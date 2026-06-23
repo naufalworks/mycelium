@@ -1,20 +1,66 @@
 :root {
-  --bg-0: #0b0d10;
-  --bg-1: #11151a;
-  --bg-2: #171c22;
-  --bg-3: #1d252d;
-  --border: rgba(188, 205, 223, 0.14);
-  --border-strong: rgba(188, 205, 223, 0.25);
-  --text-1: #f3f5f7;
-  --text-2: #b7c0ca;
-  --text-3: #7e8995;
-  --teal: #68d5c8;
-  --ice: #8ec5ff;
-  --amber: #d8b26e;
-  --ember: #d46a5f;
-  --violet: #7f7aa9;
-  --green: #73c68b;
-  --shadow: 0 10px 30px rgba(0,0,0,0.28);
-  --radius: 18px;
-  --radius-sm: 12px;
+  /* Backgrounds - deep space dark palette */
+  --bg-0: #080a0f;
+  --bg-1: #0e1117;
+  --bg-2: #161b22;
+  --bg-3: #1c2333;
+  --bg-4: #242d3d;
+  --bg-5: #2d3748;
+
+  /* Borders */
+  --border-1: rgba(255,255,255,0.06);
+  --border-2: rgba(255,255,255,0.10);
+  --border-3: rgba(255,255,255,0.16);
+
+  /* Text */
+  --text-1: #f0f4f8;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+
+  /* Accents */
+  --accent-teal: #5eead4;
+  --accent-blue: #60a5fa;
+  --accent-purple: #a78bfa;
+  --accent-amber: #fbbf24;
+  --accent-green: #4ade80;
+  --accent-red: #f87171;
+  --accent-pink: #f472b6;
+
+  /* Glow effects */
+  --glow-teal: 0 0 20px rgba(94,234,212,0.15);
+  --glow-blue: 0 0 20px rgba(96,165,250,0.15);
+  --glow-purple: 0 0 20px rgba(167,139,250,0.15);
+  --glow-amber: 0 0 20px rgba(251,191,36,0.15);
+  --glow-green: 0 0 20px rgba(74,222,128,0.15);
+  --glow-red: 0 0 20px rgba(248,113,113,0.15);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, #5eead4 0%, #60a5fa 50%, #a78bfa 100%);
+  --gradient-card: linear-gradient(145deg, rgba(22,27,34,0.9), rgba(28,35,51,0.7));
+  --gradient-teal: linear-gradient(135deg, #5eead4, #4ade80);
+  --gradient-blue: linear-gradient(135deg, #60a5fa, #818cf8);
+  --gradient-purple: linear-gradient(135deg, #a78bfa, #60a5fa);
+  --gradient-amber: linear-gradient(135deg, #fbbf24, #f87171);
+  --gradient-red: linear-gradient(135deg, #f87171, #fb923c);
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.3);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.4);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 }

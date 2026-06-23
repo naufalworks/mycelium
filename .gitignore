@@ -2,11 +2,20 @@
 # This is a persistent brain, not code.
 # Ignore runtime data — only track structure + tooling.
 
-# SQLite index (auto-rebuilt, no reason to track)
+# Rust build artifacts
+target/
+
+# SQLite database (runtime data)
+*.db
+*.db-shm
+*.db-wal
+mycelium.db
+
+# Legacy data files (auto-rebuilt)
+log.jsonl
 index.db
 index.db-shm
 index.db-wal
-log.jsonl
 archive
 
 # Branches (ephemeral exploration data)
