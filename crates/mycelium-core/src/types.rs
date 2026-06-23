@@ -128,6 +128,11 @@ impl EntryType {
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "conversation" => Some(EntryType::Conversation),
+            "talk" => Some(EntryType::Conversation),
+            "idea" => Some(EntryType::Conversation),
+            "decision" => Some(EntryType::Conversation),
+            "gardener" => Some(EntryType::Conversation),
+            "tech_verdict" => Some(EntryType::Finding),
             "fact" => Some(EntryType::Fact),
             "finding" => Some(EntryType::Finding),
             "system" => Some(EntryType::System),

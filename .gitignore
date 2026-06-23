@@ -92,3 +92,4 @@ go/mycelium-mcp
 go/mycelium
 go/myceliumd
 /mycelium-proxy
+web/svelte-frontend/build/

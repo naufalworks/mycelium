@@ -1358,6 +1358,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "mycelium-mcp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "mycelium-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "mycelium-proxy"
 version = "0.1.0"
 dependencies = [

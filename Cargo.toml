@@ -5,6 +5,7 @@ members = [
     "crates/mycelium-app",
     "crates/mycelium-server",
     "crates/mycelium-proxy",
+    "crates/mycelium-mcp",
     "crates/mycelium-web",
 ]
 

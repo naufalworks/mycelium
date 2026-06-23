@@ -52,22 +52,38 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
     });
 
     let app = Router::new()
-        .route("/v1/messages", post(intercept_and_forward))
-        .route("/v1/chat/completions", post(handle_openai))
-        .route("/{*path}", any(passthrough))
+        .route("/{*path}", any(proxy_router))
         .with_state(state);
 
     let addr = format!("127.0.0.1:{}", config.proxy_port);
     info!("Proxy listening on {}", addr);
     println!("🧬 Mycelium Proxy → {}", config.upstream_url);
-    println!("   Unfiltered (Claude Code):  :{}", config.proxy_port);
-    println!("   Filtered (ZCode):          :{}", config.proxy_port + 1);
+    println!("   Listening on :{}", config.proxy_port);
     println!("   Max concurrent: {}", config.max_concurrent);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+/// Universal proxy router — inspects path and dispatches to the right handler.
+/// Handles both `/v1/messages` and `/v1/v1/messages` (for clients with /v1 in base URL).
+async fn proxy_router(
+    State(state): State<Arc<ProxyState>>,
+    method: Method,
+    uri: Uri,
+    headers: HeaderMap,
+    body: Body,
+) -> Response {
+    let path = uri.path();
+    if path.ends_with("/v1/messages") {
+        intercept_and_forward(State(state), method, uri, headers, body).await
+    } else if path.ends_with("/v1/chat/completions") {
+        handle_openai(State(state), method, uri, headers, body).await
+    } else {
+        passthrough(State(state), method, uri, headers, body).await
+    }
 }
 
 /// Intercepts POST /v1/messages — injects memory context, logs exchanges.
