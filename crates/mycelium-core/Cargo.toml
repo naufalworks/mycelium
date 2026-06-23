@@ -15,6 +15,8 @@ moka.workspace = true
 tantivy.workspace = true
 uuid.workspace = true
 chrono.workspace = true
+sha2.workspace = true
+hex.workspace = true
 
 [lib]
 name = "mycelium_core"

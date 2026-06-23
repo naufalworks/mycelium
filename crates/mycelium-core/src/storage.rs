@@ -178,9 +178,26 @@ impl Storage {
 
     // ── Entry Operations ──
 
-    /// Append a new entry to the log.
+    /// Append a new entry to the log with hash chain computation.
     pub fn append_entry(&self, entry: &Entry) -> Result<Entry> {
         let conn = self.conn.lock().unwrap();
+
+        // Get the previous entry's hash for chain computation
+        let prev_hash = conn
+            .query_row(
+                "SELECT hash FROM entries ORDER BY turn DESC LIMIT 1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap_or_default();
+
+        // Compute hash for this entry
+        let mut entry = entry.clone();
+        if entry.hash.is_empty() {
+            entry.hash = entry.compute_hash(&prev_hash);
+            entry.prev_hash = prev_hash;
+        }
+
         let entities_json = serde_json::to_string(&entry.entities)?;
 
         conn.execute(

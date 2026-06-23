@@ -2,6 +2,8 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 use uuid::Uuid;
 
 /// A single memory entry — the fundamental unit of permanent memory.
@@ -34,6 +36,47 @@ pub struct Entry {
     pub finding: Option<String>,
     /// Optional verdict associated with the finding
     pub verdict: Option<String>,
+}
+
+impl Entry {
+    /// Compute the SHA-256 hash of this entry.
+    ///
+    /// Hash = hex(first_8_bytes( SHA-256(prev_hash + canonical_json_without_hash) ))
+    /// This is compatible with the Go implementation.
+    pub fn compute_hash(&self, prev_hash: &str) -> String {
+        // Build a sorted map of all fields except "hash"
+        let mut map = BTreeMap::from([
+            ("turn", serde_json::Value::Number(self.turn.into())),
+            ("tier", serde_json::Value::String(self.tier.as_str().to_string())),
+            ("entry_type", serde_json::Value::String(self.entry_type.as_str().to_string())),
+            ("session", serde_json::Value::String(self.session.clone())),
+            ("ts", serde_json::Value::String(self.ts.to_rfc3339())),
+            ("user", serde_json::Value::String(self.user.clone())),
+            ("assistant", serde_json::Value::String(self.assistant.clone())),
+            ("entities", serde_json::Value::Array(
+                self.entities.iter().map(|e| serde_json::Value::String(e.clone())).collect()
+            )),
+            ("prev_hash", serde_json::Value::String(self.prev_hash.clone())),
+        ]);
+
+        // Include optional fields if present
+        if let Some(finding) = &self.finding {
+            map.insert("finding", serde_json::Value::String(finding.clone()));
+        }
+        if let Some(verdict) = &self.verdict {
+            map.insert("verdict", serde_json::Value::String(verdict.clone()));
+        }
+
+        // Serialize to canonical JSON (sorted keys, no whitespace)
+        let canonical = serde_json::to_string(&map).unwrap_or_default();
+
+        // SHA-256(prev_hash + canonical), take first 8 bytes, hex-encode
+        let mut hasher = Sha256::new();
+        hasher.update(prev_hash.as_bytes());
+        hasher.update(canonical.as_bytes());
+        let result = hasher.finalize();
+        hex::encode(&result[..8])
+    }
 }
 
 /// Tier classification for memory entries.
