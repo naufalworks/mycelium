@@ -57,6 +57,13 @@ enum Commands {
     Migrate,
     /// Run health checks
     Precheck,
+    /// Full context bundle for a session
+    Context {
+        /// Session name
+        session: String,
+    },
+    /// Show findings/insights
+    Findings,
     /// Memory fact operations
     Fact {
         #[command(subcommand)]
@@ -122,6 +129,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Config => cmd_config(&config).await?,
         Commands::Migrate => cmd_migrate(&config).await?,
         Commands::Precheck => cmd_precheck(&config).await?,
+        Commands::Context { session } => cmd_context(&config, session).await?,
+        Commands::Findings => cmd_findings(&config).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
     }
@@ -348,6 +357,50 @@ async fn cmd_config(config: &MyceliumConfig) -> anyhow::Result<()> {
     println!("   Server port:  {}", config.server_port);
     println!("   Upstream URL: {}", config.upstream_url);
     println!("   Max concurrent: {}", config.max_concurrent);
+    Ok(())
+}
+
+async fn cmd_context(config: &MyceliumConfig, session: &str) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    println!("📝 Session: {}", session);
+    let entries = storage.entries_for_session(session, 20)?;
+    println!("   Entries: {}", entries.len());
+    let facts = storage.search_facts(session, 10)?;
+    println!("   Memory facts: {}", facts.len());
+    let snapshots = storage.snapshots_for_session(session, 5)?;
+    println!("   Snapshots: {}", snapshots.len());
+
+    if !entries.is_empty() {
+        println!("\nRecent activity:");
+        for entry in entries.iter().rev().take(5) {
+            let preview: String = entry.user.chars().take(80).collect();
+            println!("   [#{}] {}", entry.turn, preview);
+        }
+    }
+
+    Ok(())
+}
+
+async fn cmd_findings(config: &MyceliumConfig) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    let entries = storage.search_entries("finding", 50)?;
+    let findings: Vec<_> = entries.iter().filter(|e| e.finding.is_some()).collect();
+
+    if findings.is_empty() {
+        println!("No findings found.");
+        return Ok(());
+    }
+
+    println!("📋 Findings ({}):", findings.len());
+    for entry in &findings {
+        let finding = entry.finding.as_deref().unwrap_or("");
+        println!("   [#{}] {} — {}", entry.turn, entry.session, finding.chars().take(100).collect::<String>());
+    }
+
     Ok(())
 }
 
