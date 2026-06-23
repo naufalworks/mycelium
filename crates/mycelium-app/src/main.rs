@@ -79,6 +79,11 @@ enum Commands {
         /// URL to fetch
         url: String,
     },
+    /// Prompt registry operations
+    Prompt {
+        #[command(subcommand)]
+        command: PromptCommands,
+    },
     /// Memory fact operations
     Fact {
         #[command(subcommand)]
@@ -89,6 +94,18 @@ enum Commands {
         #[command(subcommand)]
         command: SnapshotCommands,
     },
+}
+
+#[derive(Subcommand)]
+enum PromptCommands {
+    /// List all prompts
+    List,
+    /// Get a prompt by name
+    Get { name: String },
+    /// Add or update a prompt
+    Set { name: String, content: String },
+    /// Delete a prompt
+    Delete { name: String },
 }
 
 #[derive(Subcommand)]
@@ -155,6 +172,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Workflow { command } => cmd_workflow(&config, command).await?,
         Commands::Infer { context } => cmd_infer(&config, context).await?,
         Commands::Read { url } => cmd_read(&config, url).await?,
+        Commands::Prompt { command } => cmd_prompt(&config, command).await?,
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
     }
@@ -381,6 +399,57 @@ async fn cmd_config(config: &MyceliumConfig) -> anyhow::Result<()> {
     println!("   Server port:  {}", config.server_port);
     println!("   Upstream URL: {}", config.upstream_url);
     println!("   Max concurrent: {}", config.max_concurrent);
+    Ok(())
+}
+
+async fn cmd_prompt(config: &MyceliumConfig, command: &PromptCommands) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    match command {
+        PromptCommands::List => {
+            let facts = storage.search_facts("", 100)?;
+            let prompts: Vec<_> = facts.iter().filter(|f| f.fact_type == "prompt").collect();
+            if prompts.is_empty() {
+                println!("No prompts registered.");
+                return Ok(());
+            }
+            for p in &prompts {
+                println!("   {}: {}", p.entity, p.value.chars().take(80).collect::<String>());
+            }
+        }
+        PromptCommands::Get { name } => {
+            let facts = storage.search_facts(name, 10)?;
+            for f in facts.iter().filter(|f| f.fact_type == "prompt" && f.entity == *name) {
+                println!("{}", f.value);
+            }
+        }
+        PromptCommands::Set { name, content } => {
+            let fact = mycelium_core::MemoryFact {
+                id: None,
+                entity: name.clone(),
+                attribute: "content".into(),
+                value: content.clone(),
+                fact_type: "prompt".into(),
+                confidence: 1.0,
+                source_session: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            };
+            storage.upsert_fact(&fact)?;
+            println!("✅ Prompt '{}' saved", name);
+        }
+        PromptCommands::Delete { name } => {
+            let facts = storage.search_facts(name, 10)?;
+            for f in facts.iter().filter(|f| f.fact_type == "prompt" && f.entity == *name) {
+                if let Some(id) = f.id {
+                    storage.delete_fact(id)?;
+                }
+            }
+            println!("✅ Prompt '{}' deleted", name);
+        }
+    }
+
     Ok(())
 }
 
