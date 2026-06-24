@@ -571,7 +571,7 @@ pub fn is_stop_word(conn: &Connection, phrase: &str) -> rusqlite::Result<bool> {
     Ok(exists)
 }
 
-/// Find atoms whose phrase matches a LIKE pattern, ordered by ref_count DESC.
+/// Find atoms whose phrase matches a LIKE pattern, ordered by ref_count × importance DESC.
 pub fn recall(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<Vec<Atom>> {
     let pattern = format!("%{}%", phrase);
     let mut stmt = conn.prepare(
