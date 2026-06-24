@@ -4,6 +4,7 @@
 //! All tables live in the same `mycelium.db` as permanent memory.
 
 use chrono::Utc;
+use moka::sync::Cache;
 use rusqlite::{params, Connection};
 
 /// A unique atom -- single bi-gram or tri-gram stored once.
@@ -50,6 +51,41 @@ pub struct BrainStatus {
     pub position_count: i64,
     pub edge_count: i64,
     pub pending_count: i64,
+}
+
+/// Working memory — keeps recently accessed atoms in a hot cache.
+/// Not LRU-based; uses moka's TTL expiry (expires after 60 seconds of no access).
+pub struct WorkingMemory {
+    cache: Cache<String, Vec<Position>>,
+}
+
+impl WorkingMemory {
+    /// Create a new working memory with 1000 entry max capacity and 60s idle TTL.
+    pub fn new() -> Self {
+        Self {
+            cache: Cache::builder()
+                .max_capacity(1000)
+                .time_to_idle(std::time::Duration::from_secs(60))
+                .build(),
+        }
+    }
+
+    /// Insert or refresh a phrase with its associated positions in the hot cache.
+    pub fn touch(&self, phrase: &str, positions: Vec<Position>) {
+        self.cache.insert(phrase.to_string(), positions);
+    }
+
+    /// Look up a phrase in the hot cache. Returns `None` if not present or expired.
+    pub fn peek(&self, phrase: &str) -> Option<Vec<Position>> {
+        self.cache.get(phrase)
+    }
+
+    /// Return all currently cached phrases (hot atoms).
+    pub fn hot_phrases(&self) -> Vec<String> {
+        let mut keys: Vec<String> = self.cache.iter().map(|(k, _v)| k.as_ref().clone()).collect();
+        keys.sort();
+        keys
+    }
 }
 
 /// Create brain tables if they don't exist.
