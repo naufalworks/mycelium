@@ -378,6 +378,32 @@ function MemoryView({ searchQuery }: {
     fetchPage(p, searchQuery || undefined)
   }
 
+  const getPageNumbers = (): (number | 'ellipsis')[] => {
+    const maxVisible = 20
+    if (totalPages <= maxVisible) {
+      return Array.from({ length: totalPages }, (_, i) => i)
+    }
+    const pages: (number | 'ellipsis')[] = [0]
+    if (page <= 8) {
+      // Near start: 0 1 2 ... 18 19
+      for (let i = 1; i < maxVisible; i++) pages.push(i)
+      pages.push('ellipsis')
+      pages.push(totalPages - 1)
+    } else if (page >= totalPages - 9) {
+      // Near end: 0, ..., totalPages-20 ... totalPages-1
+      pages.push('ellipsis')
+      for (let i = totalPages - maxVisible; i < totalPages; i++) pages.push(i)
+    } else {
+      // Middle: 0, ..., window around page, ..., last
+      pages.push('ellipsis')
+      const half = Math.floor((maxVisible - 4) / 2)
+      for (let i = page - half; i <= page + half; i++) pages.push(i)
+      pages.push('ellipsis')
+      pages.push(totalPages - 1)
+    }
+    return pages
+  }
+
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [tierFilter, setTierFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -440,14 +466,15 @@ function MemoryView({ searchQuery }: {
       <div className="pagination-bar">
         <button className="tab" disabled={page === 0} onClick={() => goToPage(page - 1)}>‹ Prev</button>
         <div className="pagination-info">
-          {Array.from({ length: Math.min(totalPages, 20) }, (_, i) => i).map(p => (
-            <button
-              key={p}
-              className={`tab ${p === page ? 'active' : ''}`}
-              onClick={() => goToPage(p)}
-            >{p + 1}</button>
-          ))}
-          {totalPages > 20 && <span className="pagination-ellipsis">…</span>}
+          {getPageNumbers().map((p, i) =>
+            p === 'ellipsis'
+              ? <span key={`e${i}`} className="pagination-ellipsis">…</span>
+              : <button
+                  key={p}
+                  className={`tab ${p === page ? 'active' : ''}`}
+                  onClick={() => goToPage(p)}
+                >{p + 1}</button>
+          )}
         </div>
         <button className="tab" disabled={page >= totalPages - 1} onClick={() => goToPage(page + 1)}>Next ›</button>
       </div>

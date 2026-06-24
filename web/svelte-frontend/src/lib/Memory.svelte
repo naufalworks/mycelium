@@ -11,6 +11,29 @@
 
 	let totalPages = $derived(Math.ceil(total / LIMIT));
 
+	function getPageNumbers(): (number | 'ellipsis')[] {
+		const maxVisible = 20;
+		if (totalPages <= maxVisible) {
+			return Array.from({ length: totalPages }, (_, i) => i);
+		}
+		const pages: (number | 'ellipsis')[] = [0];
+		if (page <= 8) {
+			for (let i = 1; i < maxVisible; i++) pages.push(i);
+			pages.push('ellipsis');
+			pages.push(totalPages - 1);
+		} else if (page >= totalPages - 9) {
+			pages.push('ellipsis');
+			for (let i = totalPages - maxVisible; i < totalPages; i++) pages.push(i);
+		} else {
+			pages.push('ellipsis');
+			const half = Math.floor((maxVisible - 4) / 2);
+			for (let i = page - half; i <= page + half; i++) pages.push(i);
+			pages.push('ellipsis');
+			pages.push(totalPages - 1);
+		}
+		return pages;
+	}
+
 	async function loadPage(p: number, q: string | null = null) {
 		loading = true;
 		try {
@@ -67,14 +90,12 @@
 				bind:value={query}
 				onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && search()}
 			/>
-			<button onclick={search} disabled={loading}>
-				{loading ? '...' : 'Search'}
-			</button>
+			<button onclick={search} disabled={loading}>🔍 Search</button>
 		</div>
 	</div>
 
 	{#if loading && entries.length === 0}
-		<div class="loading">Loading...</div>
+		<div class="loading"><span class="spinner"></span> Loading memory...</div>
 	{/if}
 
 	{#if entries.length > 0}
@@ -86,6 +107,7 @@
 						<span class="session">{entry.session?.slice(0, 30)}</span>
 						<span class="tier">{entry.tier}</span>
 						<span class="type">{entry.entry_type ?? entry.type ?? ''}</span>
+						<span class="ts">{entry.ts ? new Date(entry.ts).toLocaleString() : ''}</span>
 					</div>
 					<div class="entry-preview">
 						<div class="user-text">👤 {(entry.user ?? '').slice(0, 200)}</div>
@@ -98,16 +120,17 @@
 		<div class="pagination-bar">
 			<button class="page-btn" disabled={page === 0} onclick={() => goTo(page - 1)}>‹ Prev</button>
 			<div class="page-numbers">
-				{#each Array(Math.min(totalPages, 20)) as _, i}
-					<button
-						class="page-num"
-						class:active={i === page}
-						onclick={() => goTo(i)}
-					>{i + 1}</button>
+				{#each getPageNumbers() as p, i}
+					{#if p === 'ellipsis'}
+						<span class="page-ellipsis">…</span>
+					{:else}
+						<button
+							class="page-num"
+							class:active={p === page}
+							onclick={() => goTo(p)}
+						>{p + 1}</button>
+					{/if}
 				{/each}
-				{#if totalPages > 20}
-					<span class="page-ellipsis">…</span>
-				{/if}
 			</div>
 			<button class="page-btn" disabled={page >= totalPages - 1} onclick={() => goTo(page + 1)}>Next ›</button>
 		</div>
@@ -119,14 +142,15 @@
 			{/if}
 		</div>
 	{:else if !loading}
-		<p class="empty">No entries found.</p>
+		<div class="empty-state">
+			<div class="empty-icon">⟐</div>
+			<p>No entries yet. Talk to Claude Code to build memory.</p>
+		</div>
 	{/if}
 </div>
 
 <style>
-	.view {
-		padding: 24px;
-	}
+	.view { padding: 0; }
 
 	.header {
 		display: flex;
@@ -137,10 +161,12 @@
 	}
 
 	h2 {
-		font-size: 24px;
+		font-family: 'Space Grotesk', sans-serif;
+		font-size: 1.5rem;
 		font-weight: 700;
 		margin: 0;
 		white-space: nowrap;
+		color: #EDE6DD;
 	}
 
 	.search-bar {
@@ -152,38 +178,62 @@
 
 	.search-bar input {
 		flex: 1;
-		padding: 10px 14px;
-		border: 1px solid rgba(255,255,255,0.12);
-		border-radius: 8px;
-		background: rgba(255,255,255,0.06);
-		color: #f0f4f8;
+		padding: 8px 14px;
+		border: 1px solid #322D26;
+		border-radius: 6px;
+		background: #181512;
+		color: #EDE6DD;
 		font-size: 14px;
+		font-family: 'Inter', sans-serif;
+		transition: all 150ms;
 	}
-
 	.search-bar input:focus {
 		outline: none;
-		border-color: rgba(255,255,255,0.25);
+		border-color: #6EE7B7;
+		box-shadow: 0 0 0 3px rgba(110,231,183,0.1);
 	}
+	.search-bar input::placeholder { color: #7A736A; }
 
 	.search-bar button {
-		padding: 10px 20px;
-		border: 1px solid rgba(255,255,255,0.12);
-		border-radius: 8px;
-		background: rgba(255,255,255,0.08);
-		color: #f0f4f8;
+		padding: 8px 18px;
+		border: 1px solid #322D26;
+		border-radius: 6px;
+		background: #181512;
+		color: #B0A89E;
 		cursor: pointer;
 		font-size: 14px;
+		font-family: inherit;
+		transition: all 150ms;
 	}
-
+	.search-bar button:hover {
+		background: #201D19;
+		color: #EDE6DD;
+		border-color: #403A31;
+	}
 	.search-bar button:disabled {
-		opacity: 0.5;
+		opacity: 0.4;
 		cursor: default;
+		pointer-events: none;
 	}
 
 	.loading {
-		text-align: center;
-		padding: 40px;
-		color: #94a3b8;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		padding: 48px;
+		color: #7A736A;
+		font-size: 14px;
+	}
+
+	.spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid #322D26;
+		border-top-color: #6EE7B7;
+		border-radius: 50%;
+		animation: spin 0.7s linear infinite;
+		flex-shrink: 0;
 	}
 
 	.entry-list {
@@ -193,32 +243,36 @@
 	}
 
 	.entry-card {
-		background: rgba(255,255,255,0.03);
-		border: 1px solid rgba(255,255,255,0.08);
-		border-left: 3px solid rgba(255,255,255,0.15);
-		border-radius: 8px;
-		padding: 14px 18px;
+		background: #181512;
+		border: 1px solid #322D26;
+		border-radius: 10px;
+		padding: 14px 16px;
+		transition: all 200ms;
 	}
+	.entry-card:hover { border-color: #403A31; }
 
 	.entry-header {
 		display: flex;
-		gap: 12px;
-		margin-bottom: 6px;
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 8px;
 		font-size: 12px;
+		flex-wrap: wrap;
 	}
 
-	.turn { color: #60a5fa; font-weight: 600; }
-	.session { color: #94a3b8; }
-	.tier { color: #a78bfa; }
-	.type { color: #34d399; }
+	.turn { color: #60A5FA; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+	.session { color: #7A736A; }
+	.tier { color: #6EE7B7; font-family: 'JetBrains Mono', monospace; }
+	.type { color: #A78BFA; }
+	.ts { color: #7A736A; font-size: 11px; margin-left: auto; }
 
 	.entry-preview {
 		font-size: 13px;
 		line-height: 1.5;
 	}
 
-	.user-text { color: #94a3b8; margin-bottom: 2px; }
-	.ai-text { color: #f0f4f8; }
+	.user-text { color: #B0A89E; margin-bottom: 2px; }
+	.ai-text { color: #EDE6DD; }
 
 	.pagination-bar {
 		display: flex;
@@ -231,63 +285,91 @@
 
 	.page-numbers {
 		display: flex;
-		gap: 2px;
+		gap: 3px;
 		align-items: center;
 		flex-wrap: wrap;
 		justify-content: center;
 	}
 
 	.page-num, .page-btn {
-		padding: 6px 12px;
-		border: 1px solid rgba(255,255,255,0.10);
-		border-radius: 8px;
+		padding: 5px 10px;
+		border: 1px solid #322D26;
+		border-radius: 6px;
 		background: transparent;
-		color: #94a3b8;
+		color: #B0A89E;
 		font-size: 12px;
 		font-weight: 500;
+		font-family: inherit;
 		cursor: pointer;
-		min-width: 32px;
+		min-width: 30px;
 		text-align: center;
+		transition: all 150ms;
 	}
 
 	.page-num:hover, .page-btn:hover {
-		background: rgba(255,255,255,0.06);
-		color: #f0f4f8;
+		background: #201D19;
+		color: #EDE6DD;
+		border-color: #403A31;
 	}
 
 	.page-num.active {
-		background: linear-gradient(135deg, #6366f1, #8b5cf6);
-		color: #fff;
-		border-color: transparent;
+		background: #6EE7B7;
+		color: #0E0C0A;
+		border-color: #6EE7B7;
+		font-weight: 600;
 	}
 
 	.page-num:disabled, .page-btn:disabled {
-		opacity: 0.4;
+		opacity: 0.35;
 		cursor: default;
 		pointer-events: none;
 	}
 
 	.page-ellipsis {
-		color: #94a3b8;
-		padding: 0 4px;
+		color: #7A736A;
+		padding: 4px 2px;
 		font-size: 13px;
+		letter-spacing: 2px;
+		user-select: none;
 	}
 
 	.page-info {
 		text-align: center;
-		color: #94a3b8;
+		color: #7A736A;
 		font-size: 11px;
 		margin-top: 10px;
 	}
 
 	.page-loading {
-		color: #6366f1;
+		color: #6EE7B7;
+		animation: pulse 1.2s ease-in-out infinite;
 	}
 
-	.empty {
+	.empty-state {
 		text-align: center;
-		color: #94a3b8;
-		padding: 40px;
+		padding: 48px 24px;
+		color: #7A736A;
+	}
+
+	.empty-icon {
+		font-size: 2.5rem;
+		margin-bottom: 12px;
+		opacity: 0.4;
+	}
+
+	.empty-state p {
 		font-size: 14px;
+		line-height: 1.6;
+		max-width: 360px;
+		margin: 0 auto;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.4; }
 	}
 </style>

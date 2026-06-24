@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mycelium Stream</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --soil: #14100c; --soil-mid: #1e1814; --soil-light: #28201a;
+      --pulse: #00ff8c; --pulse-rgb: 0,255,140;
+      --alert: #f09040; --deep: #7050d0;
+      --cap: #d0c8c0;
+      --glass-bg: rgba(20,16,12,0.5); --glass-border: rgba(208,200,192,0.08);
+    }
+    body{background:var(--soil);color:var(--cap);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh;width:100vw;cursor:default;user-select:none}
+    #canvas{position:fixed;top:0;left:0;width:100vw;height:100vh}
+    #ui{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:10}
+    #brand{position:absolute;top:22px;left:28px}
+    #brand .organism{font-family:'Instrument Serif','Georgia',serif;font-size:20px;font-style:italic;color:rgba(0,255,140,0.75);line-height:1.2}
+    #brand .organism em{font-style:italic;color:rgba(208,200,192,0.25)}
+    #brand .sub{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(208,200,192,0.15);margin-top:4px}
+    #brand .status{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--pulse);margin-right:5px;box-shadow:0 0 6px rgba(0,255,140,0.3);vertical-align:middle;position:relative;top:-1px}
+    #stats{position:absolute;top:22px;right:28px;display:flex;gap:1px;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:10px;padding:10px 18px;pointer-events:auto}
+    #stats .stat{text-align:right;padding:0 14px;border-right:1px solid rgba(208,200,192,0.06)}
+    #stats .stat:last-child{border-right:none}
+    #stats .stat .num{font-family:'JetBrains Mono','SF Mono',monospace;font-size:18px;font-weight:400;color:rgba(208,200,192,0.85);line-height:1.2}
+    #stats .stat .num .trend{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;color:rgba(0,255,140,0.5);margin-left:2px}
+    #stats .stat .label{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(208,200,192,0.2);margin-top:1px}
+    #pulse-meter{position:absolute;top:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:20px;opacity:0;transition:opacity .6s}
+    #pulse-meter.visible{opacity:1}
+    #pulse-meter .label{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(208,200,192,0.25)}
+    #pulse-meter .wave{width:60px;height:3px;background:rgba(208,200,192,0.04);border-radius:2px;overflow:hidden}
+    #pulse-meter .wave .fill{height:100%;width:0%;background:var(--pulse);border-radius:2px;box-shadow:0 0 6px rgba(0,255,140,0.3)}
+    #alerts{position:absolute;bottom:90px;right:28px;display:flex;flex-direction:column;gap:4px;max-width:220px;pointer-events:auto}
+    #alerts .alert{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(224,128,64,0.08);border-radius:10px;font-size:10px;line-height:1.5;color:rgba(208,200,192,0.5);opacity:0;transform:translateY(6px);transition:opacity .5s,transform .5s}
+    #alerts .alert.visible{opacity:1;transform:translateY(0)}
+    #alerts .alert .icon{flex-shrink:0;width:5px;height:5px;margin-top:5px;border-radius:50%}
+    #alerts .alert .icon.pattern{background:var(--alert)}
+    #alerts .alert .icon.merge{background:var(--pulse);box-shadow:0 0 4px rgba(0,255,140,0.3)}
+    #alerts .alert .icon.evolve{background:#7090d0;box-shadow:0 0 4px rgba(112,144,208,0.3)}
+    #alerts .alert strong{color:rgba(208,200,192,0.75);font-weight:500}
+    #timeline{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:20px;pointer-events:auto}
+    #timeline .label{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(208,200,192,0.2)}
+    #timeline .track{width:200px;height:2px;background:rgba(208,200,192,0.06);border-radius:1px;position:relative}
+    #timeline .track .fill{height:100%;width:60%;background:linear-gradient(90deg,rgba(0,255,140,0.3),rgba(0,255,140,0.7));border-radius:1px}
+    #timeline .track .now{position:absolute;right:-3px;top:-2px;width:6px;height:6px;border-radius:50%;background:rgba(208,200,192,0.5);box-shadow:0 0 6px rgba(0,255,140,0.3)}
+    #search{position:absolute;bottom:90px;left:28px;pointer-events:auto}
+    #search .trigger{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:10px;font-size:10px;color:rgba(208,200,192,0.25)}
+    #search .trigger kbd{font-family:'JetBrains Mono',monospace;font-size:8px;padding:1px 5px;background:rgba(208,200,192,0.04);border-radius:3px;color:rgba(208,200,192,0.15);border:1px solid rgba(208,200,192,0.04)}
+    #legend{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);display:flex;gap:14px;padding:5px 12px;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:20px;opacity:0;transition:opacity .5s}
+    #legend.visible{opacity:1}
+    #legend .item{display:flex;align-items:center;gap:4px;font-size:7px;letter-spacing:1px;text-transform:uppercase;color:rgba(208,200,192,0.12)}
+    #legend .item .dot{width:5px;height:5px;border-radius:50%}
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="ui">
+  <div id="brand"><div class="organism"><span class="status"></span>mycelium <em>stream</em></div><div class="sub">living memory · live</div></div>
+  <div id="stats">
+    <div class="stat"><div class="num">847 <span class="trend">+12</span></div><div class="label">Concepts</div></div>
+    <div class="stat"><div class="num">3.2k <span class="trend">+84</span></div><div class="label">Edges</div></div>
+    <div class="stat"><div class="num">6</div><div class="label">Findings</div></div>
+  </div>
+  <div id="pulse-meter"><span class="label">Pulse</span><div class="wave"><div class="fill" id="pulse-fill"></div></div></div>
+  <div id="alerts">
+    <div class="alert"><div class="icon pattern"></div><div><strong>Pattern</strong> "auth refactor" — 3rd time this week</div></div>
+    <div class="alert"><div class="icon merge"></div><div><strong>Merged</strong> "jwt" / "JWT tokens" → 1 concept</div></div>
+    <div class="alert"><div class="icon evolve"></div><div><strong>Branched</strong> "rate limit" → 3 new sub-concepts</div></div>
+  </div>
+  <div id="search"><div class="trigger"><kbd>⌘K</kbd> Search memory…</div></div>
+  <div id="legend">
+    <div class="item"><div class="dot" style="background:var(--pulse)"></div> concept</div>
+    <div class="item"><div class="dot" style="background:var(--deep)"></div> cluster</div>
+    <div class="item"><div class="dot" style="background:var(--alert)"></div> finding</div>
+  </div>
+  <div id="timeline">
+    <span class="label">3d ago</span>
+    <div class="track"><div class="fill"></div><div class="now"></div></div>
+    <span class="label">now</span>
+  </div>
+</div>
+<script>
+// ══════════════════════════════════════════════════════════
+//  MYCELIUM STREAM — v4 (Vein Pulse)
+//  The connections (edges) are the veins. A neon glow bead
+//  travels slowly along each edge like blood flow.
+//  Nodes are just junctions where the flow branches.
+// ══════════════════════════════════════════════════════════
+
+const C = document.getElementById('canvas');
+const X = C.getContext('2d');
+const PF = document.getElementById('pulse-fill');
+const PM = document.getElementById('pulse-meter');
+
+let W, H, CX, CY, SY; // stream y
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  C.width = W * devicePixelRatio; C.height = H * devicePixelRatio;
+  C.style.width = W + 'px'; C.style.height = H + 'px';
+  X.scale(devicePixelRatio, devicePixelRatio);
+  CX = W/2; CY = H/2; SY = H * 0.50;
+}
+resize();
+window.addEventListener('resize', resize);
+
+let MX = W/2, MY = H/2;
+document.addEventListener('mousemove', e => { MX = e.clientX; MY = e.clientY; });
+
+// ─── Simple noise ───
+function hn(x,y) { let h=x*374761393+y*668265263; h=(h^(h>>13))*1274126177; return (h^(h>>16))/2147483647; }
+function sn(x,y,s) {
+  const sx=x*s, sy=y*s, ix=Math.floor(sx), iy=Math.floor(sy);
+  const fx=sx-ix, fy=sy-iy, ux=fx*fx*(3-2*fx), uy=fy*fy*(3-2*fy);
+  const a=hn(ix,iy), b=hn(ix+1,iy), c=hn(ix,iy+1), d=hn(ix+1,iy+1);
+  return a+(b-a)*ux+(c-a)*uy+(a-b-c+d)*ux*uy;
+}
+
+// ─── Nodes ───
+const NAMES = ['auth','jwt','rate-limit','schema','migration','webhook','cache','cloudtrail','iam','kafka','elastic','lambda','s3','redis','eslint','rust','tokio','axum','sqlite','tantivy','leptos','tauri','vpc','rds','ci/cd'];
+const NN = 80;
+const nodes = [];
+
+for (let i = 0; i < NN; i++) {
+  nodes.push({
+    id: i, name: NAMES[i % NAMES.length],
+    x: Math.random() * W, y: SY + (Math.random()-0.5)*H*0.4,
+    r: 3.5+(i%4)*1.2, act: 0.2+Math.random()*0.4,
+    connections: [], glow: 0, // node glow from passing pulses
+  });
+}
+
+function buildConns() {
+  for (const n of nodes) n.connections = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i+1; j < nodes.length; j++) {
+      const a=nodes[i], b=nodes[j];
+      const nb = a.name===b.name ? 0.6 : 0;
+      const d = Math.hypot(a.x-b.x, a.y-b.y);
+      const s = Math.max(0, (1-d/280)*0.3 + nb);
+      if (s > 0.04) { a.connections.push({n:b,s}); b.connections.push({n:a,s}); }
+    }
+  }
+  for (const n of nodes) {
+    if (!n.connections.length) {
+      let b=null,bd=1/0;
+      for (const o of nodes) if(o!==n){const d=Math.hypot(n.x-o.x,n.y-o.y);if(d<bd){bd=d;b=o;}}
+      if(b){n.connections.push({n:b,s:0.12});b.connections.push({n:n,s:0.12});}
+    }
+  }
+}
+buildConns();
+
+// ─── Bezier helpers ───
+function bezierPos(a,b,t) {
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  const drift = (a.x-b.x)*0.12 + sn(t*0.3+a.id*0.1,0,0.5)*12;
+  const cpY = my + drift;
+  // Quadratic bezier: B(t) = (1-t)^2*P0 + 2(1-t)*t*P1 + t^2*P2
+  const mt = 1-t;
+  return {
+    x: mt*mt*a.x + 2*mt*t*mx + t*t*b.x,
+    y: mt*mt*a.y + 2*mt*t*cpY + t*t*b.y,
+  };
+}
+
+// ─── BEAD system — the core novelty ───
+// A bead = a glowing pulse traveling along ONE edge.
+// Beads move slowly from source node to dest node.
+// When a bead reaches its destination, it spawns new beads
+// on the strongest unvisited connections.
+// Beads have a trailing glow effect. Multiple beads can
+// exist simultaneously, creating the "blood flow" look.
+
+let beads = [];
+let cascadeTimer = 0;
+const CASCADE_INTERVAL = 7000; // ms between cascades
+
+function startCascade() {
+  const start = nodes[Math.floor(Math.random() * nodes.length)];
+  const visited = new Set([start.id]);
+
+  // Spawn first bead from start along a random strong connection
+  if (start.connections.length > 0) {
+    // Sort by strength, pick top 1-2
+    const sorted = [...start.connections].sort((a,b) => b.s - a.s);
+    const count = Math.min(1 + Math.floor(Math.random() * 1), sorted.length);
+    for (let i = 0; i < count; i++) {
+      const target = sorted[i];
+      spawnBead(start, target.n, visited);
+    }
+  }
+
+  PM.classList.add('visible');
+}
+
+function spawnBead(source, target, visited) {
+  const speed = 0.003 + Math.random() * 0.002; // slow: takes ~300-500 frames
+  beads.push({
+    from: source, to: target,
+    pos: 0, // 0-1 progress along edge
+    speed: speed,
+    intensity: 0.7 + Math.random() * 0.3,
+    trail: [],
+    visited: new Set(visited), // copy
+    branchDelay: 0,
+  });
+}
+
+function updateBeads(dt) {
+  for (let i = beads.length - 1; i >= 0; i--) {
+    const b = beads[i];
+    b.pos += b.speed * dt;
+
+    // Trail: store previous positions
+    const p = bezierPos(b.from, b.to, b.pos);
+    b.trail.push({x: p.x, y: p.y, alpha: 1});
+    if (b.trail.length > 20) b.trail.shift();
+
+    // Fade trail
+    for (let t = b.trail.length - 1; t >= 0; t--) {
+      b.trail[t].alpha -= 0.04;
+      if (b.trail[t].alpha <= 0) b.trail.splice(t, 1);
+    }
+
+    // Fade bead old trails
+    if (b.trail.length > 0) {
+      for (let t = b.trail.length - 1; t >= 0; t--) {
+        b.trail[t].alpha *= 0.98;
+        if (b.trail[t].alpha < 0.01) b.trail.splice(t, 1);
+      }
+    }
+
+    // Pulse meter
+    const allPositions = beads.map(bb => bb.pos);
+    const avgPos = allPositions.length > 0 ? allPositions.reduce((a,c)=>a+c,0)/allPositions.length : 0;
+    PF.style.width = Math.round(avgPos * 100) + '%';
+
+    // Reach destination?
+    if (b.pos >= 1) {
+      b.to.glow = 1; // flash the junction node
+
+      // Branch: spawn new beads from target to its unvisited connections
+      const sorted = [...b.to.connections].sort((a,bb) => bb.s - a.s);
+      const branchCount = Math.min(1 + Math.floor(Math.random() * 1), Math.min(2, sorted.length));
+      let spawned = 0;
+      for (const conn of sorted) {
+        if (!b.visited.has(conn.n.id) && spawned < branchCount) {
+          const newVisited = new Set(b.visited);
+          newVisited.add(b.to.id);
+          const speedMod = 0.8 + Math.random() * 0.4;
+          beads.push({
+            from: b.to, to: conn.n,
+            pos: 0, speed: b.speed * speedMod,
+            intensity: b.intensity * 0.85,
+            trail: [{x: b.to.x, y: b.to.y, alpha: 0.6}],
+            visited: newVisited,
+            branchDelay: 0,
+          });
+          spawned++;
+        }
+      }
+      beads.splice(i, 1);
+    }
+  }
+
+  // Limit total beads
+  if (beads.length > 30) {
+    beads.sort((a,b) => b.pos - a.pos);
+    beads.splice(20);
+  }
+
+  // End cascade when no beads left
+  if (beads.length === 0) {
+    PF.style.width = '0%';
+  }
+}
+
+// ─── Soil particles ───
+const soil = Array.from({length:80},()=>({x:Math.random(),y:Math.random(),r:0.5+Math.random()*1.5,a:0.04+Math.random()*0.08}));
+
+// ─── Render ───
+let fc = 0;
+
+function render(now) {
+  const dt = 16.7; // ~1 frame
+  fc++;
+  const t = now * 0.001;
+
+  // ── Cascade scheduling ──
+  cascadeTimer += dt;
+  if (cascadeTimer > CASCADE_INTERVAL && beads.length === 0) {
+    startCascade();
+    cascadeTimer = 0;
+  }
+
+  // ── Update ──
+  updateBeads(dt);
+
+  // Node glow decay
+  for (const n of nodes) n.glow *= 0.97;
+
+  // Node drift
+  for (const n of nodes) {
+    n.x += sn(t+n.id,0,0.2)*0.04;
+    n.y += sn(t,n.id*0.3,0.2)*0.04;
+    n.x += (MX/W-0.5)*0.12*(0.3+n.glow*0.5);
+    n.y += (MY/H-0.5)*0.06*(0.3+n.glow*0.5);
+    const dy = n.y - SY;
+    if (dy > H*0.3) n.y -= 0.03;
+    if (dy < -H*0.3) n.y += 0.03;
+  }
+
+  // ═══════════════════════════════════
+  //  DRAW
+  // ═══════════════════════════════════
+
+  X.clearRect(0,0,W,H);
+
+  // ── Background ──
+  const bg = X.createRadialGradient(CX,CY,0,CX,CY,H*0.9);
+  bg.addColorStop(0,'#1e1814'); bg.addColorStop(0.3,'#16120e');
+  bg.addColorStop(0.6,'#100c0a'); bg.addColorStop(1,'#0a0806');
+  X.fillStyle=bg; X.fillRect(0,0,W,H);
+
+  for (const s of soil) { X.beginPath(); X.arc(s.x*W,s.y*H,s.r,0,Math.PI*2); X.fillStyle=`rgba(60,40,30,${s.a})`; X.fill(); }
+
+  // ── Stream halo ──
+  const sh = X.createRadialGradient(CX,SY,0,CX,SY,H*0.3);
+  sh.addColorStop(0,'rgba(60,30,20,0.10)'); sh.addColorStop(0.5,'rgba(40,20,15,0.05)'); sh.addColorStop(1,'transparent');
+  X.fillStyle=sh; X.fillRect(0,SY-H*0.3,W,H*0.6);
+
+  // ── Ambient purple ──
+  const ambX=CX+Math.sin(t*0.1)*W*0.08, ambY=SY+Math.cos(t*0.08)*H*0.03;
+  const ag=X.createRadialGradient(ambX,ambY,0,ambX,ambY,H*0.2);
+  ag.addColorStop(0,'rgba(80,40,160,0.03)'); ag.addColorStop(1,'transparent');
+  X.fillStyle=ag; X.fillRect(0,0,W,H);
+
+  // ── Draw all edges (veins) ──
+  // Always visible faintly, bead positions add glowing segments
+  X.lineCap = 'round';
+
+  // First pass: all connections as faint lines
+  for (const n of nodes) {
+    for (const c of n.connections) {
+      if (c.n.id < n.id) continue;
+      const mx=(n.x+c.n.x)/2, my=(n.y+c.n.y)/2;
+      const drift=(n.x-c.n.x)*0.12+sn(t*0.3+n.id*0.1,0,0.5)*12;
+      X.beginPath();
+      X.moveTo(n.x,n.y);
+      X.quadraticCurveTo(mx, my+drift, c.n.x, c.n.y);
+      X.strokeStyle=`rgba(80,60,50,${0.02+c.s*0.06})`;
+      X.lineWidth=0.5+c.s*0.8;
+      X.stroke();
+    }
+  }
+
+  // ── Draw beads (the neon flow) ──
+  for (const b of beads) {
+    const p = bezierPos(b.from, b.to, b.pos);
+
+    // Trailing glow
+    for (let ti = 0; ti < b.trail.length; ti++) {
+      const tr = b.trail[ti];
+      if (tr.alpha < 0.01) continue;
+      const trSize = 1 + (ti / b.trail.length) * 4 * b.intensity;
+      X.beginPath();
+      X.arc(tr.x, tr.y, trSize, 0, Math.PI*2);
+      X.fillStyle = `rgba(0,255,140,${tr.alpha * b.intensity * 0.3})`;
+      X.fill();
+    }
+
+    // The bead itself — bright neon dot
+    const beadR = 2.5 + b.intensity * 2.5;
+    // Glow
+    X.beginPath();
+    X.arc(p.x, p.y, beadR * 3, 0, Math.PI*2);
+    X.fillStyle = `rgba(0,255,140,${0.08 * b.intensity})`;
+    X.fill();
+    // Core
+    X.beginPath();
+    X.arc(p.x, p.y, beadR, 0, Math.PI*2);
+    X.fillStyle = `rgba(0,255,140,${0.6 * b.intensity})`;
+    X.shadowColor = `rgba(0,255,140,${0.4 * b.intensity})`;
+    X.shadowBlur = 15;
+    X.fill();
+    X.shadowBlur = 0;
+
+    // Also draw the active edge segment with a glow
+    const mx=(b.from.x+b.to.x)/2, my=(b.from.y+b.to.y)/2;
+    const drift=(b.from.x-b.to.x)*0.12+sn(t*0.3+b.from.id*0.1,0,0.5)*12;
+    X.beginPath();
+    X.moveTo(b.from.x, b.from.y);
+    X.quadraticCurveTo(mx, my+drift, p.x, p.y);
+    X.strokeStyle = `rgba(0,255,140,${0.3 * b.intensity})`;
+    X.lineWidth = 1 + b.intensity * 1.5;
+    X.shadowColor = `rgba(0,255,140,${0.2 * b.intensity})`;
+    X.shadowBlur = 8;
+    X.stroke();
+    X.shadowBlur = 0;
+  }
+
+  // ── Draw nodes (junctions, subtle) ──
+  for (const n of nodes) {
+    const glow = n.glow;
+    const r = n.r * (0.8 + glow * 0.3);
+
+    // Subtle outer glow
+    X.beginPath(); X.arc(n.x, n.y, r*(1+glow*2), 0, Math.PI*2);
+    X.fillStyle = glow>0.1 ? `rgba(0,255,140,${0.02+glow*0.06})` : `rgba(80,60,50,0.02)`;
+    X.fill();
+
+    // Core
+    X.beginPath(); X.arc(n.x, n.y, r*0.5, 0, Math.PI*2);
+    X.fillStyle = glow>0.1 ? `rgba(0,255,140,${0.1+glow*0.3})` : `rgba(180,160,140,${0.03+n.act*0.04})`;
+    X.fill();
+
+    // Label
+    if (r > 3.5 && (glow > 0.1 || fc % 300 < 150)) {
+      const la = glow>0.1 ? Math.min(0.6,0.05+glow*0.4) : 0.03+n.act*0.04;
+      X.fillStyle = glow>0.1 ? `rgba(180,255,210,${la})` : `rgba(180,160,140,${la})`;
+      X.font = '7px Inter, system-ui, sans-serif';
+      X.textAlign = 'center';
+      X.fillText(n.name, n.x, n.y - r - 4);
+    }
+  }
+
+  requestAnimationFrame(render);
+}
+
+setTimeout(() => {
+  document.querySelectorAll('#alerts .alert').forEach((el,i) => setTimeout(()=>el.classList.add('visible'), i*400));
+  setTimeout(() => document.getElementById('legend').classList.add('visible'), 1800);
+}, 200);
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
