@@ -14,13 +14,16 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 leptos.workspace = true
-wasm-bindgen = "0.2"
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+wasm-bindgen-futures = "0.4"
 serde.workspace = true
 serde_json.workspace = true
+serde-wasm-bindgen = "0.6"
 wasm-logger = "0.2"
 log = "0.4"
 js-sys = "0.3"
-web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "CanvasGradient", "HtmlCanvasElement", "HtmlElement", "Document", "Window", "Element", "MouseEvent", "CssStyleDeclaration"] }
+gloo-net = "0.7"
+web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "CanvasGradient", "HtmlCanvasElement", "HtmlElement", "Document", "Window", "Element", "MouseEvent", "CssStyleDeclaration", "EventSource", "MessageEvent", "Request", "RequestInit", "RequestMode", "Response", "Headers", "AbortController", "AbortSignal", "Event", "EventTarget"] }
 
 [features]
 default = ["custom-protocol"]

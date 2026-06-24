@@ -1,11 +1,16 @@
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+mod api;
 mod canvas;
+mod state;
+
 use canvas::CanvasRenderer;
+use state::AppState;
 
 #[wasm_bindgen]
 extern "C" {
@@ -15,6 +20,7 @@ extern "C" {
 #[component]
 pub fn App() -> impl IntoView {
     let renderer = Rc::new(RefCell::new(None::<CanvasRenderer>));
+    let app_state = AppState::new();
 
     // Initialize canvas and rendering on mount
     Effect::new({
@@ -110,6 +116,40 @@ pub fn App() -> impl IntoView {
 
             requestAnimationFrame(g.borrow().as_ref().unwrap());
         }
+    });
+
+    // ── Async data fetching on mount ──
+    let fetch_state = app_state.clone();
+    Effect::new(move |_| {
+        let state = fetch_state.clone();
+        spawn_local(async move {
+            match api::fetch_status().await {
+                Ok(status) => {
+                    if let Some(c) = status.get("atom_count").and_then(|v| v.as_i64()) {
+                        state.atom_count.set(c);
+                    }
+                    if let Some(c) = status.get("edge_count").and_then(|v| v.as_i64()) {
+                        state.edge_count.set(c);
+                    }
+                    state.connected.set(true);
+                    log::info!("Connected to brain — {} atoms, {} edges", state.atom_count.get(), state.edge_count.get());
+                }
+                Err(e) => {
+                    log::error!("Failed to fetch status: {:?}", e);
+                }
+            }
+            match api::fetch_atoms().await {
+                Ok(atoms) => {
+                    state.atom_count.set(atoms.len() as i64);
+                    log::info!("Fetched {} atoms from brain", atoms.len());
+                    // TODO: feed atoms into canvas renderer
+                }
+                Err(e) => {
+                    log::error!("Failed to fetch atoms: {:?}", e);
+                }
+            }
+        });
+        None::<()>
     });
 
     view! {
