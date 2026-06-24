@@ -3,6 +3,7 @@ use leptos::prelude::*;
 #[derive(Clone, Debug, PartialEq)]
 pub enum AlertKind {
     Pattern,
+    Contradiction,
     Merge,
     Evolve,
 }
@@ -11,6 +12,7 @@ impl AlertKind {
     pub fn label(&self) -> &'static str {
         match self {
             AlertKind::Pattern => "Pattern",
+            AlertKind::Contradiction => "Contradiction",
             AlertKind::Merge => "Merged",
             AlertKind::Evolve => "Branched",
         }
@@ -19,6 +21,7 @@ impl AlertKind {
     pub fn css_class(&self) -> &'static str {
         match self {
             AlertKind::Pattern => "pattern",
+            AlertKind::Contradiction => "contradiction",
             AlertKind::Merge => "merge",
             AlertKind::Evolve => "evolve",
         }

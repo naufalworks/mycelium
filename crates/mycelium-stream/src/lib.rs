@@ -8,6 +8,7 @@ use wasm_bindgen::JsCast;
 mod api;
 mod canvas;
 mod components;
+mod sentinel;
 mod state;
 
 use canvas::CanvasRenderer;
@@ -16,6 +17,7 @@ use components::pulse_meter::PulseMeter;
 use components::search::Search;
 use components::stats_panel::StatsPanel;
 use components::timeline::Timeline;
+use sentinel::Sentinel;
 use state::AppState;
 
 #[wasm_bindgen]
@@ -130,7 +132,6 @@ pub fn App() -> impl IntoView {
         let state = fetch_state.clone();
         spawn_local(async move {
             // Initial fetch
-            let was_connected = state.connected.get();
             match api::fetch_status().await {
                 Ok(status) => {
                     if let Some(c) = status.get("atom_count").and_then(|v| v.as_i64()) {
@@ -140,21 +141,40 @@ pub fn App() -> impl IntoView {
                         state.edge_count.set(c);
                     }
                     state.connected.set(true);
-                    log::info!("Connected to brain — {} atoms, {} edges", state.atom_count.get(), state.edge_count.get());
+                    log::info!("Connected to brain — {} atoms, {} edges",
+                        state.atom_count.get(), state.edge_count.get());
                 }
                 Err(e) => {
                     state.connected.set(false);
                     log::error!("Failed to fetch status: {:?}", e);
                 }
             }
+
+            // Fetch atoms for sentinel context
+            let mut atoms = Vec::new();
             match api::fetch_atoms().await {
-                Ok(atoms) => {
-                    state.atom_count.set(atoms.len() as i64);
-                    log::info!("Fetched {} atoms from brain", atoms.len());
+                Ok(a) => { atoms = a; }
+                Err(e) => { log::error!("Failed to fetch atoms: {:?}", e); }
+            }
+            let atom_infos: Vec<sentinel::AtomInfo> = atoms.iter()
+                .filter_map(|v| sentinel::AtomInfo::from_json(v))
+                .collect();
+
+            // Connect SSE stream and run sentinel on each entry
+            let sentinel_state = state.clone();
+            let sse_atoms = atom_infos.clone();
+            let sse_sentinel = std::cell::RefCell::new(Sentinel::new());
+            if let Ok(es) = api::connect_sse(move |entry_text: String| {
+                let mut sentinel = sse_sentinel.borrow_mut();
+                let alerts = sentinel.analyze(&entry_text, &sse_atoms);
+                for alert in alerts {
+                    let mut current = sentinel_state.alerts.get();
+                    current.push(alert);
+                    sentinel_state.alerts.set(current);
                 }
-                Err(e) => {
-                    log::error!("Failed to fetch atoms: {:?}", e);
-                }
+            }) {
+                log::info!("SSE connected");
+                std::mem::forget(es);
             }
 
             // Periodic health poll every 30s

@@ -1,4 +1,4 @@
-use crate::state::Alert;
+use crate::state::{Alert, AlertKind};
 
 /// Atom concept data extracted from the JSON returned by the brain API.
 ///
@@ -68,7 +68,7 @@ impl Sentinel {
         // Pattern repeat
         if let Some(pattern) = self.detect_pattern_repeat(entry_text) {
             alerts.push(Alert {
-                kind: "pattern".to_string(),
+                kind: crate::state::AlertKind::Pattern,
                 message: pattern,
                 node_id: None,
             });
@@ -77,7 +77,7 @@ impl Sentinel {
         // Contradiction
         if let Some(contra) = self.detect_contradiction(entry_text, atoms) {
             alerts.push(Alert {
-                kind: "contradiction".to_string(),
+                kind: AlertKind::Contradiction,
                 message: contra,
                 node_id: None,
             });
@@ -86,7 +86,7 @@ impl Sentinel {
         // Merge candidates
         if let Some(merge) = self.detect_merge_candidates(atoms) {
             alerts.push(Alert {
-                kind: "merge".to_string(),
+                kind: crate::state::AlertKind::Merge,
                 message: merge,
                 node_id: None,
             });
