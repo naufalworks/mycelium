@@ -15,6 +15,8 @@ pub struct Atom {
     pub first_seen: i64,
     pub last_seen: i64,
     pub ref_count: i64,
+    /// LLM-assigned importance (1-5, with 1.0 = default for rule-based atoms)
+    pub importance: f64,
 }
 
 /// A single occurrence of an atom at a specific turn.
@@ -96,9 +98,23 @@ pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
             phrase TEXT NOT NULL UNIQUE,
             first_seen INTEGER NOT NULL,
             last_seen INTEGER NOT NULL,
-            ref_count INTEGER NOT NULL DEFAULT 0
+            ref_count INTEGER NOT NULL DEFAULT 0,
+            importance REAL NOT NULL DEFAULT 1.0
         );
         CREATE INDEX IF NOT EXISTS idx_atoms_phrase ON atoms(phrase);
+
+        CREATE TABLE IF NOT EXISTS entity_registry (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            name         TEXT NOT NULL UNIQUE,
+            display_name TEXT NOT NULL DEFAULT '',
+            entity_type  TEXT NOT NULL DEFAULT 'concept',
+            aliases      TEXT NOT NULL DEFAULT '[]',
+            importance   REAL NOT NULL DEFAULT 1.0,
+            first_seen   INTEGER NOT NULL,
+            last_seen    INTEGER NOT NULL,
+            ref_count    INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_entity_name ON entity_registry(name);
 
         CREATE TABLE IF NOT EXISTS positions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,11 +194,11 @@ pub fn extract_atoms(text: &str) -> Vec<String> {
 }
 
 /// Upsert an atom. Returns the atom's id. Creates if new, updates ref_count + last_seen if exists.
-pub fn upsert_atom(conn: &Connection, phrase: &str, turn: i64) -> rusqlite::Result<i64> {
+pub fn upsert_atom(conn: &Connection, phrase: &str, turn: i64, importance: f64) -> rusqlite::Result<i64> {
     conn.execute(
-        "INSERT INTO atoms (phrase, first_seen, last_seen, ref_count) VALUES (?1, ?2, ?2, 1)
-         ON CONFLICT(phrase) DO UPDATE SET last_seen = ?2, ref_count = ref_count + 1",
-        params![phrase, turn],
+        "INSERT INTO atoms (phrase, first_seen, last_seen, ref_count, importance) VALUES (?1, ?2, ?2, 1, ?3)
+         ON CONFLICT(phrase) DO UPDATE SET last_seen = ?2, ref_count = ref_count + 1, importance = MAX(importance, ?3)",
+        params![phrase, turn, importance],
     )?;
     let id: i64 = conn.query_row(
         "SELECT id FROM atoms WHERE phrase = ?1", params![phrase],
@@ -231,7 +247,7 @@ pub fn consolidate_entry(conn: &Connection, turn: i64, session: &str, text: &str
     }
     let mut ids = Vec::with_capacity(atoms.len());
     for phrase in &atoms {
-        let id = upsert_atom(conn, phrase, turn)?;
+        let id = upsert_atom(conn, phrase, turn, 1.0)?;
         record_position(conn, id, turn, session)?;
         ids.push(id);
     }
@@ -277,7 +293,7 @@ pub fn is_stop_word(conn: &Connection, phrase: &str) -> rusqlite::Result<bool> {
 pub fn recall(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<Vec<Atom>> {
     let pattern = format!("%{}%", phrase);
     let mut stmt = conn.prepare(
-        "SELECT id, phrase, first_seen, last_seen, ref_count
+        "SELECT id, phrase, first_seen, last_seen, ref_count, importance
          FROM atoms WHERE phrase LIKE ?1
          ORDER BY ref_count DESC LIMIT ?2",
     )?;
@@ -289,6 +305,7 @@ pub fn recall(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<V
                 first_seen: row.get(2)?,
                 last_seen: row.get(3)?,
                 ref_count: row.get(4)?,
+                importance: row.get(5)?,
             })
         })?
         .filter_map(|r| r.ok())
@@ -433,6 +450,7 @@ mod tests {
         assert!(tables.contains(&"edges".to_string()));
         assert!(tables.contains(&"pending_brain_work".to_string()));
         assert!(tables.contains(&"brain_stop_words".to_string()));
+        assert!(tables.contains(&"entity_registry".to_string()));
     }
 
     #[test]
@@ -469,7 +487,7 @@ mod tests {
     fn test_upsert_atom_new() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        let id = upsert_atom(&conn, "hash chain", 10)?;
+        let id = upsert_atom(&conn, "hash chain", 10, 1.0)?;
         assert!(id > 0);
         // Verify stored
         let (phrase, first_seen): (String, i64) = conn.query_row(
@@ -485,8 +503,8 @@ mod tests {
     fn test_upsert_atom_existing() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        let id1 = upsert_atom(&conn, "hash chain", 10)?;
-        let id2 = upsert_atom(&conn, "hash chain", 20)?;
+        let id1 = upsert_atom(&conn, "hash chain", 10, 1.0)?;
+        let id2 = upsert_atom(&conn, "hash chain", 20, 1.0)?;
         assert_eq!(id1, id2, "same atom should return same id");
         // Verify ref_count incremented and last_seen updated
         let (ref_count, last_seen): (i64, i64) = conn.query_row(
@@ -502,7 +520,7 @@ mod tests {
     fn test_record_position() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        let id = upsert_atom(&conn, "hash chain", 5)?;
+        let id = upsert_atom(&conn, "hash chain", 5, 1.0)?;
         record_position(&conn, id, 5, "session-a")?;
         let (atom_id, turn, session): (i64, i64, String) = conn.query_row(
             "SELECT atom_id, turn, session FROM positions WHERE atom_id = ?1",
@@ -519,8 +537,8 @@ mod tests {
     fn test_increment_edge() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        let a = upsert_atom(&conn, "hash chain", 1)?;
-        let b = upsert_atom(&conn, "merkle tree", 1)?;
+        let a = upsert_atom(&conn, "hash chain", 1, 1.0)?;
+        let b = upsert_atom(&conn, "merkle tree", 1, 1.0)?;
         increment_edge(&conn, a, b, 1)?;
         increment_edge(&conn, a, b, 2)?;
         let (weight, last_updated): (f64, i64) = conn.query_row(
@@ -536,8 +554,8 @@ mod tests {
     fn test_increment_edge_orders_atoms() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        let a = upsert_atom(&conn, "hash chain", 1)?;
-        let b = upsert_atom(&conn, "merkle tree", 1)?;
+        let a = upsert_atom(&conn, "hash chain", 1, 1.0)?;
+        let b = upsert_atom(&conn, "merkle tree", 1, 1.0)?;
         // Pass larger id first -- increment_edge should order them
         increment_edge(&conn, b, a, 1)?;
         let (atom_a, atom_b): (i64, i64) = conn.query_row(
@@ -553,7 +571,7 @@ mod tests {
     fn test_increment_edge_skips_self_edge() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        let a = upsert_atom(&conn, "hash chain", 1)?;
+        let a = upsert_atom(&conn, "hash chain", 1, 1.0)?;
         increment_edge(&conn, a, a, 1)?;
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM edges", [], |row| row.get(0)
@@ -587,7 +605,7 @@ mod tests {
     fn test_recall_finds_atom() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        upsert_atom(&conn, "hash chain", 1)?;
+        upsert_atom(&conn, "hash chain", 1, 1.0)?;
         let results = recall(&conn, "hash chain", 10)?;
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].phrase, "hash chain");
@@ -612,10 +630,10 @@ mod tests {
         create_tables(&conn)?;
         // "hash chain" appears in 3 sessions (ref_count = 3)
         for t in 1..=3 {
-            upsert_atom(&conn, "hash chain", t)?;
+            upsert_atom(&conn, "hash chain", t, 1.0)?;
         }
         // "merkle tree" appears in 1 session (ref_count = 1)
-        upsert_atom(&conn, "merkle tree", 4)?;
+        upsert_atom(&conn, "merkle tree", 4, 1.0)?;
         let results = recall(&conn, "hash chain", 10)?;
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].ref_count, 3);
@@ -678,8 +696,8 @@ mod tests {
     fn test_when_exact() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        upsert_atom(&conn, "hash chain", 100)?;
-        upsert_atom(&conn, "hash chain", 200)?;
+        upsert_atom(&conn, "hash chain", 100, 1.0)?;
+        upsert_atom(&conn, "hash chain", 200, 1.0)?;
         let info = when(&conn, "hash chain")?;
         assert!(info.is_some());
         let (first_seen, last_seen, ref_count) = info.unwrap();
@@ -693,7 +711,7 @@ mod tests {
     fn test_when_like_fallback() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        upsert_atom(&conn, "build hash chain", 10)?;
+        upsert_atom(&conn, "build hash chain", 10, 1.0)?;
         let info = when(&conn, "hash chain")?;
         assert!(info.is_some(), "should fallback to LIKE match");
         Ok(())
