@@ -577,7 +577,7 @@ pub fn recall(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<V
     let mut stmt = conn.prepare(
         "SELECT id, phrase, first_seen, last_seen, ref_count, importance
          FROM atoms WHERE phrase LIKE ?1
-         ORDER BY ref_count DESC LIMIT ?2",
+         ORDER BY (ref_count * importance) DESC LIMIT ?2",
     )?;
     let atoms = stmt
         .query_map(params![pattern, limit], |row| {
