@@ -203,6 +203,46 @@ fn handle_tools_list(id: Option<&Value>) -> Value {
                         "limit": {"type": "number", "description": "Max results (default 20)", "default": 20}
                     }
                 }
+            },
+            {
+                "name": "brain_recall",
+                "description": "Search the Hebbian Crystal Brain for atom positions matching a phrase. Returns all occurrences across all sessions, sorted by recency.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "phrase": {"type": "string", "description": "Search phrase (prefix match)"},
+                        "limit": {"type": "number", "description": "Max results (default 20)", "default": 20}
+                    },
+                    "required": ["phrase"]
+                }
+            },
+            {
+                "name": "brain_clusters",
+                "description": "Find top-N Hebbian neighbors for a phrase — atoms that co-occur most frequently with the query in the same entries.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "phrase": {"type": "string", "description": "Query phrase"},
+                        "limit": {"type": "number", "description": "Max neighbors (default 10)", "default": 10}
+                    },
+                    "required": ["phrase"]
+                }
+            },
+            {
+                "name": "brain_when",
+                "description": "Get first_seen, last_seen, and occurrence count for a phrase across all of permanent memory.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "phrase": {"type": "string", "description": "Query phrase"}
+                    },
+                    "required": ["phrase"]
+                }
+            },
+            {
+                "name": "brain_status",
+                "description": "Get brain statistics: atom count, position count, edge count, pending queue depth.",
+                "inputSchema": {"type": "object", "properties": {}}
             }
         ]
     }))
@@ -258,12 +298,14 @@ fn handle_tool_call(id: Option<&Value>, req: &Value, app: &Mutex<App>) -> Value 
         }
         "brain_status" => {
             let guard = app.lock().unwrap();
-            let count = guard.storage.count_entries().unwrap_or(0);
-            let sessions = guard.storage.count_sessions().unwrap_or(0);
-            let db_size = guard.storage.db_size().unwrap_or(0);
-            serde_json::json!({"content": [{"type": "text", "text":
-                format!("Entries: {}\nSessions: {}\nDB: {} KB", count, sessions, db_size / 1024)
-            }]})
+            let conn = guard.storage.conn().lock().unwrap();
+            match mycelium_core::brain::brain_status(&*conn) {
+                Ok(st) => serde_json::json!({"content": [{"type": "text", "text":
+                    format!("Atoms: {}\nPositions: {}\nEdges: {}\nPending: {}",
+                        st.atom_count, st.position_count, st.edge_count, st.pending_count)
+                }]}),
+                Err(e) => return make_error(id, -32603, format!("Brain error: {}", e)),
+            }
         }
         "list_entities" => {
             let filter = args.get("filter").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
@@ -410,6 +452,63 @@ fn handle_tool_call(id: Option<&Value>, req: &Value, app: &Mutex<App>) -> Value 
                     a.created_at.format("%Y-%m-%d %H:%M"))
             }).collect();
             serde_json::json!({"content": [{"type": "text", "text": text.join("\n")}]})
+        }
+        "brain_recall" => {
+            let phrase = args.get("phrase").and_then(|v| v.as_str()).unwrap_or("");
+            let limit = args.get("limit").and_then(|v| v.as_i64()).unwrap_or(20) as i64;
+            if phrase.is_empty() {
+                return make_error(id, -32602, "Missing phrase".into());
+            }
+            let guard = app.lock().unwrap();
+            let conn = guard.storage.conn().lock().unwrap();
+            match mycelium_core::brain::recall(&*conn, phrase, limit) {
+                Ok(atoms) => {
+                    let text: Vec<String> = atoms.iter().map(|a| {
+                        format!("{} | first: turn {} | last: turn {} | seen: {} times",
+                            a.phrase, a.first_seen, a.last_seen, a.ref_count)
+                    }).collect();
+                    serde_json::json!({"content": [{"type": "text", "text": text.join("\n")}]})
+                }
+                Err(e) => return make_error(id, -32603, format!("Brain error: {}", e)),
+            }
+        }
+        "brain_clusters" => {
+            let phrase = args.get("phrase").and_then(|v| v.as_str()).unwrap_or("");
+            let limit = args.get("limit").and_then(|v| v.as_i64()).unwrap_or(10) as i64;
+            if phrase.is_empty() {
+                return make_error(id, -32602, "Missing phrase".into());
+            }
+            let guard = app.lock().unwrap();
+            let conn = guard.storage.conn().lock().unwrap();
+            match mycelium_core::brain::clusters(&*conn, phrase, limit) {
+                Ok(neighbors) => {
+                    if neighbors.is_empty() {
+                        serde_json::json!({"content": [{"type": "text", "text": format!("No neighbors found for '{}'", phrase)}]})
+                    } else {
+                        let text: Vec<String> = neighbors.iter().map(|(phrase, weight)| {
+                            format!("{} (weight: {})", phrase, weight)
+                        }).collect();
+                        serde_json::json!({"content": [{"type": "text", "text": text.join("\n")}]})
+                    }
+                }
+                Err(e) => return make_error(id, -32603, format!("Brain error: {}", e)),
+            }
+        }
+        "brain_when" => {
+            let phrase = args.get("phrase").and_then(|v| v.as_str()).unwrap_or("");
+            if phrase.is_empty() {
+                return make_error(id, -32602, "Missing phrase".into());
+            }
+            let guard = app.lock().unwrap();
+            let conn = guard.storage.conn().lock().unwrap();
+            match mycelium_core::brain::when(&*conn, phrase) {
+                Ok(Some((first, last, count))) => serde_json::json!({"content": [{"type": "text", "text":
+                    format!("Phrase: {}\nFirst seen: turn {}\nLast seen: turn {}\nTimes seen: {}",
+                        phrase, first, last, count)
+                }]}),
+                Ok(None) => serde_json::json!({"content": [{"type": "text", "text": format!("Phrase '{}' not found in brain", phrase)}]}),
+                Err(e) => return make_error(id, -32603, format!("Brain error: {}", e)),
+            }
         }
         _ => {
             serde_json::json!({"content": [{"type": "text", "text": format!("Unknown tool: {}", name)}]})
