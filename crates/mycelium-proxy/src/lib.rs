@@ -152,16 +152,16 @@ async fn intercept_and_forward(
     let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &req_body).await;
 
     // Extract assistant message
-    let assistant_msg = interceptor::extract_assistant_response(&resp_body);
+    let (assistant_msg, annotation) = interceptor::extract_assistant_response(&resp_body);
 
     // Log the conversation if we have both user and assistant messages
-    log_conversation(&state, &session, &user_msg, &assistant_msg);
+    log_conversation(&state, &session, &user_msg, &assistant_msg, annotation);
 
     upstream_resp
 }
 
 /// Shared helper to log a user↔assistant exchange to storage.
-fn log_conversation(state: &ProxyState, session: &str, user_msg: &str, assistant_msg: &str) {
+fn log_conversation(state: &ProxyState, session: &str, user_msg: &str, assistant_msg: &str, annotation: Option<String>) {
     if user_msg.is_empty() || assistant_msg.is_empty() {
         return;
     }
@@ -182,7 +182,7 @@ fn log_conversation(state: &ProxyState, session: &str, user_msg: &str, assistant
         hash: String::new(),
         finding: None,
         verdict: None,
-        annotation: None,
+        annotation,
     };
 
     if let Err(e) = state.storage.append_entry(&entry) {
@@ -228,10 +228,10 @@ async fn handle_openai(
     let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &req_body).await;
 
     // Extract assistant message
-    let assistant_msg = interceptor::extract_openai_response(&resp_body);
+    let (assistant_msg, annotation) = interceptor::extract_openai_response(&resp_body);
 
     // Log conversation
-    log_conversation(&state, &session, &user_msg, &assistant_msg);
+    log_conversation(&state, &session, &user_msg, &assistant_msg, annotation);
 
     upstream_resp
 }

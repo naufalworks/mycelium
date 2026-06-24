@@ -12,6 +12,9 @@ use tracing::debug;
 
 const FACTS_BLOCK_HEADER: &str = "\n<mycelium-facts>\nVerified facts from permanent memory:\n";
 
+/// Instruction injected into the system prompt to request a memory annotation.
+const MEMORY_INSTRUCTION: &str = "\n\nAfter your response, emit a <memory> block containing JSON with: phrases (canonical noun phrases to remember, each with text and importance 1-5), actions (key actions taken/fixed/explained, each with text and importance 1-5), entities (named things mentioned, each with name, type, aliases, and importance 1-5). Keep the block under 200 tokens.";
+
 /// Process an intercepted request body — inject memory context.
 ///
 /// Returns `(modified_body, session, user_message)` if the request should be intercepted,
@@ -49,10 +52,10 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
 
         if let Some(system) = req.get_mut("system") {
             if let Some(s) = system.as_str() {
-                *system = Value::String(format!("{}\n\n{}", s, block));
+                *system = Value::String(format!("{}\n\n{}\n{}", s, block, MEMORY_INSTRUCTION));
             }
         } else {
-            req["system"] = Value::String(block);
+            req["system"] = Value::String(format!("{}\n{}", block, MEMORY_INSTRUCTION));
         }
     }
 
@@ -95,16 +98,31 @@ pub fn extract_user_message(req: &Value) -> Option<String> {
     None
 }
 
+/// Extract the <memory> annotation block from an assistant response.
+/// Returns (cleaned_response_text, optional_annotation_json).
+pub fn extract_memory_block(response: &str) -> (String, Option<String>) {
+    use regex::Regex;
+    // Match <memory>...</memory> with optional newlines
+    let re = Regex::new(r"(?s)<memory>(.*?)</memory>").unwrap();
+    if let Some(caps) = re.captures(response) {
+        let annotation = caps.get(1).map(|m| m.as_str().trim().to_string());
+        let cleaned = re.replace_all(response, "").trim().to_string();
+        (cleaned, annotation)
+    } else {
+        (response.to_string(), None)
+    }
+}
+
 /// Parse an SSE response body from the Anthropic API and extract the assistant message.
 ///
 /// Supports both streaming (SSE events) and non-streaming (JSON) responses.
 /// Returns the full response text accumulated from content_block_delta events.
-pub fn extract_assistant_response(body: &[u8]) -> String {
+pub fn extract_assistant_response(body: &[u8]) -> (String, Option<String>) {
     // Try non-streaming JSON first
     if let Ok(resp) = serde_json::from_slice::<Value>(body) {
         let msg = extract_assistant_from_json(&resp);
         if !msg.is_empty() {
-            return msg;
+            return extract_memory_block(&msg);
         }
     }
 
@@ -149,7 +167,7 @@ pub fn extract_assistant_response(body: &[u8]) -> String {
         }
     }
 
-    full_text
+    extract_memory_block(&full_text)
 }
 
 /// Extract assistant message from a non-streaming JSON response.
@@ -213,7 +231,7 @@ pub fn process_openai(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, String
             // Prepend a system message with memory context
             let sys_msg = serde_json::json!({
                 "role": "system",
-                "content": block
+                "content": format!("{}\n{}", block, MEMORY_INSTRUCTION)
             });
             messages.insert(0, sys_msg);
         }
@@ -260,11 +278,11 @@ fn extract_openai_user_message(req: &Value) -> Option<String> {
 }
 
 /// Extract assistant response from an OpenAI response (streaming or non-streaming).
-pub fn extract_openai_response(body: &[u8]) -> String {
+pub fn extract_openai_response(body: &[u8]) -> (String, Option<String>) {
     // Try non-streaming JSON first
     if let Ok(resp) = serde_json::from_slice::<Value>(body) {
         if let Some(msg) = resp.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
-            return msg.to_string();
+            return extract_memory_block(msg);
         }
     }
 
@@ -290,7 +308,7 @@ pub fn extract_openai_response(body: &[u8]) -> String {
         }
     }
 
-    full_text
+    extract_memory_block(&full_text)
 }
 
 /// Build the `<mycelium-facts>` XML block from memory facts.
