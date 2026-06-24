@@ -158,6 +158,44 @@ pub struct MemoryFact {
     pub updated_at: DateTime<Utc>,
 }
 
+/// A single item (phrase or action) from the LLM's <memory> annotation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryItem {
+    /// Canonical form of the phrase to remember (e.g. "hash chain verification fix")
+    pub text: String,
+    /// LLM-assigned importance 1-5 (5 = most important)
+    pub importance: f64,
+}
+
+/// An entity extracted and named by the LLM.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EntityAnnotation {
+    /// Canonical entity name (e.g. "storage.rs")
+    pub name: String,
+    /// Entity type (e.g. "file", "concept", "person")
+    #[serde(rename = "type")]
+    pub typ: String,
+    /// Alternative names the LLM has seen this entity called
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    /// LLM-assigned importance 1-5
+    pub importance: f64,
+}
+
+/// Complete memory annotation from the LLM's <memory> block.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryAnnotation {
+    /// Canonical noun phrases to remember, each with importance
+    #[serde(default)]
+    pub phrases: Vec<MemoryItem>,
+    /// Key actions, each with importance
+    #[serde(default)]
+    pub actions: Vec<MemoryItem>,
+    /// Named entities mentioned, each with type, aliases, importance
+    #[serde(default)]
+    pub entities: Vec<EntityAnnotation>,
+}
+
 /// An artifact stored from a conversation.
 ///
 /// Artifacts are code files, documents, or structured data that the AI
