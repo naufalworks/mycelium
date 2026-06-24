@@ -36,6 +36,8 @@ pub struct Entry {
     pub finding: Option<String>,
     /// Optional verdict associated with the finding
     pub verdict: Option<String>,
+    /// Optional LLM-generated annotation (JSON string) for this entry
+    pub annotation: Option<String>,
 }
 
 impl Entry {

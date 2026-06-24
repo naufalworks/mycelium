@@ -88,6 +88,7 @@ impl Storage {
                 hash        TEXT NOT NULL DEFAULT '',
                 finding     TEXT,
                 verdict     TEXT,
+                annotation  TEXT,
                 created_at  TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
@@ -210,8 +211,8 @@ impl Storage {
         let entities_json = serde_json::to_string(&entry.entities)?;
 
         conn.execute(
-            "INSERT INTO entries (turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            "INSERT INTO entries (turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 entry.turn,
                 entry.tier.as_str(),
@@ -225,6 +226,7 @@ impl Storage {
                 entry.hash,
                 entry.finding,
                 entry.verdict,
+                entry.annotation,
             ],
         )?;
 
@@ -253,7 +255,7 @@ impl Storage {
 
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation
              FROM entries WHERE turn = ?1",
         )?;
 
@@ -277,7 +279,7 @@ impl Storage {
     pub fn recent_entries_offset(&self, limit: i64, offset: i64) -> Result<Vec<Entry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation
              FROM entries ORDER BY turn DESC LIMIT ?1 OFFSET ?2",
         )?;
 
@@ -308,7 +310,7 @@ impl Storage {
         let conn = self.conn.lock().unwrap();
         let pattern = format!("%{}%", query);
         let mut stmt = conn.prepare(
-            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation
              FROM entries
              WHERE user LIKE ?1 OR assistant LIKE ?1 OR session LIKE ?1
              ORDER BY turn DESC LIMIT ?2 OFFSET ?3",
@@ -426,7 +428,7 @@ impl Storage {
         let conn = self.conn.lock().unwrap();
         let result = conn
             .query_row(
-                "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+                "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation
                  FROM entries ORDER BY turn DESC LIMIT 1",
                 [],
                 |row| self.row_to_entry(row),
@@ -439,7 +441,7 @@ impl Storage {
     pub fn all_entries(&self) -> Result<Vec<Entry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation
              FROM entries ORDER BY turn ASC",
         )?;
         let entries = stmt
@@ -453,7 +455,7 @@ impl Storage {
     pub fn entries_for_session(&self, session: &str, limit: i64) -> Result<Vec<Entry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict
+            "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation
              FROM entries WHERE session = ?1 ORDER BY turn DESC LIMIT ?2",
         )?;
         let entries = stmt
@@ -831,6 +833,7 @@ impl Storage {
             hash: row.get(9)?,
             finding: row.get(10)?,
             verdict: row.get(11)?,
+            annotation: row.get(12)?,
         })
     }
 }

@@ -663,6 +663,7 @@ async fn cmd_migrate(config: &MyceliumConfig) -> anyhow::Result<()> {
                 hash,
                 finding: None,
                 verdict: None,
+                annotation: None,
             };
 
             if let Err(e) = storage.append_entry(&entry) {

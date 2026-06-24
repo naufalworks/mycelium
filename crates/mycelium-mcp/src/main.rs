@@ -366,6 +366,7 @@ fn handle_tool_call(id: Option<&Value>, req: &Value, app: &Mutex<App>) -> Value 
                 hash: String::new(),
                 finding: None,
                 verdict: None,
+                annotation: None,
             };
 
             let guard = app.lock().unwrap();

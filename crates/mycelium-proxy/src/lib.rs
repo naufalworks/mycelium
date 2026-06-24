@@ -182,6 +182,7 @@ fn log_conversation(state: &ProxyState, session: &str, user_msg: &str, assistant
         hash: String::new(),
         finding: None,
         verdict: None,
+        annotation: None,
     };
 
     if let Err(e) = state.storage.append_entry(&entry) {
