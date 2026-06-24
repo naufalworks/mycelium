@@ -182,6 +182,9 @@ impl Storage {
             ",
         )?;
 
+        // Migration: add annotation column to existing databases
+        let _ = conn.execute_batch("ALTER TABLE entries ADD COLUMN annotation TEXT;");
+
         debug!("Schema initialized at version 1");
         Ok(())
     }

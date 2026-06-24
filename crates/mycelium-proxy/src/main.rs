@@ -11,7 +11,15 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let config = MyceliumConfig::default();
+    let mut config = MyceliumConfig::default();
+    if let Ok(port) = std::env::var("MYCELIUM_PROXY_PORT") {
+        if let Ok(p) = port.parse::<u16>() {
+            config.proxy_port = p;
+        }
+    }
+    if let Ok(url) = std::env::var("MYCELIUM_UPSTREAM_URL") {
+        config.upstream_url = url;
+    }
     mycelium_proxy::serve(config).await?;
 
     Ok(())
