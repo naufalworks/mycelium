@@ -133,11 +133,6 @@ fn handle_tools_list(id: Option<&Value>) -> Value {
                 }
             },
             {
-                "name": "brain_status",
-                "description": "Get brain status (entry count, sessions, DB size)",
-                "inputSchema": {"type": "object", "properties": {}}
-            },
-            {
                 "name": "list_entities",
                 "description": "List entities found in memory entries",
                 "inputSchema": {
@@ -486,7 +481,7 @@ fn handle_tool_call(id: Option<&Value>, req: &Value, app: &Mutex<App>) -> Value 
                         serde_json::json!({"content": [{"type": "text", "text": format!("No neighbors found for '{}'", phrase)}]})
                     } else {
                         let text: Vec<String> = neighbors.iter().map(|(phrase, weight)| {
-                            format!("{} (weight: {})", phrase, weight)
+                            format!("{} (weight: {:.1})", phrase, weight)
                         }).collect();
                         serde_json::json!({"content": [{"type": "text", "text": text.join("\n")}]})
                     }
