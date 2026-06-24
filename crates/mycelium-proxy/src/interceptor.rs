@@ -45,18 +45,21 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
     // Query memory facts relevant to the user's message
     let facts = storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
 
+    // Always inject memory annotation instruction (regardless of facts)
+    // Build the facts block separately
+    let mut injection = String::new();
     if !facts.is_empty() {
         debug!("Injecting {} memory facts for: {}", facts.len(), user_msg.chars().take(60).collect::<String>());
+        injection.push_str(&format!("\n\n{}", build_facts_block(&facts)));
+    }
+    injection.push_str(MEMORY_INSTRUCTION);
 
-        let block = build_facts_block(&facts);
-
-        if let Some(system) = req.get_mut("system") {
-            if let Some(s) = system.as_str() {
-                *system = Value::String(format!("{}\n\n{}\n{}", s, block, MEMORY_INSTRUCTION));
-            }
-        } else {
-            req["system"] = Value::String(format!("{}\n{}", block, MEMORY_INSTRUCTION));
+    if let Some(system) = req.get_mut("system") {
+        if let Some(s) = system.as_str() {
+            *system = Value::String(format!("{}{}", s, injection));
         }
+    } else {
+        req["system"] = Value::String(injection.trim_start().to_string());
     }
 
     let modified_body = serde_json::to_vec(&req).unwrap_or_else(|_| body.to_vec());
@@ -221,20 +224,22 @@ pub fn process_openai(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, String
     // Query memory facts
     let facts = storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
 
+    // Always inject memory annotation instruction (regardless of facts)
+    let mut content = String::new();
     if !facts.is_empty() {
         debug!("Injecting {} memory facts for OpenAI request", facts.len());
+        content.push_str(&build_facts_block(&facts));
+        content.push('\n');
+    }
+    content.push_str(MEMORY_INSTRUCTION);
 
-        let block = build_facts_block(&facts);
-
-        // Inject as a system message in the messages array
-        if let Some(messages) = req.get_mut("messages").and_then(|v| v.as_array_mut()) {
-            // Prepend a system message with memory context
-            let sys_msg = serde_json::json!({
-                "role": "system",
-                "content": format!("{}\n{}", block, MEMORY_INSTRUCTION)
-            });
-            messages.insert(0, sys_msg);
-        }
+    // Inject as a system message in the messages array
+    if let Some(messages) = req.get_mut("messages").and_then(|v| v.as_array_mut()) {
+        let sys_msg = serde_json::json!({
+            "role": "system",
+            "content": content.trim()
+        });
+        messages.insert(0, sys_msg);
     }
 
     let modified_body = serde_json::to_vec(&req).unwrap_or_else(|_| body.to_vec());

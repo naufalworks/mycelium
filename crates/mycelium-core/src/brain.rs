@@ -186,7 +186,7 @@ fn looks_like_number(s: &str) -> bool {
 }
 
 fn looks_like_identifier(s: &str) -> bool {
-    s.contains("::") || s.contains("::")  // Rust paths
+    s.contains("::")  // Rust path separators
         || (s.contains(|c: char| c.is_ascii_uppercase())  // CamelCase
             && s.contains(|c: char| c == '.' || c == ':' || c == '_'))
         || s.chars().any(|c| c == '_')  // snake_case
