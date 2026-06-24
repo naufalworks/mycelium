@@ -129,6 +129,8 @@ pub fn App() -> impl IntoView {
     Effect::new(move |_| {
         let state = fetch_state.clone();
         spawn_local(async move {
+            // Initial fetch
+            let was_connected = state.connected.get();
             match api::fetch_status().await {
                 Ok(status) => {
                     if let Some(c) = status.get("atom_count").and_then(|v| v.as_i64()) {
@@ -141,6 +143,7 @@ pub fn App() -> impl IntoView {
                     log::info!("Connected to brain — {} atoms, {} edges", state.atom_count.get(), state.edge_count.get());
                 }
                 Err(e) => {
+                    state.connected.set(false);
                     log::error!("Failed to fetch status: {:?}", e);
                 }
             }
@@ -148,10 +151,28 @@ pub fn App() -> impl IntoView {
                 Ok(atoms) => {
                     state.atom_count.set(atoms.len() as i64);
                     log::info!("Fetched {} atoms from brain", atoms.len());
-                    // TODO: feed atoms into canvas renderer
                 }
                 Err(e) => {
                     log::error!("Failed to fetch atoms: {:?}", e);
+                }
+            }
+
+            // Periodic health poll every 30s
+            loop {
+                let _ = wasm_bindgen_futures::JsFuture::from(
+                    js_sys::Promise::new(&mut |resolve, _| {
+                        web_sys::window()
+                            .unwrap()
+                            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                                &resolve, 30_000,
+                            )
+                            .unwrap();
+                    })
+                ).await;
+
+                match api::fetch_status().await {
+                    Ok(_) => { state.connected.set(true); }
+                    Err(_) => { state.connected.set(false); }
                 }
             }
         });
@@ -163,10 +184,13 @@ pub fn App() -> impl IntoView {
         <div id="ui" style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none">
             <div id="brand" style="position:absolute;bottom:32px;left:32px">
                 <div class="organism" style="font-family:'Instrument Serif',serif;font-size:24px;font-style:italic;color:#d0c8c0">
+                    <span class:status=true
+                          class:connected=app_state.connected
+                          class:disconnected=move || !app_state.connected.get()></span>
                     "mycelium " <em style="font-style:italic;color:#00ff8c">"stream"</em>
                 </div>
                 <div class="sub" style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(208,200,192,0.4);letter-spacing:0.3em;text-transform:uppercase;margin-top:4px">
-                    "living memory · live"
+                    {move || if app_state.connected.get() { "living memory · live" } else { "disconnected · retrying..." }}
                 </div>
             </div>
             <StatsPanel state=app_state.clone()/>
