@@ -7,9 +7,15 @@ use wasm_bindgen::JsCast;
 
 mod api;
 mod canvas;
+mod components;
 mod state;
 
 use canvas::CanvasRenderer;
+use components::alert_feed::AlertFeed;
+use components::pulse_meter::PulseMeter;
+use components::search::Search;
+use components::stats_panel::StatsPanel;
+use components::timeline::Timeline;
 use state::AppState;
 
 #[wasm_bindgen]
@@ -163,6 +169,11 @@ pub fn App() -> impl IntoView {
                     "living memory · live"
                 </div>
             </div>
+            <StatsPanel state=app_state.clone()/>
+            <PulseMeter/>
+            <AlertFeed state=app_state.clone()/>
+            <Search/>
+            <Timeline/>
         </div>
     }
 }

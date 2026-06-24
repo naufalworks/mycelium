@@ -1,8 +1,33 @@
 use leptos::prelude::*;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum AlertKind {
+    Pattern,
+    Merge,
+    Evolve,
+}
+
+impl AlertKind {
+    pub fn label(&self) -> &'static str {
+        match self {
+            AlertKind::Pattern => "Pattern",
+            AlertKind::Merge => "Merged",
+            AlertKind::Evolve => "Branched",
+        }
+    }
+
+    pub fn css_class(&self) -> &'static str {
+        match self {
+            AlertKind::Pattern => "pattern",
+            AlertKind::Merge => "merge",
+            AlertKind::Evolve => "evolve",
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Alert {
-    pub kind: String,
+    pub kind: AlertKind,
     pub message: String,
     pub node_id: Option<usize>,
 }
