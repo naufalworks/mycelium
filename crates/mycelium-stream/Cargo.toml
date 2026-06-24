@@ -19,6 +19,8 @@ serde.workspace = true
 serde_json.workspace = true
 wasm-logger = "0.2"
 log = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "CanvasGradient", "HtmlCanvasElement", "HtmlElement", "Document", "Window", "Element", "MouseEvent", "CssStyleDeclaration"] }
 
 [features]
 default = ["custom-protocol"]
