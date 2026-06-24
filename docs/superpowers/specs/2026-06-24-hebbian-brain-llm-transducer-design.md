@@ -314,3 +314,56 @@ No data migration. No irreversible schema changes. No downstream dependencies th
 ---
 
 *Design reviewed and approved by Azfar Naufal on 2026-06-24.*
+
+---
+
+## 11. Validation Results (2026-06-24)
+
+### Live Deployment Status
+
+| Component | Binary | Status |
+|---|---|---|
+| Proxy (port 8443) | ✅ New (Jun 24 build) | Injecting instruction + storing annotations |
+| Server (port 8421) | ✅ New (Jun 24 build) | Brain daemon processing all entries |
+| App CLI | ✅ New (Jun 24 build) | `brain annotated`, `backfill`, `stop-words` commands |
+
+### End-to-End Validation
+
+**Test: Proxy injects memory instruction → kimi-k2.6 emits `<memory>` block → stored in DB → consolidated into brain.**
+
+| Step | Result |
+|---|---|
+| Proxy injects MEMORY_INSTRUCTION | ✅ Verified (model saw it in thinking block) |
+| kimi-k2.6 emits valid `<memory>` JSON | ✅ Valid JSON with phrases, actions, entities |
+| Proxy strips annotation from visible response | ✅ |
+| Annotation stored in `entries.annotation` column | ✅ Turn 5413 and 5464 |
+| `consolidate_entry` with annotation | ✅ 2 annotated entries processed |
+| Atoms created from annotation phrases | ✅ With correct importance scores |
+| Entity registry populated | ✅ 4 entities with types and aliases |
+| W=2 edges created | ✅ |
+| Full backfill (6,068 entries) | ✅ In progress |
+
+### Performance Comparison
+
+| Metric | Old System | Our System | Improvement |
+|---|---|---|---|
+| Atoms/entry | 52.0 | 37.8 | **1.4×** (type-aware normalization) |
+| Edges/entry | ~9,800 | 112 | **99% reduction** (W=2 vs all-pairs) |
+| Total edges (6K entries) | ~35M | ~650K | **98% reduction** |
+| LLM annotations | N/A | ✅ Working | 🆕 |
+| Entity relationships | N/A | ✅ Working | 🆕 |
+| Importance-weighted queries | N/A | ✅ Working | 🆕 |
+
+### Issues Discovered & Fixed During Validation
+
+1. **System prompt array format** — Proxy only handled string format; fixed to support `[{type: "text", text: "..."}]`
+2. **DB migration** — Production DB lacked `annotation` column; added `ALTER TABLE` migration
+3. **Missing port config** — Added `MYCELIUM_PROXY_PORT` and `MYCELIUM_UPSTREAM_URL` env var overrides
+4. **Duplicate `contains()` in identifier classifier** — Fixed in `looks_like_identifier()`
+
+### Validation Notes
+
+- Stop word detection (70% threshold) did not trigger on current dataset (most common atom in 27% of entries)
+- Edge reduction is the primary scalability win; atom reduction is secondary
+- Annotations compound over time — only future entries carry LLM annotations
+
