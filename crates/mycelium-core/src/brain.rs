@@ -3,6 +3,7 @@
 //! Manages the atom index, position graph, edge weights, and pending work queue.
 //! All tables live in the same `mycelium.db` as permanent memory.
 
+use chrono::Utc;
 use rusqlite::{params, Connection};
 
 /// A unique atom -- single bi-gram or tri-gram stored once.
@@ -185,6 +186,13 @@ pub fn increment_edge(conn: &Connection, a: i64, b: i64, turn: i64) -> rusqlite:
 /// and building all pairwise edges.
 pub fn consolidate_entry(conn: &Connection, turn: i64, session: &str, text: &str) -> rusqlite::Result<()> {
     let atoms = extract_atoms(text);
+    // Filter stop words (cheap check, skip if table is empty)
+    let atoms: Vec<String> = atoms.into_iter().filter(|a| {
+        !is_stop_word(conn, a).unwrap_or(false)
+    }).collect();
+    if atoms.is_empty() {
+        return Ok(());
+    }
     let mut ids = Vec::with_capacity(atoms.len());
     for phrase in &atoms {
         let id = upsert_atom(conn, phrase, turn)?;
@@ -197,6 +205,36 @@ pub fn consolidate_entry(conn: &Connection, turn: i64, session: &str, text: &str
         }
     }
     Ok(())
+}
+
+/// Detect stop words from atom frequency data. Called after 500+ entries.
+/// Any phrase in >70% of entries is flagged as a stop word.
+pub fn detect_stop_words(
+    conn: &Connection,
+    atom_counts: &std::collections::HashMap<String, usize>,
+    total_entries: usize,
+) -> rusqlite::Result<()> {
+    let threshold = (total_entries as f64 * 0.7) as usize;
+    for (phrase, count) in atom_counts {
+        if *count > threshold {
+            let freq = *count as f64 / total_entries as f64;
+            conn.execute(
+                "INSERT OR REPLACE INTO brain_stop_words (phrase, frequency, detected_at) VALUES (?1, ?2, ?3)",
+                rusqlite::params![phrase, freq, Utc::now().timestamp()],
+            )?;
+        }
+    }
+    Ok(())
+}
+
+/// Check if a phrase is a known stop word (cheap atom-level filter).
+pub fn is_stop_word(conn: &Connection, phrase: &str) -> rusqlite::Result<bool> {
+    let exists: bool = conn.query_row(
+        "SELECT 1 FROM brain_stop_words WHERE phrase = ?1",
+        rusqlite::params![phrase],
+        |_| Ok(true),
+    ).unwrap_or(false);
+    Ok(exists)
 }
 
 /// Find atoms whose phrase matches a LIKE pattern, ordered by ref_count DESC.
@@ -715,6 +753,29 @@ mod tests {
         remove_pending(&conn, &ids)?;
         let remaining = dequeue_pending(&conn, 10)?;
         assert!(remaining.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_stop_word_detection() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        // Simulate 500 entries containing "the" in every one
+        let mut stop_words = std::collections::HashMap::new();
+        for i in 0..500 {
+            let text = if i % 10 == 0 { format!("the main topic here") } else { format!("the answer is found") };
+            let atoms = extract_atoms(&text);
+            for atom in &atoms {
+                *stop_words.entry(atom.clone()).or_insert(0) += 1;
+            }
+        }
+        // "the answer" should appear in >70% of entries
+        detect_stop_words(&conn, &stop_words, 500)?;
+        let freq: f64 = conn.query_row(
+            "SELECT frequency FROM brain_stop_words WHERE phrase = ?1",
+            params!["the answer"], |row| row.get(0)
+        )?;
+        assert!(freq > 0.7, "frequent phrase should be detected as stop word");
         Ok(())
     }
 }
