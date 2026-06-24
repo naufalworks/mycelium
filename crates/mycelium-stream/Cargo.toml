@@ -1,0 +1,25 @@
+[package]
+name = "mycelium-stream"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "mycelium_stream"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+leptos.workspace = true
+wasm-bindgen = "0.2"
+serde.workspace = true
+serde_json.workspace = true
+wasm-logger = "0.2"
+log = "0.4"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

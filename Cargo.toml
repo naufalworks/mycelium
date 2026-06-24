@@ -7,6 +7,7 @@ members = [
     "crates/mycelium-proxy",
     "crates/mycelium-mcp",
     "crates/mycelium-web",
+    "crates/mycelium-stream",
 ]
 
 [workspace.package]
