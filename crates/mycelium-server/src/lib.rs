@@ -3,6 +3,8 @@
 //! Serves the web frontend and REST API for all memory operations.
 //! Replaces the existing Python FastAPI backend.
 
+mod brain_daemon;
+
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -21,7 +23,7 @@ use tower_http::services::ServeDir;
 use tracing::{error, info};
 
 pub struct AppState {
-    pub storage: Storage,
+    pub storage: Arc<Storage>,
     pub config: MyceliumConfig,
     pub event_tx: broadcast::Sender<String>,
 }
@@ -29,14 +31,17 @@ pub struct AppState {
 /// Start the HTTP server on the configured port.
 pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
     let db_path = config.root_dir.join("mycelium.db");
-    let storage = Storage::open(db_path)?;
+    let storage = Arc::new(Storage::open(db_path)?);
     let (event_tx, _) = broadcast::channel(1024);
 
     let state = Arc::new(AppState {
-        storage,
+        storage: Arc::clone(&storage),
         config: config.clone(),
         event_tx,
     });
+
+    // Start the background brain consolidation daemon.
+    brain_daemon::BrainDaemon::new(storage).spawn();
 
     let app = Router::new()
         .route("/api/health", get(health))

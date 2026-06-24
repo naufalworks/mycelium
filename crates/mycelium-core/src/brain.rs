@@ -85,7 +85,7 @@ pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
 
         CREATE TABLE IF NOT EXISTS pending_brain_work (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            turn INTEGER NOT NULL,
+            turn INTEGER NOT NULL UNIQUE,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
         CREATE INDEX IF NOT EXISTS idx_pending_work_created ON pending_brain_work(created_at);
@@ -306,6 +306,35 @@ pub fn brain_status(conn: &Connection) -> rusqlite::Result<BrainStatus> {
         edge_count,
         pending_count,
     })
+}
+
+/// Enqueue a turn for brain processing (called during append_entry).
+pub fn enqueue_brain_work(conn: &Connection, turn: i64) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT OR IGNORE INTO pending_brain_work (turn) VALUES (?1)",
+        params![turn],
+    )?;
+    Ok(())
+}
+
+/// Pop the oldest N pending entries.
+pub fn dequeue_pending(conn: &Connection, batch_size: i64) -> rusqlite::Result<Vec<PendingWork>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, turn, created_at FROM pending_brain_work
+         ORDER BY created_at ASC LIMIT ?1"
+    )?;
+    let items = stmt.query_map(params![batch_size], |row| {
+        Ok(PendingWork { id: row.get(0)?, turn: row.get(1)?, created_at: row.get::<_, String>(2)? })
+    })?.filter_map(|r| r.ok()).collect();
+    Ok(items)
+}
+
+/// Remove processed items from the queue.
+pub fn remove_pending(conn: &Connection, ids: &[i64]) -> rusqlite::Result<()> {
+    for id in ids {
+        conn.execute("DELETE FROM pending_brain_work WHERE id = ?1", params![id])?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -666,6 +695,26 @@ mod tests {
         assert_eq!(first, 5);
         assert_eq!(last, 10);
         assert_eq!(count, 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_enqueue_dequeue() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        enqueue_brain_work(&conn, 1)?;
+        enqueue_brain_work(&conn, 2)?;
+        enqueue_brain_work(&conn, 1)?; // duplicate — should be ignored
+        let items = dequeue_pending(&conn, 10)?;
+        assert_eq!(items.len(), 2); // only unique turns
+        // Verify order
+        assert_eq!(items[0].turn, 1);
+        assert_eq!(items[1].turn, 2);
+        // Remove and verify empty
+        let ids: Vec<i64> = items.iter().map(|i| i.id).collect();
+        remove_pending(&conn, &ids)?;
+        let remaining = dequeue_pending(&conn, 10)?;
+        assert!(remaining.is_empty());
         Ok(())
     }
 }

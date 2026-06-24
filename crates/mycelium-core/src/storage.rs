@@ -228,6 +228,11 @@ impl Storage {
             ],
         )?;
 
+        // Enqueue for brain processing (atom indexing, edge graph).
+        if let Err(e) = crate::brain::enqueue_brain_work(&conn, entry.turn) {
+            tracing::warn!("failed to enqueue brain work: {}", e);
+        }
+
         // Invalidate caches after write
         self.cache.invalidate_all();
 
@@ -793,6 +798,15 @@ impl Storage {
     /// Get the database file path.
     pub fn path(&self) -> &std::path::Path {
         &self.path
+    }
+
+    /// Access the underlying SQLite connection (behind its Mutex).
+    ///
+    /// The caller is responsible for locking via `.lock().unwrap()`.
+    /// Drop the guard promptly to avoid deadlocks with Storage methods
+    /// that also acquire the lock internally.
+    pub fn conn(&self) -> &Mutex<Connection> {
+        &self.conn
     }
 
     // ── Private Helpers ──
