@@ -814,6 +814,11 @@ impl Storage {
         &self.conn
     }
 
+    /// Public getter for the SQLite connection (alias for `conn`).
+    pub fn connection(&self) -> &Mutex<Connection> {
+        &self.conn
+    }
+
     // ── Private Helpers ──
 
     fn row_to_entry(&self, row: &rusqlite::Row) -> rusqlite::Result<Entry> {

@@ -4,6 +4,7 @@
 //! Replaces the existing Python FastAPI backend.
 
 mod brain_daemon;
+mod brain_handlers;
 
 use axum::{
     extract::{Path, Query, State},
@@ -61,6 +62,8 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         .route("/api/search", get(search_all))
         .route("/api/backups", get(list_backups).post(create_backup))
         .route("/api/verify", get(verify_chain))
+        .route("/api/brain/status", get(crate::brain_handlers::brain_status))
+        .route("/api/brain/atoms", get(crate::brain_handlers::brain_atoms))
         .layer(CorsLayer::permissive())
         .with_state(state)
         .fallback_service(ServeDir::new(
