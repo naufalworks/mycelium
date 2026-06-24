@@ -418,7 +418,7 @@ fn are_adjacent(ids: &[i64], a: i64, b: i64) -> bool {
         return false;
     }
     let dist = if pos_a > pos_b { pos_a - pos_b } else { pos_b - pos_a };
-    dist <= 2
+    dist <= 1
 }
 
 /// Upsert an entity into the entity_registry table.
