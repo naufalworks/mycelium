@@ -51,7 +51,7 @@ impl BrainDaemon {
                 let text = format!("{} {}", entry.user, entry.assistant);
                 // Lock again for each consolidation (short-lived).
                 let conn = self.storage.conn().lock().unwrap();
-                brain::consolidate_entry(&conn, entry.turn, &entry.session, &text)?;
+                brain::consolidate_entry(&conn, entry.turn, &entry.session, &text, None)?;
                 processed.push(item.id);
             }
         }

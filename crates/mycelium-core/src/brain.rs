@@ -7,6 +7,8 @@ use chrono::Utc;
 use moka::sync::Cache;
 use rusqlite::{params, Connection};
 
+use crate::types::{EntityAnnotation, MemoryAnnotation};
+
 /// A unique atom -- single bi-gram or tri-gram stored once.
 #[derive(Debug, Clone)]
 pub struct Atom {
@@ -377,28 +379,165 @@ pub fn increment_edge(conn: &Connection, a: i64, b: i64, turn: i64) -> rusqlite:
     Ok(())
 }
 
-/// Consolidate an entry by extracting atoms, upserting them, recording positions,
-/// and building all pairwise edges.
-pub fn consolidate_entry(conn: &Connection, turn: i64, session: &str, text: &str) -> rusqlite::Result<()> {
-    let atoms = extract_atoms(text);
-    // Filter stop words (cheap check, skip if table is empty)
-    let atoms: Vec<String> = atoms.into_iter().filter(|a| {
-        !is_stop_word(conn, a).unwrap_or(false)
-    }).collect();
-    if atoms.is_empty() {
-        return Ok(());
+/// Increment an edge with a custom weight multiplier (for entity bridges).
+pub fn increment_edge_weighted(
+    conn: &Connection,
+    a: i64,
+    b: i64,
+    turn: i64,
+    weight_multiplier: f64,
+) -> rusqlite::Result<()> {
+    if a == b { return Ok(()); }
+    let (low, high) = if a < b { (a, b) } else { (b, a) };
+    conn.execute(
+        "INSERT INTO edges (atom_a, atom_b, weight, last_updated, access_count) VALUES (?1, ?2, ?3, ?4, 1)
+         ON CONFLICT(atom_a, atom_b) DO UPDATE SET
+            weight = weight + ?3,
+            last_updated = ?4,
+            access_count = access_count + 1",
+        params![low, high, weight_multiplier, turn],
+    )?;
+    Ok(())
+}
+
+/// Look up an atom's phrase by its id.
+fn get_atom_phrase(conn: &Connection, id: i64) -> Option<String> {
+    conn.query_row(
+        "SELECT phrase FROM atoms WHERE id = ?1",
+        params![id],
+        |row| row.get(0),
+    ).ok()
+}
+
+/// Check if two atom IDs are within distance ≤2 in the ordered atom list.
+/// Used to avoid creating entity bridge edges for atoms already connected by W=2.
+fn are_adjacent(ids: &[i64], a: i64, b: i64) -> bool {
+    let pos_a = ids.iter().position(|x| *x == a).unwrap_or(usize::MAX);
+    let pos_b = ids.iter().position(|x| *x == b).unwrap_or(usize::MAX);
+    if pos_a == usize::MAX || pos_b == usize::MAX {
+        return false;
     }
-    let mut ids = Vec::with_capacity(atoms.len());
-    for phrase in &atoms {
-        let id = upsert_atom(conn, phrase, turn, 1.0)?;
-        record_position(conn, id, turn, session)?;
-        ids.push(id);
-    }
-    for i in 0..ids.len() {
-        for j in i + 1..ids.len() {
-            increment_edge(conn, ids[i], ids[j], turn)?;
+    let dist = if pos_a > pos_b { pos_a - pos_b } else { pos_b - pos_a };
+    dist <= 2
+}
+
+/// Upsert an entity into the entity_registry table.
+pub fn upsert_entity(conn: &Connection, entity: &EntityAnnotation) -> rusqlite::Result<()> {
+    let normalized = normalize(&entity.name);
+    let aliases_json = serde_json::to_string(&entity.aliases).unwrap_or_default();
+    conn.execute(
+        "INSERT INTO entity_registry (name, display_name, entity_type, aliases, importance, first_seen, last_seen, ref_count)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, 1)
+         ON CONFLICT(name) DO UPDATE SET
+            display_name = CASE WHEN ?2 != '' THEN ?2 ELSE display_name END,
+            entity_type = CASE WHEN ?3 != '' THEN ?3 ELSE entity_type END,
+            aliases = ?4,
+            importance = MAX(importance, ?5),
+            last_seen = ?6,
+            ref_count = ref_count + 1",
+        params![
+            normalized,
+            entity.name,
+            entity.typ,
+            aliases_json,
+            entity.importance,
+            Utc::now().timestamp(),
+        ],
+    )?;
+    Ok(())
+}
+
+/// Consolidate an entry by extracting atoms from annotation + rule-based types,
+/// with W=2 local edges and entity bridge edges (2.5x weight).
+pub fn consolidate_entry(
+    conn: &Connection,
+    turn: i64,
+    session: &str,
+    text: &str,
+    annotation: Option<&MemoryAnnotation>,
+) -> rusqlite::Result<()> {
+    let mut all_ids: Vec<i64> = Vec::new();
+
+    // Phase 1: Annotation processing (phrases, actions, entities)
+    if let Some(ann) = annotation {
+        // Process phrases
+        for item in &ann.phrases {
+            let norm = normalize(&item.text);
+            if norm.is_empty() || norm.len() < 3 { continue; }
+            let id = upsert_atom(conn, &norm, turn, item.importance)?;
+            record_position(conn, id, turn, session)?;
+            all_ids.push(id);
+        }
+
+        // Process actions
+        for item in &ann.actions {
+            let norm = normalize(&item.text);
+            if norm.is_empty() || norm.len() < 3 { continue; }
+            let id = upsert_atom(conn, &norm, turn, item.importance)?;
+            record_position(conn, id, turn, session)?;
+            all_ids.push(id);
+        }
+
+        // Register entities in the entity_registry
+        for entity in &ann.entities {
+            upsert_entity(conn, entity)?;
         }
     }
+
+    // Phase 2: Rule-based extraction (always runs)
+    let rule_atoms = extract_atoms(text);
+    let rule_atoms: Vec<String> = rule_atoms.into_iter().filter(|a| {
+        !is_stop_word(conn, a).unwrap_or(false)
+    }).collect();
+
+    for phrase in &rule_atoms {
+        let id = upsert_atom(conn, phrase, turn, 1.0)?;
+        record_position(conn, id, turn, session)?;
+        all_ids.push(id);
+    }
+
+    if all_ids.is_empty() {
+        return Ok(());
+    }
+
+    // Phase 3: Entity bridge edges (2.5x weight, across distance)
+    // Match entity names from annotation to atoms by substring
+    if let Some(ann) = annotation {
+        for entity in &ann.entities {
+            let entity_lower = entity.name.to_lowercase();
+            // Find which atoms in all_ids have phrases containing this entity name
+            let matching_ids: Vec<i64> = all_ids.iter().copied()
+                .filter(|id| {
+                    get_atom_phrase(conn, *id)
+                        .map(|p| p.to_lowercase().contains(&entity_lower))
+                        .unwrap_or(false)
+                })
+                .collect();
+
+            // Bridge edges: connect non-adjacent pairs of matching atoms
+            for i in 0..matching_ids.len() {
+                for j in i + 1..matching_ids.len() {
+                    let a = matching_ids[i];
+                    let b = matching_ids[j];
+                    // Only create bridge edge if atoms are NOT adjacent (W=2 covers those)
+                    if !are_adjacent(&all_ids, a, b) {
+                        increment_edge_weighted(conn, a, b, turn, 2.5)?;
+                    }
+                }
+            }
+        }
+    }
+
+    // Phase 4: W=2 local adjacency edges (weight=1.0, up to distance 2)
+    for i in 0..all_ids.len() {
+        for w in 1..=2 {
+            let j = i + w;
+            if j < all_ids.len() {
+                increment_edge_weighted(conn, all_ids[i], all_ids[j], turn, 1.0)?;
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -761,7 +900,7 @@ mod tests {
     fn test_consolidate_entry() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "test-session", "discuss hash chain and merkle tree")?;
+        consolidate_entry(&conn, 1, "test-session", "discuss hash chain and merkle tree", None)?;
         let atom_count: i64 = conn.query_row("SELECT COUNT(*) FROM atoms", [], |row| row.get(0))?;
         // 6 words -> 5 bigrams + 4 trigrams = 9 atoms (all unique)
         assert_eq!(atom_count, 9, "5 bigrams + 4 trigrams from 6-word text");
@@ -771,10 +910,10 @@ mod tests {
             params![1, "test-session"], |row| row.get(0)
         )?;
         assert_eq!(pos_count, 9, "each atom should have a position record");
-        // Verify edges created between all pairs
+        // Verify edges created with W=2 local adjacency
         let edge_count: i64 = conn.query_row("SELECT COUNT(*) FROM edges", [], |row| row.get(0))?;
-        // Number of pairs from n items = n*(n-1)/2 = 9*8/2 = 36
-        assert_eq!(edge_count, 36, "all-pairs edges from 9 atoms");
+        // W=2 edges from 9 atoms: each atom connects to next 2 = 2*7 + 1 = 15
+        assert_eq!(edge_count, 15, "W=2 local edges from 9 atoms");
         Ok(())
     }
 
@@ -793,9 +932,9 @@ mod tests {
     fn test_recall_multiple_sessions() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "s1", "build hash chain")?;
-        consolidate_entry(&conn, 2, "s2", "fix hash chain bug")?;
-        consolidate_entry(&conn, 3, "s1", "test hash chain")?;
+        consolidate_entry(&conn, 1, "s1", "build hash chain", None)?;
+        consolidate_entry(&conn, 2, "s2", "fix hash chain bug", None)?;
+        consolidate_entry(&conn, 3, "s1", "test hash chain", None)?;
         let results = recall(&conn, "hash chain", 10)?;
         assert_eq!(results[0].ref_count, 3);
         Ok(())
@@ -826,9 +965,9 @@ mod tests {
     fn test_recall_limit() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "s1", "alpha beta")?;
-        consolidate_entry(&conn, 2, "s1", "alpha gamma")?;
-        consolidate_entry(&conn, 3, "s1", "alpha delta")?;
+        consolidate_entry(&conn, 1, "s1", "alpha beta", None)?;
+        consolidate_entry(&conn, 2, "s1", "alpha gamma", None)?;
+        consolidate_entry(&conn, 3, "s1", "alpha delta", None)?;
         let results = recall(&conn, "alpha", 2)?;
         assert_eq!(results.len(), 2);
         Ok(())
@@ -848,7 +987,7 @@ mod tests {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
         // "hash chain" co-occurs with "merkle tree" and "data struct"
-        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree data struct")?;
+        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree data struct", None)?;
         let results = clusters(&conn, "hash chain", 10)?;
         assert!(!results.is_empty(), "should find at least one neighbor");
         // Should contain "merkle tree" as a neighbor (any score)
@@ -913,11 +1052,11 @@ mod tests {
         assert_eq!(status.edge_count, 0);
         assert_eq!(status.pending_count, 0);
         // Add some data
-        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree")?;
+        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree", None)?;
         let status = brain_status(&conn)?;
         assert_eq!(status.atom_count, 5); // 4 bigrams + 1 trigram
         assert_eq!(status.position_count, 5);
-        assert_eq!(status.edge_count, 10);
+        assert_eq!(status.edge_count, 7); // W=2 local edges: 5 atoms → 7 edges
         assert_eq!(status.pending_count, 0);
         Ok(())
     }
@@ -944,8 +1083,8 @@ mod tests {
     fn test_clusters_ranking() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "s1", "hash chain and merkle tree")?;
-        consolidate_entry(&conn, 2, "s1", "hash chain verify")?;
+        consolidate_entry(&conn, 1, "s1", "hash chain and merkle tree", None)?;
+        consolidate_entry(&conn, 2, "s1", "hash chain verify", None)?;
         let results = clusters(&conn, "hash chain", 5)?;
         assert!(!results.is_empty());
         // Edges were accumulated
@@ -956,8 +1095,8 @@ mod tests {
     fn test_when_first_last() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 5, "s1", "discuss hash chain")?;
-        consolidate_entry(&conn, 10, "s1", "build hash chain again")?;
+        consolidate_entry(&conn, 5, "s1", "discuss hash chain", None)?;
+        consolidate_entry(&conn, 10, "s1", "build hash chain again", None)?;
         let info = when(&conn, "hash chain")?;
         assert!(info.is_some());
         let (first, last, count) = info.unwrap();
@@ -1008,5 +1147,43 @@ mod tests {
         )?;
         assert!(freq > 0.7, "frequent phrase should be detected as stop word");
         Ok(())
+    }
+
+    #[test]
+    fn test_consolidate_with_annotation() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+
+        let ann = MemoryAnnotation {
+            phrases: vec![crate::types::MemoryItem { text: "hash chain verification".into(), importance: 5.0 }],
+            actions: vec![],
+            entities: vec![],
+        };
+
+        consolidate_entry(&conn, 1, "test", "", Some(&ann))?;
+
+        // Verify atom was created with importance=5
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM atoms WHERE phrase = ?1",
+            params!["hash chain verification"],
+            |row| row.get(0),
+        )?;
+        assert_eq!(count, 1, "annotation phrase atom should exist");
+
+        let importance: f64 = conn.query_row(
+            "SELECT importance FROM atoms WHERE phrase = ?1",
+            params!["hash chain verification"],
+            |row| row.get(0),
+        )?;
+        assert!((importance - 5.0).abs() < 1e-6, "importance should be 5.0");
+
+        Ok(())
+    }
+
+    /// Helper: create in-memory DB with brain tables.
+    fn setup_test_db() -> Connection {
+        let conn = Connection::open_in_memory().expect("create in-memory DB");
+        create_tables(&conn).expect("create tables");
+        conn
     }
 }
