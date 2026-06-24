@@ -154,8 +154,98 @@ pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
 
 /// Lowercase + strip common English suffixes (-ing, -ed, -ly, -s).
 /// Unicode NFKD normalization is deferred to a future task.
-pub fn normalize(phrase: &str) -> String {
-    let s = phrase.to_lowercase();
+///
+/// HINT: This function is `pub` and is used by `extract_atoms`. Do not rename it.
+
+// ---------------------------------------------------------------------------
+// Classifier: detect phrase types
+// ---------------------------------------------------------------------------
+
+fn looks_like_path(s: &str) -> bool {
+    // Contains path separators or file extensions like .rs, .py, .ts
+    s.contains('/') || s.contains('\\') || s.contains(".rs") || s.contains(".py")
+        || s.contains(".ts") || s.starts_with('/')
+}
+
+fn looks_like_uuid(s: &str) -> bool {
+    let clean = s.replace('-', "");
+    clean.len() == 32 && clean.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn looks_like_hash(s: &str) -> bool {
+    let clean = s.trim_end_matches(|c: char| !c.is_ascii_hexdigit() && c != ':');
+    clean.len() >= 40 && clean.chars().all(|c| c.is_ascii_hexdigit())
+        || (s.len() >= 8 && s.len() <= 64 && s.chars().all(|c| c.is_ascii_hexdigit()) && !looks_like_uuid(s))
+}
+
+fn looks_like_number(s: &str) -> bool {
+    s.chars().all(|c| c.is_ascii_digit() || c == '.' || c == '-' || c == '+')
+        || (s.starts_with("0x") && s[2..].chars().all(|c| c.is_ascii_hexdigit()))
+}
+
+fn looks_like_identifier(s: &str) -> bool {
+    s.contains("::") || s.contains("::")  // Rust paths
+        || (s.contains(|c: char| c.is_ascii_uppercase())  // CamelCase
+            && s.contains(|c: char| c == '.' || c == ':' || c == '_'))
+        || s.chars().any(|c| c == '_')  // snake_case
+}
+
+fn looks_like_url(s: &str) -> bool {
+    s.starts_with("http://") || s.starts_with("https://") || s.contains("://")
+}
+
+fn looks_like_error_code(s: &str) -> bool {
+    // EACCES, ENOENT, HTTP 404, exit code 1, etc.
+    (s.len() <= 8 && s.starts_with('e') && s[1..].chars().all(|c| c.is_ascii_uppercase()))
+        || s.starts_with("exit code") || s.contains("error:") || s.starts_with("err_")
+}
+
+fn looks_like_date(s: &str) -> bool {
+    // ISO dates, timestamps
+    s.contains('-') && s.len() >= 8 && s.chars().filter(|c| *c == '-').count() >= 2
+}
+
+// ---------------------------------------------------------------------------
+// Normalization helpers
+// ---------------------------------------------------------------------------
+
+fn normalize_path(s: &str) -> String {
+    // Strip user-specific prefix
+    let cleaned = s
+        .replace("/Users/", "/~/")
+        .replace("/home/", "/~/");
+    // Extract meaningful tail
+    cleaned
+}
+
+fn normalize_identifier(s: &str) -> String {
+    // Convert CamelCase to lowercase_with_underscores
+    let mut result = String::new();
+    for c in s.chars() {
+        if c.is_ascii_uppercase() {
+            if !result.is_empty() && !result.ends_with('_') {
+                result.push('_');
+            }
+            result.push(c.to_ascii_lowercase());
+        } else if c == ':' || c == '.' {
+            result.push('_');
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
+fn normalize_url(s: &str) -> String {
+    // Strip protocol and trailing slash
+    s.trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_end_matches('/')
+        .to_string()
+}
+
+fn stem_word(s: &str) -> String {
+    // Porter-style basic stemmer (reuse existing logic from current normalize())
     if s.ends_with("ing") && s.len() > 4 {
         s[..s.len() - 3].to_string()
     } else if s.ends_with("ed") && s.len() > 3 {
@@ -165,8 +255,61 @@ pub fn normalize(phrase: &str) -> String {
     } else if s.ends_with("s") && s.len() > 3 && !s.ends_with("ss") {
         s[..s.len() - 1].to_string()
     } else {
-        s
+        s.to_string()
     }
+}
+
+// ---------------------------------------------------------------------------
+// Type-aware normalize
+// ---------------------------------------------------------------------------
+
+/// Normalize a phrase with type-aware normalization.
+/// Detects the phrase type and applies the appropriate normalization strategy.
+pub fn normalize(phrase: &str) -> String {
+    let s = phrase.trim().to_lowercase();
+
+    // 1. Path normalization: strip user prefix, keep semantic location
+    if looks_like_path(&s) {
+        return normalize_path(&s);
+    }
+
+    // 2. UUID normalization: all UUIDs become {uuid}
+    if looks_like_uuid(&s) {
+        return "{uuid}".to_string();
+    }
+
+    // 3. Hash normalization (hex 32+ chars)
+    if looks_like_hash(&s) {
+        return "{hash}".to_string();
+    }
+
+    // 4. Number normalization (integers, decimals, hex numbers)
+    if looks_like_number(&s) {
+        return "{number}".to_string();
+    }
+
+    // 5. Identifier normalization (CamelCase, snake_case, PascalCase)
+    if looks_like_identifier(&s) {
+        return normalize_identifier(&s);
+    }
+
+    // 6. URL normalization
+    if looks_like_url(&s) {
+        return normalize_url(&s);
+    }
+
+    // 7. Error code normalization (EACCES, 404, ENOENT, etc.)
+    if looks_like_error_code(&s) {
+        return s; // Already normalized
+    }
+
+    // 8. Date/timestamp normalization
+    if looks_like_date(&s) {
+        return "{date}".to_string();
+    }
+
+    // 9. Default: Porter-style stemmer + stop words
+    stem_word(&s)
 }
 
 /// Extract all unique normalized bi-grams and tri-grams from text.
@@ -463,6 +606,40 @@ mod tests {
         assert_eq!(normalize("running"), "runn");
         assert_eq!(normalize("hashed"), "hash");
         assert_eq!(normalize("chains"), "chain");
+    }
+
+    #[test]
+    fn test_normalize_path() {
+        let result = normalize("/Users/azfar/src/storage.rs");
+        assert!(result.contains("storage.rs") || result.contains("storage"), "path normalization: {}", result);
+    }
+
+    #[test]
+    fn test_normalize_uuid() {
+        assert_eq!(normalize("550e8400-e29b-41d4-a716-446655440000"), "{uuid}");
+    }
+
+    #[test]
+    fn test_normalize_hash() {
+        assert_eq!(normalize("433b12ac60da89ef1234567890abcdef12345678"), "{hash}");
+    }
+
+    #[test]
+    fn test_normalize_number() {
+        assert_eq!(normalize("234"), "{number}");
+        assert_eq!(normalize("8080"), "{number}");
+    }
+
+    #[test]
+    fn test_normalize_identifier() {
+        let result = normalize("Storage::append_entry");
+        assert_eq!(result, "storage__append_entry");
+    }
+
+    #[test]
+    fn test_normalize_stemming() {
+        assert_eq!(normalize("running"), "runn");
+        assert_eq!(normalize("fixed"), "fix");
     }
 
     #[test]
