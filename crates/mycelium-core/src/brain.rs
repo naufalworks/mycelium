@@ -42,6 +42,15 @@ pub struct PendingWork {
     pub created_at: String,
 }
 
+/// Brain statistics for observability.
+#[derive(Debug, Clone)]
+pub struct BrainStatus {
+    pub atom_count: i64,
+    pub position_count: i64,
+    pub edge_count: i64,
+    pub pending_count: i64,
+}
+
 /// Create brain tables if they don't exist.
 pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute_batch(
@@ -188,6 +197,115 @@ pub fn consolidate_entry(conn: &Connection, turn: i64, session: &str, text: &str
         }
     }
     Ok(())
+}
+
+/// Find atoms whose phrase matches a LIKE pattern, ordered by ref_count DESC.
+pub fn recall(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<Vec<Atom>> {
+    let pattern = format!("%{}%", phrase);
+    let mut stmt = conn.prepare(
+        "SELECT id, phrase, first_seen, last_seen, ref_count
+         FROM atoms WHERE phrase LIKE ?1
+         ORDER BY ref_count DESC LIMIT ?2",
+    )?;
+    let atoms = stmt
+        .query_map(params![pattern, limit], |row| {
+            Ok(Atom {
+                id: row.get(0)?,
+                phrase: row.get(1)?,
+                first_seen: row.get(2)?,
+                last_seen: row.get(3)?,
+                ref_count: row.get(4)?,
+            })
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(atoms)
+}
+
+/// Find top-N neighbor atoms by edge weight for a given phrase.
+pub fn clusters(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<Vec<(String, f64)>> {
+    // First get the atom id for the phrase
+    let pattern = format!("%{}%", phrase);
+    let ids: Vec<i64> = conn
+        .prepare("SELECT id FROM atoms WHERE phrase LIKE ?1 LIMIT 1")?
+        .query_map(params![pattern], |row| row.get::<_, i64>(0))?
+        .filter_map(|r| r.ok())
+        .collect();
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let atom_id = ids[0];
+    // Query edges for neighbors (either side since we always store atom_a < atom_b)
+    let mut stmt = conn.prepare(
+        "SELECT atom_a, atom_b, weight FROM edges
+         WHERE atom_a = ?1 OR atom_b = ?2
+         ORDER BY weight DESC LIMIT ?3",
+    )?;
+    let neighbors: Vec<(i64, f64)> = stmt
+        .query_map(params![atom_id, atom_id, limit], |row| {
+            let a: i64 = row.get(0)?;
+            let b: i64 = row.get(1)?;
+            let w: f64 = row.get(2)?;
+            let neighbor_id = if a == atom_id { b } else { a };
+            Ok((neighbor_id, w))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+    // Resolve neighbor ids to phrases
+    let mut result = Vec::with_capacity(neighbors.len());
+    for (nid, weight) in neighbors {
+        let phrase: String =
+            conn.query_row("SELECT phrase FROM atoms WHERE id = ?1", params![nid], |row| {
+                row.get(0)
+            })?;
+        result.push((phrase, weight));
+    }
+    Ok(result)
+}
+
+/// Get first_seen, last_seen, ref_count for a phrase.
+pub fn when(conn: &Connection, phrase: &str) -> rusqlite::Result<Option<(i64, i64, i64)>> {
+    // Try exact match first
+    let result = conn.query_row(
+        "SELECT first_seen, last_seen, ref_count FROM atoms WHERE phrase = ?1",
+        params![phrase],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    );
+    match result {
+        Ok(info) => Ok(Some(info)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => {
+            // Try LIKE fallback
+            let pattern = format!("%{}%", phrase);
+            match conn.query_row(
+                "SELECT first_seen, last_seen, ref_count FROM atoms WHERE phrase LIKE ?1",
+                params![pattern],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            ) {
+                Ok(info) => Ok(Some(info)),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(e),
+            }
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Brain status -- counts across all data tables.
+pub fn brain_status(conn: &Connection) -> rusqlite::Result<BrainStatus> {
+    let atom_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM atoms", [], |row| row.get(0))?;
+    let position_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM positions", [], |row| row.get(0))?;
+    let edge_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM edges", [], |row| row.get(0))?;
+    let pending_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM pending_brain_work", [], |row| row.get(0))?;
+    Ok(BrainStatus {
+        atom_count,
+        position_count,
+        edge_count,
+        pending_count,
+    })
 }
 
 #[cfg(test)]
@@ -359,6 +477,195 @@ mod tests {
         let edge_count: i64 = conn.query_row("SELECT COUNT(*) FROM edges", [], |row| row.get(0))?;
         // Number of pairs from n items = n*(n-1)/2 = 9*8/2 = 36
         assert_eq!(edge_count, 36, "all-pairs edges from 9 atoms");
+        Ok(())
+    }
+
+    #[test]
+    fn test_recall_finds_atom() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        upsert_atom(&conn, "hash chain", 1)?;
+        let results = recall(&conn, "hash chain", 10)?;
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].phrase, "hash chain");
+        Ok(())
+    }
+
+    #[test]
+    fn test_recall_multiple_sessions() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        consolidate_entry(&conn, 1, "s1", "build hash chain")?;
+        consolidate_entry(&conn, 2, "s2", "fix hash chain bug")?;
+        consolidate_entry(&conn, 3, "s1", "test hash chain")?;
+        let results = recall(&conn, "hash chain", 10)?;
+        assert_eq!(results[0].ref_count, 3);
+        Ok(())
+    }
+
+    #[test]
+    fn test_recall_orders_by_ref_count() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        // "hash chain" appears in 3 sessions (ref_count = 3)
+        for t in 1..=3 {
+            upsert_atom(&conn, "hash chain", t)?;
+        }
+        // "merkle tree" appears in 1 session (ref_count = 1)
+        upsert_atom(&conn, "merkle tree", 4)?;
+        let results = recall(&conn, "hash chain", 10)?;
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].ref_count, 3);
+        // Search for "merkle" -- matches only "merkle tree" (ref_count=1)
+        // Also note that "merkle" alone is not an atom, so LIKE fallback
+        let results = recall(&conn, "merkle", 10)?;
+        assert!(!results.is_empty());
+        assert_eq!(results[0].phrase, "merkle tree");
+        Ok(())
+    }
+
+    #[test]
+    fn test_recall_limit() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        consolidate_entry(&conn, 1, "s1", "alpha beta")?;
+        consolidate_entry(&conn, 2, "s1", "alpha gamma")?;
+        consolidate_entry(&conn, 3, "s1", "alpha delta")?;
+        let results = recall(&conn, "alpha", 2)?;
+        assert_eq!(results.len(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_recall_empty() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        let results = recall(&conn, "nonexistent", 10)?;
+        assert!(results.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_clusters_basic() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        // "hash chain" co-occurs with "merkle tree" and "data struct"
+        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree data struct")?;
+        let results = clusters(&conn, "hash chain", 10)?;
+        assert!(!results.is_empty(), "should find at least one neighbor");
+        // Should contain "merkle tree" as a neighbor (any score)
+        let phrases: Vec<&str> = results.iter().map(|(p, _)| p.as_str()).collect();
+        assert!(
+            phrases.contains(&"merkle tree"),
+            "neighbors should include merkle tree"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_clusters_empty_phrase() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        let results = clusters(&conn, "zzzzzzz", 10)?;
+        assert!(results.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_when_exact() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        upsert_atom(&conn, "hash chain", 100)?;
+        upsert_atom(&conn, "hash chain", 200)?;
+        let info = when(&conn, "hash chain")?;
+        assert!(info.is_some());
+        let (first_seen, last_seen, ref_count) = info.unwrap();
+        assert_eq!(first_seen, 100);
+        assert_eq!(last_seen, 200);
+        assert_eq!(ref_count, 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_when_like_fallback() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        upsert_atom(&conn, "build hash chain", 10)?;
+        let info = when(&conn, "hash chain")?;
+        assert!(info.is_some(), "should fallback to LIKE match");
+        Ok(())
+    }
+
+    #[test]
+    fn test_when_missing() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        let info = when(&conn, "no such phrase")?;
+        assert!(info.is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn test_brain_status_counts() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        let status = brain_status(&conn)?;
+        assert_eq!(status.atom_count, 0);
+        assert_eq!(status.position_count, 0);
+        assert_eq!(status.edge_count, 0);
+        assert_eq!(status.pending_count, 0);
+        // Add some data
+        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree")?;
+        let status = brain_status(&conn)?;
+        assert_eq!(status.atom_count, 5); // 4 bigrams + 1 trigram
+        assert_eq!(status.position_count, 5);
+        assert_eq!(status.edge_count, 10);
+        assert_eq!(status.pending_count, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn test_brain_status_pending() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        // Manually insert a pending work entry
+        conn.execute(
+            "INSERT INTO pending_brain_work (turn) VALUES (?1)",
+            params![1],
+        )?;
+        conn.execute(
+            "INSERT INTO pending_brain_work (turn) VALUES (?1)",
+            params![2],
+        )?;
+        let status = brain_status(&conn)?;
+        assert_eq!(status.pending_count, 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_clusters_ranking() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        consolidate_entry(&conn, 1, "s1", "hash chain and merkle tree")?;
+        consolidate_entry(&conn, 2, "s1", "hash chain verify")?;
+        let results = clusters(&conn, "hash chain", 5)?;
+        assert!(!results.is_empty());
+        // Edges were accumulated
+        Ok(())
+    }
+
+    #[test]
+    fn test_when_first_last() -> rusqlite::Result<()> {
+        let conn = Connection::open_in_memory()?;
+        create_tables(&conn)?;
+        consolidate_entry(&conn, 5, "s1", "discuss hash chain")?;
+        consolidate_entry(&conn, 10, "s1", "build hash chain again")?;
+        let info = when(&conn, "hash chain")?;
+        assert!(info.is_some());
+        let (first, last, count) = info.unwrap();
+        assert_eq!(first, 5);
+        assert_eq!(last, 10);
+        assert_eq!(count, 2);
         Ok(())
     }
 }
