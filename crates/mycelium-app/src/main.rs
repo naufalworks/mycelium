@@ -100,6 +100,11 @@ enum Commands {
         #[command(subcommand)]
         command: SnapshotCommands,
     },
+    /// Brain management operations
+    Brain {
+        #[command(subcommand)]
+        command: BrainCommands,
+    },
 }
 
 #[derive(Subcommand)]
@@ -126,6 +131,20 @@ enum SnapshotCommands {
     Session { session: String },
     /// Create a snapshot for a session
     Create { session: String, summary: String },
+}
+
+#[derive(Subcommand)]
+enum BrainCommands {
+    /// Process annotated entries through the brain (one-shot consolidation)
+    Annotated,
+    /// Enqueue all entries for brain processing (backfill)
+    Backfill {
+        /// Processing order: newest-first (default) or oldest-first
+        #[arg(default_value = "newest-first")]
+        order: String,
+    },
+    /// Detect and register stop words from atom frequency data
+    StopWords,
 }
 
 #[tokio::main]
@@ -167,6 +186,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::DaemonUninstall => daemon_uninstall(),
         Commands::Fact { command } => cmd_fact(&config, command).await?,
         Commands::Snapshot { command } => cmd_snapshot(&config, command).await?,
+        Commands::Brain { command } => cmd_brain(&config, command)?,
     }
 
     Ok(())
@@ -774,4 +794,133 @@ async fn cmd_snapshot(config: &MyceliumConfig, command: &SnapshotCommands) -> an
     }
 
     Ok(())
+}
+
+/// Handle brain management commands.
+fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result<()> {
+    match command {
+        BrainCommands::Annotated => {
+            let db_path = config.root_dir.join("mycelium.db");
+            let conn = rusqlite::Connection::open(&db_path)?;
+            mycelium_core::brain::create_tables(&conn)?;
+
+            // Find entries with annotations
+            let mut stmt = conn.prepare(
+                "SELECT turn, session, user, assistant, annotation FROM entries
+                 WHERE annotation IS NOT NULL AND annotation != ''
+                 ORDER BY turn ASC"
+            )?;
+            let entries: Vec<(i64, String, String, String, String)> = stmt.query_map([], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                ))
+            })?.filter_map(|r| r.ok()).collect();
+
+            if entries.is_empty() {
+                println!("No annotated entries found.");
+                return Ok(());
+            }
+
+            println!("Processing {} annotated entries...", entries.len());
+            for (turn, session, user_msg, asst_msg, ann_json) in &entries {
+                let text = format!("{} {}", user_msg, asst_msg);
+                let annotation: mycelium_core::types::MemoryAnnotation =
+                    serde_json::from_str(ann_json)?;
+
+                mycelium_core::brain::consolidate_entry(
+                    &conn, *turn, session, &text, Some(&annotation),
+                )?;
+
+                let phrase_count = annotation.phrases.len();
+                let entity_count = annotation.entities.len();
+                println!("  Turn {}: {} phrases, {} entities — consolidated ✓", turn, phrase_count, entity_count);
+            }
+
+            // Show results
+            let status = mycelium_core::brain::brain_status(&conn)?;
+            println!();
+            println!("=== Brain Status ===");
+            println!("Atoms:    {}", status.atom_count);
+            println!("Edges:    {}", status.edge_count);
+            println!("Entities: {}", count_entities(&conn));
+            println!("Pending:  {}", status.pending_count);
+            println!();
+            println!("✅ Annotation pipeline verified — {} entries processed", entries.len());
+
+            Ok(())
+        }
+        BrainCommands::Backfill { order } => {
+            let db_path = config.root_dir.join("mycelium.db");
+            let conn = rusqlite::Connection::open(&db_path)?;
+            mycelium_core::brain::create_tables(&conn)?;
+
+            let order_clause = match order.as_str() {
+                "oldest-first" => "ORDER BY turn ASC",
+                _ => "ORDER BY turn DESC",
+            };
+
+            let sql = format!(
+                "INSERT OR IGNORE INTO pending_brain_work (turn, created_at)
+                 SELECT turn, datetime('now') FROM entries {}",
+                order_clause
+            );
+            let inserted = conn.execute(&sql, [])?;
+            println!("Enqueued {} entries for brain processing (order: {})", inserted, order);
+
+            let total: i64 = conn.query_row("SELECT COUNT(*) FROM pending_brain_work", [], |row| row.get(0))?;
+            println!("Total pending: {}", total);
+            println!("Run 'mycelium daemon' to start processing, or restart the server.");
+
+            Ok(())
+        }
+        BrainCommands::StopWords => {
+            let db_path = config.root_dir.join("mycelium.db");
+            let conn = rusqlite::Connection::open(&db_path)?;
+            mycelium_core::brain::create_tables(&conn)?;
+
+            // Build atom frequency map
+            let mut stmt = conn.prepare("SELECT phrase, ref_count FROM atoms")?;
+            let atom_counts: std::collections::HashMap<String, usize> = stmt
+                .query_map([], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as usize))
+                })?
+                .filter_map(|r| r.ok())
+                .collect();
+
+            // Count entries with positions (brain-processed entries)
+            let total_entries: usize = conn
+                .query_row("SELECT COUNT(DISTINCT turn) FROM positions", [], |row| row.get(0))
+                .unwrap_or(0);
+
+            println!("Analyzing {} atoms across {} entries...", atom_counts.len(), total_entries);
+            let before: i64 = conn.query_row("SELECT COUNT(*) FROM brain_stop_words", [], |row| row.get(0)).unwrap_or(0);
+            println!("Existing stop words: {}", before);
+
+            mycelium_core::brain::detect_stop_words(&conn, &atom_counts, total_entries)?;
+
+            let after: i64 = conn.query_row("SELECT COUNT(*) FROM brain_stop_words", [], |row| row.get(0)).unwrap_or(0);
+            let added = after - before;
+            println!("Added {} new stop words (total: {})", added, after);
+
+            if added > 0 {
+                let mut stmt = conn.prepare("SELECT phrase, frequency FROM brain_stop_words ORDER BY frequency DESC")?;
+                println!("---");
+                for row in stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))? {
+                    let (phrase, freq) = row?;
+                    println!("  '{}' (in {:.0}% of entries)", phrase, freq * 100.0);
+                }
+            }
+
+            Ok(())
+        }
+    }
+}
+
+/// Count registered entities in the entity_registry table.
+fn count_entities(conn: &rusqlite::Connection) -> i64 {
+    conn.query_row("SELECT COUNT(*) FROM entity_registry", [], |row| row.get(0)).unwrap_or(0)
 }

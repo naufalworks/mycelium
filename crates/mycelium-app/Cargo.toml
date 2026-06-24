@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 mycelium-core = { path = "../mycelium-core" }
+rusqlite = { workspace = true, features = ["bundled"] }
 clap = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
