@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use mycelium_core::Storage;
 use mycelium_core::brain;
+use mycelium_core::types::MemoryAnnotation;
 
 pub struct BrainDaemon {
     storage: Arc<Storage>,
@@ -49,9 +50,13 @@ impl BrainDaemon {
         for item in &items {
             if let Ok(Some(entry)) = self.storage.get_entry(item.turn) {
                 let text = format!("{} {}", entry.user, entry.assistant);
+                // Parse annotation JSON if present
+                let annotation: Option<MemoryAnnotation> = entry.annotation
+                    .as_deref()
+                    .and_then(|json| serde_json::from_str(json).ok());
                 // Lock again for each consolidation (short-lived).
                 let conn = self.storage.conn().lock().unwrap();
-                brain::consolidate_entry(&conn, entry.turn, &entry.session, &text, None)?;
+                brain::consolidate_entry(&conn, entry.turn, &entry.session, &text, annotation.as_ref())?;
                 processed.push(item.id);
             }
         }
