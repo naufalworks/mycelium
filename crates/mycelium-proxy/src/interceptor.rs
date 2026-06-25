@@ -13,7 +13,6 @@ use tracing::debug;
 use tracing::warn;
 
 use crate::context_synthesizer::build_fallback_context;
-use crate::context_synthesizer::build_synthesis_prompt;
 use crate::query_parser::call_query_parser;
 
 /// Find the first text block in an Anthropic content array.
@@ -39,10 +38,7 @@ const MEMORY_INSTRUCTION: &str = "\n\nAfter your response, emit a <memory> block
 /// Instruction about recall context block.
 const RECALL_CONTEXT_INSTRUCTION: &str = "\n\nYou have access to Mycelium's permanent memory. When you need to recall information, the system will inject relevant context from the brain graph.";
 
-/// Default token budget for the synthesis step.
-pub const DEFAULT_RECALL_BUDGET: usize = 1000;
-
-/// Call LLM for context synthesis.
+/// Find the first text block in an Anthropic content array.
 async fn call_synthesizer(
     client: &reqwest::Client,
     api_url: &str,
@@ -52,7 +48,7 @@ async fn call_synthesizer(
 ) -> Option<String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 1024,
+        "max_tokens": 10240,
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}]
@@ -87,7 +83,6 @@ pub async fn run_recall_pipeline(
     api_url: &str,
     api_key: &str,
     model: &str,
-    _budget: usize,
 ) -> String {
     debug!("🧠 Recall pipeline: processing \"{}\"", user_message);
     let start = std::time::Instant::now();
@@ -160,10 +155,10 @@ pub async fn run_recall_pipeline(
         return String::new();
     }
 
-    // Step 3: Context synthesis — try LLM first (fast model, no thinking), fallback to template
+    // Step 3: Context synthesis — try LLM first, fallback to template
     let elapsed = start.elapsed();
     debug!("  Recall pipeline complete in {:.2}ms — synthesizing context", elapsed.as_secs_f64() * 1000.0);
-    let synthesis_prompt = build_synthesis_prompt(&result, _budget);
+    let synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, 10000);
     match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
         Some(ctx) => {
             let total_elapsed = start.elapsed();

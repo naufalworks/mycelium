@@ -60,7 +60,7 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
     let llm_url = std::env::var("MYCELIUM_LLM_URL")
         .unwrap_or_else(|_| format!("{}/v1/messages", config.upstream_url));
     let llm_client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(180))
         .build()?;
 
     let state = Arc::new(ProxyState {
@@ -172,7 +172,6 @@ async fn intercept_and_forward(
                 &state.llm_url,
                 &state.upstream_api_key,
                 &state.model,
-                interceptor::DEFAULT_RECALL_BUDGET,
             )
             .await
         }
