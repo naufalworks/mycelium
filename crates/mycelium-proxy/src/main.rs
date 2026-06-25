@@ -1,4 +1,22 @@
 //! Mycelium Proxy binary — starts the reverse proxy server.
+//!
+//! # Environment Variables
+//!
+//! | Variable | Default | Description |
+//! |----------|---------|-------------|
+//! | `MYCELIUM_PROXY_PORT` | `8443` | Port to listen on |
+//! | `MYCELIUM_UPSTREAM_URL` | `http://localhost:8080` | Upstream LLM API URL |
+//! | `MYCELIUM_UPSTREAM_API_KEY` | `""` | API key for upstream LLM |
+//! | `MYCELIUM_MODEL` | `claude-sonnet-4-20250514` | Model name for LLM calls (used by recall query parser + synthesizer) |
+//! | `MYCELIUM_RECALL_MODE` | `graph` | Memory recall mode: `graph` (brain graph traversal, default) or `legacy` (old search_facts) |
+//!
+//! # Recall Mode
+//!
+//! - **graph** (default): Uses the Hebbian Crystal Brain graph to find relevant memories via
+//!   atom matching and cluster traversal. The query parser and context synthesizer use the
+//!   model specified by `MYCELIUM_MODEL` for LLM-based processing (~200-5000 tokens per recall).
+//! - **legacy**: Falls back to the old `search_facts` SQL LIKE query on the memory_facts table.
+//!   This mode is deprecated and will be removed in a future release.
 
 use mycelium_core::MyceliumConfig;
 
