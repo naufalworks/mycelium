@@ -189,4 +189,30 @@ mod tests {
         let max = max_turn(&conn);
         assert_eq!(max, 0);
     }
+
+    #[test]
+    fn test_recall_to_fallback_e2e() {
+        let conn = setup_brain();
+
+        // Seed atoms with edges (simulates what consolidate_entry does)
+        let a1 = brain::upsert_atom(&conn, "change secret", 100, 0.8).unwrap();
+        brain::record_position(&conn, a1, 100, "s1").unwrap();
+        let a2 = brain::upsert_atom(&conn, "server config", 101, 0.7).unwrap();
+        brain::record_position(&conn, a2, 101, "s1").unwrap();
+        brain::increment_edge(&conn, a1, a2, 101).unwrap();
+
+        // Query: graph traversal for "secret"
+        let query = RecallQuery {
+            atoms: vec!["secret".to_string()],
+            intent: RecallIntent::Relational,
+            temporal_hint: None,
+        };
+        let result = traverse(&conn, &query, 5, 5).unwrap();
+        assert_eq!(result.clusters.len(), 1, "Should find the 'change secret' cluster");
+        assert_eq!(result.clusters[0].seed_phrase, "change secret");
+        assert!(
+            result.clusters[0].neighbors.iter().any(|(p, _, _)| p == "server config"),
+            "Neighbor should include 'server config' via edge"
+        );
+    }
 }
