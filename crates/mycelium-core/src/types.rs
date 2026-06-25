@@ -284,3 +284,56 @@ impl Default for MyceliumConfig {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Recall — graph-guided memory retrieval
+// ---------------------------------------------------------------------------
+
+/// Parsed recall query — output of query parser, input to graph traversal.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecallQuery {
+    /// Canonical phrases extracted from user query
+    pub atoms: Vec<String>,
+    /// Query intent classification
+    pub intent: RecallIntent,
+    /// Optional temporal hint (ISO string or relative, e.g. "last night")
+    pub temporal_hint: Option<String>,
+}
+
+/// Query intent — determines traversal strategy.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum RecallIntent {
+    Factual,
+    Relational,
+    Temporal,
+    Exploratory,
+}
+
+/// A seed atom plus its neighbor cluster from graph traversal.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AtomCluster {
+    /// The seed atom that matched the query
+    pub seed_id: i64,
+    /// Seed phrase
+    pub seed_phrase: String,
+    /// Neighbor atoms: (phrase, edge_weight, importance)
+    pub neighbors: Vec<(String, f64, f64)>,
+    /// Temporal data: (first_seen, last_seen, total_mentions)
+    pub temporal: Option<(i64, i64, i64)>,
+}
+
+/// Full result from graph traversal engine.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecallResult {
+    pub query: RecallQuery,
+    pub clusters: Vec<AtomCluster>,
+    pub total_clusters: usize,
+    pub traversal_time_ms: f64,
+}
+
+/// Recall mode — controls which retrieval path the proxy uses.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum RecallMode {
+    Legacy,
+    GraphTraversal,
+}

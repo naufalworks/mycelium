@@ -39,6 +39,12 @@ pub enum MyceliumError {
 
     #[error("Database migration required: {0}")]
     MigrationRequired(String),
+
+    #[error("Recall error: {0}")]
+    Recall(String),
+
+    #[error("Brain graph empty — no atoms match query")]
+    RecallEmpty,
 }
 
 pub type Result<T> = std::result::Result<T, MyceliumError>;
