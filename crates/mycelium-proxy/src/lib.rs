@@ -76,12 +76,17 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         llm_client,
     });
 
+    let addr = format!("127.0.0.1:{}", config.proxy_port);
+    let recall_log = format!("{:?}", state.recall_mode);
+    let model_log = state.model.clone();
+
     let app = Router::new()
         .route("/{*path}", any(proxy_router))
         .with_state(state);
 
-    let addr = format!("127.0.0.1:{}", config.proxy_port);
     info!("Proxy listening on {}", addr);
+    info!("Recall mode: {}", recall_log);
+    info!("Recall model: {}", model_log);
     println!("🧬 Mycelium Proxy → {}", config.upstream_url);
     println!("   Listening on :{}", config.proxy_port);
     println!("   Max concurrent: {}", config.max_concurrent);

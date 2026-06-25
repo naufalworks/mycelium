@@ -38,9 +38,10 @@ async fn call_synthesizer(
     let body = serde_json::json!({
         "model": model,
         "max_tokens": 1024,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
+        "messages": [{
+            "role": "user",
+            "content": [{"type": "text", "text": prompt}]
+        }]
     });
 
     let resp = client
@@ -86,11 +87,17 @@ pub async fn run_recall_pipeline(
     model: &str,
     budget: usize,
 ) -> String {
+    debug!("🧠 Recall pipeline: processing \"{}\"", user_message);
+    let start = std::time::Instant::now();
+
     // Step 1: Query parsing — decompose user message into atoms + intent
     let query = match call_query_parser(llm_client, api_url, api_key, model, user_message).await {
-        Some(q) => q,
+        Some(q) => {
+            debug!("  Query parser: {} atoms, intent={:?}", q.atoms.len(), q.intent);
+            q
+        }
         None => {
-            warn!("Query parser returned None — falling back to raw message");
+            warn!("  Query parser failed — falling back to raw message as atom");
             RecallQuery {
                 atoms: vec![user_message.to_string()],
                 intent: RecallIntent::Factual,
@@ -104,25 +111,39 @@ pub async fn run_recall_pipeline(
         let conn = storage.connection();
         let conn_guard = conn.lock().unwrap();
         traverse(&conn_guard, &query, 5, 5)
-        // conn_guard dropped here before any await
     };
     let result = match result {
-        Ok(r) => r,
+        Ok(r) => {
+            debug!("  Traversal: {} clusters in {:.2}ms",
+                r.total_clusters, r.traversal_time_ms);
+            r
+        }
         Err(e) => {
-            warn!("Recall traversal failed: {}", e);
+            warn!("  Traversal failed: {}", e);
             return String::new();
         }
     };
 
     if result.clusters.is_empty() {
+        debug!("  No matching clusters found — empty context");
         return String::new();
     }
 
     // Step 3: Context synthesis (try LLM first, fallback to template)
+    let elapsed = start.elapsed();
+    debug!("  Recall pipeline complete in {:.2}ms — synthesizing context", elapsed.as_secs_f64() * 1000.0);
     let synthesis_prompt = build_synthesis_prompt(&result, budget);
     match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
-        Some(ctx) => ctx,
-        None => build_fallback_context(&result),
+        Some(ctx) => {
+            let total_elapsed = start.elapsed();
+            debug!("  ✅ Recall context generated in {:.2}ms (LLM synthesis)", total_elapsed.as_secs_f64() * 1000.0);
+            ctx
+        }
+        None => {
+            let total_elapsed = start.elapsed();
+            debug!("  ⚠️  LLM synthesis failed, using fallback template ({:.2}ms)", total_elapsed.as_secs_f64() * 1000.0);
+            build_fallback_context(&result)
+        }
     }
 }
 
