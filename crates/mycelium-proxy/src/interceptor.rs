@@ -6,20 +6,135 @@
 //! 3. Injects `<mycelium-facts>` into the system prompt
 //! 4. Returns the modified body + session + user message
 
-use mycelium_core::Storage;
+use mycelium_core::recall::traverse;
+use mycelium_core::{RecallIntent, RecallQuery, Storage};
 use serde_json::Value;
 use tracing::debug;
+use tracing::warn;
+
+use crate::context_synthesizer::build_fallback_context;
+use crate::context_synthesizer::build_synthesis_prompt;
+use crate::query_parser::call_query_parser;
 
 const FACTS_BLOCK_HEADER: &str = "\n<mycelium-facts>\nVerified facts from permanent memory:\n";
 
 /// Instruction injected into the system prompt to request a memory annotation.
 const MEMORY_INSTRUCTION: &str = "\n\nAfter your response, emit a <memory> block containing JSON with: phrases (canonical noun phrases to remember, each with text and importance 1-5), actions (key actions taken/fixed/explained, each with text and importance 1-5), entities (named things mentioned, each with name, type, aliases, and importance 1-5). Keep the block under 200 tokens.";
 
+/// Instruction about recall context block.
+const RECALL_CONTEXT_INSTRUCTION: &str = "\n\nYou have access to Mycelium's permanent memory. When you need to recall information, the system will inject relevant context from the brain graph.";
+
+/// Default token budget for the synthesis step.
+pub const DEFAULT_RECALL_BUDGET: usize = 1000;
+
+/// Call LLM for context synthesis.
+async fn call_synthesizer(
+    client: &reqwest::Client,
+    api_url: &str,
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+) -> Option<String> {
+    let body = serde_json::json!({
+        "model": model,
+        "max_tokens": 1024,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    });
+
+    let resp = client
+        .post(api_url)
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .json(&body)
+        .send()
+        .await
+        .ok()?;
+
+    let text = resp.text().await.ok()?;
+    let json: serde_json::Value = serde_json::from_str(&text).ok()?;
+
+    let content = json
+        .pointer("/content/0/text")
+        .or_else(|| json.pointer("/choices/0/message/content"))
+        .and_then(|c| c.as_str())?;
+
+    // Extract just the <mycelium-context> block if present
+    if let Some(start) = content.find("<mycelium-context>") {
+        if let Some(end) = content.find("</mycelium-context>") {
+            return Some(content[start..end + "</mycelium-context>".len()].to_string());
+        }
+    }
+
+    // If no XML tags, wrap entire response
+    Some(format!(
+        "<mycelium-context>\n{}\n</mycelium-context>",
+        content.trim()
+    ))
+}
+
+/// Run the full graph-guided recall pipeline.
+///
+/// Returns a context block to inject, or empty string if no memories found.
+pub async fn run_recall_pipeline(
+    user_message: &str,
+    storage: &Storage,
+    llm_client: &reqwest::Client,
+    api_url: &str,
+    api_key: &str,
+    model: &str,
+    budget: usize,
+) -> String {
+    // Step 1: Query parsing — decompose user message into atoms + intent
+    let query = match call_query_parser(llm_client, api_url, api_key, model, user_message).await {
+        Some(q) => q,
+        None => {
+            warn!("Query parser returned None — falling back to raw message");
+            RecallQuery {
+                atoms: vec![user_message.to_string()],
+                intent: RecallIntent::Factual,
+                temporal_hint: None,
+            }
+        }
+    };
+
+    // Step 2: Graph traversal — search the brain graph (synchronous block)
+    let result = {
+        let conn = storage.connection();
+        let conn_guard = conn.lock().unwrap();
+        traverse(&conn_guard, &query, 5, 5)
+        // conn_guard dropped here before any await
+    };
+    let result = match result {
+        Ok(r) => r,
+        Err(e) => {
+            warn!("Recall traversal failed: {}", e);
+            return String::new();
+        }
+    };
+
+    if result.clusters.is_empty() {
+        return String::new();
+    }
+
+    // Step 3: Context synthesis (try LLM first, fallback to template)
+    let synthesis_prompt = build_synthesis_prompt(&result, budget);
+    match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
+        Some(ctx) => ctx,
+        None => build_fallback_context(&result),
+    }
+}
+
 /// Process an intercepted request body — inject memory context.
 ///
 /// Returns `(modified_body, session, user_message)` if the request should be intercepted,
 /// or `None` if it should pass through unchanged.
-pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, String, String)> {
+pub fn process_request(
+    body: &[u8],
+    _storage: &Storage,
+    context_block: &str,
+) -> Option<(Vec<u8>, String, String)> {
     let mut req: Value = match serde_json::from_slice(body) {
         Ok(v) => v,
         Err(e) => {
@@ -42,17 +157,15 @@ pub fn process_request(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, Strin
                 .unwrap_or_else(|| "rust-proxy:default".to_string())
         });
 
-    // Query memory facts relevant to the user's message
-    let facts = storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
-
-    // Always inject memory annotation instruction (regardless of facts)
-    // Build the facts block separately
+    // Build the injection string from the pre-computed context block
     let mut injection = String::new();
-    if !facts.is_empty() {
-        debug!("Injecting {} memory facts for: {}", facts.len(), user_msg.chars().take(60).collect::<String>());
-        injection.push_str(&format!("\n\n{}", build_facts_block(&facts)));
+    if context_block.is_empty() {
+        injection.push_str(MEMORY_INSTRUCTION);
+    } else {
+        injection.push_str(&format!("\n\n{}", context_block));
+        injection.push_str(RECALL_CONTEXT_INSTRUCTION);
+        injection.push_str(MEMORY_INSTRUCTION);
     }
-    injection.push_str(MEMORY_INSTRUCTION);
 
     if let Some(system) = req.get_mut("system") {
         match system {

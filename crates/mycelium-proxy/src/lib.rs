@@ -8,10 +8,10 @@ use axum::{
     extract::State,
     http::{HeaderMap, Method, StatusCode, Uri},
     response::{IntoResponse, Response},
-    routing::{any, post},
+    routing::any,
     Router,
 };
-use mycelium_core::{EntryType, MyceliumConfig, Storage, Tier};
+use mycelium_core::{EntryType, MyceliumConfig, RecallMode, Storage, Tier};
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -33,6 +33,10 @@ pub struct ProxyState {
     pub http_client: reqwest::Client,
     pub session_loaded: Mutex<HashMap<String, bool>>,
     pub injected_turns: Mutex<HashSet<i64>>,
+    pub recall_mode: RecallMode,
+    pub upstream_api_key: String,
+    pub model: String,
+    pub llm_client: reqwest::Client,
 }
 
 /// Start the proxy server.
@@ -40,6 +44,21 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
     let db_path = config.root_dir.join("mycelium.db");
     let storage = Storage::open(db_path)?;
     let start_turn = storage.count_entries().unwrap_or(0) + 1;
+
+    let recall_mode = match std::env::var("MYCELIUM_RECALL_MODE")
+        .unwrap_or_else(|_| "graph".to_string())
+        .as_str()
+    {
+        "legacy" => RecallMode::Legacy,
+        _ => RecallMode::GraphTraversal,
+    };
+    let upstream_api_key =
+        std::env::var("MYCELIUM_UPSTREAM_API_KEY").unwrap_or_else(|_| String::new());
+    let model = std::env::var("MYCELIUM_MODEL")
+        .unwrap_or_else(|_| "claude-sonnet-4-20250514".to_string());
+    let llm_client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()?;
 
     let state = Arc::new(ProxyState {
         storage,
@@ -51,6 +70,10 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
             .build()?,
         session_loaded: Mutex::new(HashMap::new()),
         injected_turns: Mutex::new(HashSet::new()),
+        recall_mode,
+        upstream_api_key,
+        model,
+        llm_client,
     });
 
     let app = Router::new()
@@ -103,6 +126,7 @@ async fn intercept_and_forward(
             return (StatusCode::SERVICE_UNAVAILABLE, "too many requests").into_response();
         }
     };
+    drop(_permit);
 
     // Read the request body
     let body_bytes = match axum::body::to_bytes(body, 10 * 1024 * 1024).await {
@@ -114,7 +138,37 @@ async fn intercept_and_forward(
     };
 
     // Try to intercept: parse, inject memory context
-    let (mut req_body, session, user_msg) = match interceptor::process_request(&body_bytes, &state.storage) {
+    let context_block = match state.recall_mode {
+        RecallMode::Legacy => {
+            let user_msg = match interceptor::extract_user_message(
+                &serde_json::from_slice::<serde_json::Value>(&body_bytes).unwrap_or_default(),
+            ) {
+                Some(m) => m,
+                None => String::new(),
+            };
+            let facts = state.storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
+            interceptor::build_facts_block(&facts)
+        }
+        RecallMode::GraphTraversal => {
+            let user_msg = match interceptor::extract_user_message(
+                &serde_json::from_slice::<serde_json::Value>(&body_bytes).unwrap_or_default(),
+            ) {
+                Some(m) => m,
+                None => String::new(),
+            };
+            interceptor::run_recall_pipeline(
+                &user_msg,
+                &state.storage,
+                &state.llm_client,
+                &state.config.upstream_url,
+                &state.upstream_api_key,
+                &state.model,
+                interceptor::DEFAULT_RECALL_BUDGET,
+            )
+            .await
+        }
+    };
+    let (mut req_body, session, user_msg) = match interceptor::process_request(&body_bytes, &state.storage, &context_block) {
         Some(result) => result,
         None => {
             let (result, _) = forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await;
