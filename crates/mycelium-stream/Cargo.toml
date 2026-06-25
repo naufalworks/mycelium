@@ -8,11 +8,8 @@ name = "mycelium_stream"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
-tauri-plugin-shell = "2"
 leptos.workspace = true
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4"
@@ -24,7 +21,3 @@ log = "0.4"
 js-sys = "0.3"
 gloo-net = "0.7"
 web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "CanvasGradient", "HtmlCanvasElement", "HtmlElement", "Document", "Window", "Element", "MouseEvent", "CssStyleDeclaration", "EventSource", "MessageEvent", "Request", "RequestInit", "RequestMode", "Response", "Headers", "AbortController", "AbortSignal", "Event", "EventTarget"] }
-
-[features]
-default = ["custom-protocol"]
-custom-protocol = ["tauri/custom-protocol"]

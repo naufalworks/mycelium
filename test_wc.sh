@@ -1,0 +1,1 @@
+cat /Users/azfar.naufal/Documents/mycelium/crates/mycelium-mcp/src/main.rs | wc -l
