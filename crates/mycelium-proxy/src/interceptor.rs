@@ -52,13 +52,12 @@ async fn call_synthesizer(
 ) -> Option<String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 4096,
+        "max_tokens": 1024,
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}]
         }]
     });
-
     let resp = client
         .post(api_url)
         .header("x-api-key", api_key)
@@ -67,29 +66,18 @@ async fn call_synthesizer(
         .send()
         .await
         .ok()?;
-
     let text = resp.text().await.ok()?;
     let json: serde_json::Value = serde_json::from_str(&text).ok()?;
-
-    // Extract text from Anthropic response (supports thinking blocks)
     let content = find_text_content(&json)
         .or_else(|| json.pointer("/choices/0/message/content").and_then(|c| c.as_str()).map(String::from))?;
-
-    // Extract just the <mycelium-context> block if present
     if let Some(start) = content.find("<mycelium-context>") {
         if let Some(end) = content.find("</mycelium-context>") {
             return Some(content[start..end + "</mycelium-context>".len()].to_string());
         }
     }
-
-    // If no XML tags, wrap entire response
-    Some(format!(
-        "<mycelium-context>\n{}\n</mycelium-context>",
-        content.trim()
-    ))
+    Some(format!("<mycelium-context>\n{}\n</mycelium-context>", content.trim()))
 }
 
-/// Run the full graph-guided recall pipeline.
 ///
 /// Returns a context block to inject, or empty string if no memories found.
 pub async fn run_recall_pipeline(
@@ -99,7 +87,7 @@ pub async fn run_recall_pipeline(
     api_url: &str,
     api_key: &str,
     model: &str,
-    budget: usize,
+    _budget: usize,
 ) -> String {
     debug!("🧠 Recall pipeline: processing \"{}\"", user_message);
     let start = std::time::Instant::now();
@@ -112,8 +100,37 @@ pub async fn run_recall_pipeline(
         }
         None => {
             warn!("  Query parser failed — falling back to raw message as atom");
+            // Filter out known system/internal messages — they have no recall value
+            let cleaned = user_message
+                .trim()
+                .trim_matches(|c: char| c == '"' || c == '\'' || c == '[' || c == ']')
+                .to_string();
+
+            // If it looks like a system message, skip recall entirely
+            if cleaned.starts_with("Your previous response")
+                || cleaned.starts_with("The user stepped away")
+                || cleaned.starts_with("[Your previous")
+                || cleaned.len() > 500
+            {
+                debug!("  Skipping recall — message looks like system/internal prompt");
+                return String::new();
+            }
+
+            // Extract short meaningful phrases (2-5 words max) for the fallback atom
+            let fallback_atoms: Vec<String> = if cleaned.len() > 80 {
+                cleaned.split_whitespace()
+                    .filter(|w| w.len() > 3)
+                    .take(5)
+                    .collect::<Vec<&str>>()
+                    .chunks(2)
+                    .map(|chunk| chunk.join(" "))
+                    .collect()
+            } else {
+                vec![cleaned]
+            };
+
             RecallQuery {
-                atoms: vec![user_message.to_string()],
+                atoms: fallback_atoms,
                 intent: RecallIntent::Factual,
                 temporal_hint: None,
             }
@@ -143,10 +160,10 @@ pub async fn run_recall_pipeline(
         return String::new();
     }
 
-    // Step 3: Context synthesis (try LLM first, fallback to template)
+    // Step 3: Context synthesis — try LLM first (fast model, no thinking), fallback to template
     let elapsed = start.elapsed();
     debug!("  Recall pipeline complete in {:.2}ms — synthesizing context", elapsed.as_secs_f64() * 1000.0);
-    let synthesis_prompt = build_synthesis_prompt(&result, budget);
+    let synthesis_prompt = build_synthesis_prompt(&result, _budget);
     match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
         Some(ctx) => {
             let total_elapsed = start.elapsed();
