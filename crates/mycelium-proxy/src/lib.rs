@@ -35,6 +35,7 @@ pub struct ProxyState {
     pub injected_turns: Mutex<HashSet<i64>>,
     pub recall_mode: RecallMode,
     pub upstream_api_key: String,
+    pub llm_url: String,
     pub model: String,
     pub llm_client: reqwest::Client,
 }
@@ -56,6 +57,8 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         std::env::var("MYCELIUM_UPSTREAM_API_KEY").unwrap_or_else(|_| String::new());
     let model = std::env::var("MYCELIUM_MODEL")
         .unwrap_or_else(|_| "claude-sonnet-4-20250514".to_string());
+    let llm_url = std::env::var("MYCELIUM_LLM_URL")
+        .unwrap_or_else(|_| format!("{}/v1/messages", config.upstream_url));
     let llm_client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(60))
         .build()?;
@@ -72,6 +75,7 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         injected_turns: Mutex::new(HashSet::new()),
         recall_mode,
         upstream_api_key,
+        llm_url,
         model,
         llm_client,
     });
@@ -165,7 +169,7 @@ async fn intercept_and_forward(
                 &user_msg,
                 &state.storage,
                 &state.llm_client,
-                &state.config.upstream_url,
+                &state.llm_url,
                 &state.upstream_api_key,
                 &state.model,
                 interceptor::DEFAULT_RECALL_BUDGET,

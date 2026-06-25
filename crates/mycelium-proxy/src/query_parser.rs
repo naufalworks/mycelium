@@ -189,15 +189,16 @@ pub async fn call_query_parser(
 
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 300,
-        "messages": [{"role": "user", "content": prompt}]
+        "max_tokens": 2048,
+        "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
     });
 
     debug!("Calling query parser LLM at {}", api_url);
 
     let response = client
         .post(api_url)
-        .header("Authorization", format!("Bearer {}", api_key))
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
         .header("Content-Type", "application/json")
         .json(&body)
         .send()
@@ -219,7 +220,34 @@ pub async fn call_query_parser(
         e
     }).ok()?;
 
-    parse_query_response(&response_text)
+    debug!("Query parser response ({} bytes): {}",
+        response_text.len(),
+        &response_text[..response_text.len().min(200)],
+    );
+
+    // Extract LLM output from Anthropic/Messages API response format
+    // Handles thinking blocks: iterates through content to find the first text block
+    match serde_json::from_str::<Value>(&response_text) {
+        Ok(json) => {
+            // Try Anthropic format: find first content block with type="text"
+            if let Some(blocks) = json.get("content").and_then(|c| c.as_array()) {
+                for block in blocks {
+                    if block.get("type").and_then(|t| t.as_str()) == Some("text") {
+                        if let Some(text) = block.get("text").and_then(|t| t.as_str()) {
+                            return parse_query_response(text);
+                        }
+                    }
+                }
+            }
+            // Try OpenAI format: response.choices[0].message.content
+            if let Some(content) = json.pointer("/choices/0/message/content").and_then(|c| c.as_str()) {
+                return parse_query_response(content);
+            }
+            // Fallback: treat the top-level fields as the LLM output
+            parse_query_response(&response_text)
+        }
+        Err(_) => parse_query_response(&response_text),
+    }
 }
 
 #[cfg(test)]

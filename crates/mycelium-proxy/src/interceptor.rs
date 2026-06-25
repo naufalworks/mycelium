@@ -16,6 +16,21 @@ use crate::context_synthesizer::build_fallback_context;
 use crate::context_synthesizer::build_synthesis_prompt;
 use crate::query_parser::call_query_parser;
 
+/// Find the first text block in an Anthropic content array.
+/// Handles thinking blocks by iterating through all content blocks.
+fn find_text_content(json: &serde_json::Value) -> Option<String> {
+    if let Some(blocks) = json.get("content").and_then(|c| c.as_array()) {
+        for block in blocks {
+            if block.get("type").and_then(|t| t.as_str()) == Some("text") {
+                if let Some(text) = block.get("text").and_then(|t| t.as_str()) {
+                    return Some(text.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 const FACTS_BLOCK_HEADER: &str = "\n<mycelium-facts>\nVerified facts from permanent memory:\n";
 
 /// Instruction injected into the system prompt to request a memory annotation.
@@ -37,7 +52,7 @@ async fn call_synthesizer(
 ) -> Option<String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}]
@@ -56,10 +71,9 @@ async fn call_synthesizer(
     let text = resp.text().await.ok()?;
     let json: serde_json::Value = serde_json::from_str(&text).ok()?;
 
-    let content = json
-        .pointer("/content/0/text")
-        .or_else(|| json.pointer("/choices/0/message/content"))
-        .and_then(|c| c.as_str())?;
+    // Extract text from Anthropic response (supports thinking blocks)
+    let content = find_text_content(&json)
+        .or_else(|| json.pointer("/choices/0/message/content").and_then(|c| c.as_str()).map(String::from))?;
 
     // Extract just the <mycelium-context> block if present
     if let Some(start) = content.find("<mycelium-context>") {
