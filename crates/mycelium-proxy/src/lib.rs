@@ -19,6 +19,7 @@ use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 
 pub mod interceptor;
+pub mod query_parser;
 
 const CONTEXT_HEADER: &str = "\n<mycelium-memory>\nRecent memory context:\n";
 
