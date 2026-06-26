@@ -112,6 +112,26 @@ The brain stores every conversation as **atoms** (important phrases) connected b
 
 **Logs:** Proxy logs at `$MYCELIUM_ROOT/daemon/proxy.log`.
 
+## Cortex — Intent Router
+
+Cortex is an intent-to-skill matcher embedded in the proxy pipeline. It reads your
+natural language query, matches it against a skills registry (`skills.yaml`), and
+injects relevant workflow suggestions into the LLM's context alongside memory.
+
+**How it works:**
+1. Your question is parsed into atoms (same step as memory recall)
+2. Cortex scores atoms against skill triggers (sub-ms, zero LLM calls)
+3. If a skill matches above threshold (0.3), a `<cortex-skill>` block is appended
+4. The LLM sees the suggestion and offers to run it — optional, natural
+
+**Configuration:**
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MYCELIUM_CORTEX_ENABLED` | `true` | Enable/disable Cortex |
+| `MYCELIUM_CORTEX_SKILLS_PATH` | `{root_dir}/skills.yaml` | Path to skills YAML |
+
+Edit `skills.yaml` to add, remove, or customize skills.
+
 ## Data
 
 Single `mycelium.db` (SQLite, WAL mode) replacing old `log.jsonl` + `index.db` split.

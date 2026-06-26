@@ -1,0 +1,52 @@
+skills:
+  - name: diagnose-bugs
+    description: "Find root cause of bugs or test failures"
+    triggers: ["bug", "debug", "root cause", "failing test", "broken"]
+    intent: debugging
+    provider: deer-flow
+    steps:
+      - label: Reproduce
+        action: "Identify minimal steps to reproduce the issue"
+      - label: Hypothesize
+        action: "Form a hypothesis about the root cause"
+      - label: Fix
+        action: "Apply the fix"
+      - label: Verify
+        action: "Run regression tests to confirm"
+
+  - name: new-feature
+    description: "Plan and build a new feature with tests"
+    triggers: ["new feature", "add", "implement", "build", "create"]
+    intent: development
+    provider: deer-flow
+    steps:
+      - label: Requirements
+        action: "Clarify what the feature should do"
+      - label: Design
+        action: "Design the implementation approach"
+      - label: Implement
+        action: "Write code following TDD"
+      - label: Review
+        action: "Self-review and verify"
+
+  - name: handoff
+    description: "Compact conversation into a handoff document"
+    triggers: ["handoff", "save context", "document session"]
+    intent: documentation
+    provider: deer-flow
+    steps:
+      - label: Extract
+        action: "Extract key decisions and changes"
+      - label: Format
+        action: "Write a structured handoff document"
+
+  - name: architecture-review
+    description: "Scan codebase for design issues"
+    triggers: ["architecture", "refactor", "design issue"]
+    intent: maintenance
+    provider: deer-flow
+    steps:
+      - label: Scan
+        action: "Run architecture analysis"
+      - label: Report
+        action: "Present findings and recommendations"

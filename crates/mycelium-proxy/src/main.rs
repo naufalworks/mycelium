@@ -11,6 +11,8 @@
 //! | `MYCELIUM_RECALL_MODE` | `graph` | Memory recall mode: `graph` (brain graph traversal, default) or `legacy` (old search_facts) |
 //! | `MYCELIUM_MODEL` | `claude-sonnet-4-20250514` | Model for recall LLM calls (query parser + context synthesis) |
 //! | `MYCELIUM_LLM_URL` | `{upstream_url}/v1/messages` | LLM API endpoint for recall calls (defaults to upstream Anthropic endpoint) |
+//! | `MYCELIUM_CORTEX_ENABLED` | `true` | Enable Cortex intent-to-skill matching |
+//! | `MYCELIUM_CORTEX_SKILLS_PATH` | `{root_dir}/skills.yaml` | Path to skills registry |
 //!
 //! # Recall Mode
 //!
