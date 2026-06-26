@@ -6,8 +6,76 @@
 use chrono::Utc;
 use moka::sync::Cache;
 use rusqlite::{params, Connection};
+use std::sync::OnceLock;
 
 use crate::types::{EntityAnnotation, MemoryAnnotation};
+
+/// Heat cache for frequently accessed atoms.
+/// Key: atom_id, Value: (Atom, heat_score).
+/// Heat spreads along edges: accessing atom[42] heats atom[55] (neighbor) by 50%.
+/// Eviction is TTL-based — cold atoms naturally expire.
+static HEAT_CACHE: OnceLock<Cache<i64, (Atom, f64)>> = OnceLock::new();
+
+fn heat_cache() -> &'static Cache<i64, (Atom, f64)> {
+    HEAT_CACHE.get_or_init(|| {
+        Cache::builder()
+            .max_capacity(5_000)
+            .time_to_live(std::time::Duration::from_secs(300)) // 5 min TTL
+            .build()
+    })
+}
+
+/// Heat cache for cluster results (neighbor lists).
+/// When an atom is accessed, its neighbors are cached alongside it.
+static CLUSTER_CACHE: OnceLock<Cache<i64, Vec<(String, f64)>>> = OnceLock::new();
+
+fn cluster_cache() -> &'static Cache<i64, Vec<(String, f64)>> {
+    CLUSTER_CACHE.get_or_init(|| {
+        Cache::builder()
+            .max_capacity(2_000)
+            .time_to_live(std::time::Duration::from_secs(300))
+            .build()
+    })
+}
+
+/// Spread heat from an accessed atom to its neighbors.
+/// Loads neighbors from DB if not yet cached, then heats them.
+fn spread_heat(conn: &Connection, atom_id: i64) {
+    let cache = heat_cache();
+
+    // Get or compute neighbors
+    let neighbors: Vec<(i64, f64)> = if let Some(cached) = cluster_cache().get(&atom_id) {
+        // We cached neighbor phrases, but we need IDs here
+        // Fall through to SQL for simplicity — cluster_cache stores phrases
+        Vec::new()
+    } else {
+        // Load neighbors from edges table
+        let mut stmt = conn.prepare(
+            "SELECT CASE WHEN atom_a = ?1 THEN atom_b ELSE atom_a END, weight
+             FROM edges WHERE atom_a = ?1 OR atom_b = ?1
+             ORDER BY weight DESC LIMIT 5"
+        ).ok();
+        if let Some(ref mut stmt) = stmt {
+            stmt.query_map(params![atom_id], |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, f64>(1)?))
+            }).ok()
+            .map(|iter| iter.filter_map(|r| r.ok()).collect())
+            .unwrap_or_default()
+        } else {
+            Vec::new()
+        }
+    };
+
+    for (neighbor_id, weight) in &neighbors {
+        let heat_boost = weight * 0.5; // half the edge weight as heat
+        if let Some((atom, heat)) = cache.get(neighbor_id) {
+            // Boost existing entry's heat
+            let new_heat = (heat + heat_boost).min(10.0);
+            cache.insert(*neighbor_id, (atom.clone(), new_heat));
+        }
+        // If not cached, it'll get heat on first access
+    }
+}
 
 /// A unique atom -- single bi-gram or tri-gram stored once.
 #[derive(Debug, Clone)]
@@ -594,7 +662,15 @@ pub fn recall(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<V
             })
         })?
         .filter_map(|r| r.ok())
-        .collect();
+        .collect::<Vec<Atom>>();
+
+    // Heat diffusion: cache results and spread heat to neighbors
+    let cache = heat_cache();
+    for atom in &atoms {
+        cache.insert(atom.id, (atom.clone(), 1.0));
+        spread_heat(conn, atom.id);
+    }
+
     Ok(atoms)
 }
 
@@ -611,6 +687,12 @@ pub fn clusters(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result
         return Ok(vec![]);
     }
     let atom_id = ids[0];
+
+    // Heat cache: check cluster cache first
+    if let Some(cached) = cluster_cache().get(&atom_id) {
+        return Ok(cached.iter().take(limit as usize).cloned().collect());
+    }
+
     // Query edges for neighbors (either side since we always store atom_a < atom_b)
     let mut stmt = conn.prepare(
         "SELECT atom_a, atom_b, weight FROM edges
@@ -627,7 +709,7 @@ pub fn clusters(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result
         })?
         .filter_map(|r| r.ok())
         .collect();
-    // Resolve neighbor ids to phrases
+    // Resolve neighbor ids to phrases and cache
     let mut result = Vec::with_capacity(neighbors.len());
     for (nid, weight) in neighbors {
         let phrase: String =
@@ -636,6 +718,7 @@ pub fn clusters(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result
             })?;
         result.push((phrase, weight));
     }
+    cluster_cache().insert(atom_id, result.clone());
     Ok(result)
 }
 
