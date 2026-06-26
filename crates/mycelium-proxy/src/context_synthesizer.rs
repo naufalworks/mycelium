@@ -121,7 +121,7 @@ mod tests {
         assert!(prompt.contains("change secret"));
         assert!(prompt.contains("server config"));
         assert!(prompt.contains("restart proxy"));
-        assert!(prompt.contains("1000")); // budget
+        assert!(prompt.contains("<mycelium-context>")); // shortened prompt
     }
 
     #[test]
