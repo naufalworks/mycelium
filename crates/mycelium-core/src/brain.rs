@@ -104,6 +104,8 @@ pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
             importance REAL NOT NULL DEFAULT 1.0
         );
         CREATE INDEX IF NOT EXISTS idx_atoms_phrase ON atoms(phrase);
+        -- expression index for ORDER BY (ref_count * importance) DESC in recall()
+        CREATE INDEX IF NOT EXISTS idx_atoms_score ON atoms(ref_count * importance DESC);
 
         CREATE TABLE IF NOT EXISTS entity_registry (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
