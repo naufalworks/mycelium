@@ -527,10 +527,14 @@ pub fn consolidate_entry(
     text: &str,
     annotation: Option<&MemoryAnnotation>,
 ) -> rusqlite::Result<()> {
-    let mut all_ids: Vec<i64> = Vec::new();
+    // LSM-style batch: wrap all writes in a single transaction
+    conn.execute_batch("BEGIN")?;
 
-    // Phase 1: Annotation processing (phrases, actions, entities)
-    if let Some(ann) = annotation {
+    let result = (|| -> rusqlite::Result<()> {
+        let mut all_ids: Vec<i64> = Vec::new();
+
+        // Phase 1: Annotation processing (phrases, actions, entities)
+        if let Some(ann) = annotation {
         // Process phrases
         for item in &ann.phrases {
             let norm = normalize(&item.text);
@@ -610,6 +614,15 @@ pub fn consolidate_entry(
     }
 
     Ok(())
+    })(); // end closure
+
+    match result {
+        Ok(()) => conn.execute_batch("COMMIT"),
+        Err(e) => {
+            conn.execute_batch("ROLLBACK").ok();
+            Err(e)
+        }
+    }
 }
 
 /// Detect stop words from atom frequency data. Called after 500+ entries.
