@@ -6,7 +6,7 @@
 use crate::brain;
 use crate::error::MyceliumError;
 use crate::types::*;
-use rusqlite::Connection;
+use rusqlite::{params, Connection};
 use std::time::Instant;
 use tracing::debug;
 
@@ -68,11 +68,21 @@ pub fn traverse(
                 .map_err(|e| MyceliumError::Recall(e.to_string()))?
                 .map(|(f, l, c)| (f, l, c));
 
+            // Look up pre-written snippet (write-time synthesis)
+            let snippet: Option<String> = conn
+                .query_row(
+                    "SELECT snippet FROM context_snippets WHERE atom_id = ?1 ORDER BY turn DESC LIMIT 1",
+                    params![atom.id],
+                    |row| row.get(0),
+                )
+                .ok();
+
             all_clusters.push(AtomCluster {
                 seed_id: atom.id,
                 seed_phrase: atom.phrase.clone(),
                 neighbors,
                 temporal,
+                snippet,
             });
         }
     }

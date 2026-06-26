@@ -244,6 +244,14 @@ pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
         CREATE INDEX IF NOT EXISTS idx_positions_atom ON positions(atom_id);
         CREATE INDEX IF NOT EXISTS idx_positions_turn ON positions(turn);
 
+        CREATE TABLE IF NOT EXISTS context_snippets (
+            atom_id INTEGER NOT NULL,
+            snippet TEXT NOT NULL DEFAULT '',
+            turn INTEGER NOT NULL,
+            session TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY (atom_id) REFERENCES atoms(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_snippets_atom ON context_snippets(atom_id, turn DESC);
         CREATE TABLE IF NOT EXISTS edges (
             atom_a INTEGER NOT NULL,
             atom_b INTEGER NOT NULL,
@@ -566,6 +574,21 @@ pub fn upsert_entity(conn: &Connection, entity: &EntityAnnotation) -> rusqlite::
 
 /// Consolidate an entry by extracting atoms from annotation + rule-based types,
 /// with W=2 local edges and entity bridge edges (2.5x weight).
+/// Build pre-formatted context snippets from a memory annotation.
+/// Each phrase gets a one-line summary like: "change secret (action: modified config)"
+fn build_atom_snippets(ann: &MemoryAnnotation) -> Vec<(String, String)> {
+    let mut snippets = Vec::new();
+    for item in &ann.phrases {
+        let s = format!("{}", item.text);
+        snippets.push((item.text.clone(), s));
+    }
+    for item in &ann.actions {
+        let s = format!("{} (action)", item.text);
+        snippets.push((item.text.clone(), s));
+    }
+    snippets
+}
+
 pub fn consolidate_entry(
     conn: &Connection,
     turn: i64,
@@ -655,6 +678,20 @@ pub fn consolidate_entry(
             let j = i + w;
             if j < all_ids.len() {
                 increment_edge_weighted(conn, all_ids[i], all_ids[j], turn, 1.0)?;
+            }
+        }
+    }
+
+    // Phase 5: Write-time synthesis — store context snippet for each atom
+    // Pre-formats annotation data so recall doesn't need LLM synthesis
+    if let Some(ann) = annotation {
+        let snippets = build_atom_snippets(ann);
+        for (phrase, snippet) in &snippets {
+            if let Ok(mut stmt) = conn.prepare(
+                "INSERT INTO context_snippets (atom_id, snippet, turn, session)
+                 SELECT id, ?2, ?3, ?4 FROM atoms WHERE phrase = ?1"
+            ) {
+                let _ = stmt.execute(params![phrase, snippet, turn, session]);
             }
         }
     }

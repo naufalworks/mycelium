@@ -78,6 +78,7 @@ mod tests {
                         ("env file".to_string(), 0.7, 1.0),
                     ],
                     temporal: Some((100, 200, 5)),
+                snippet: None,
                 },
                 AtomCluster {
                     seed_id: 2,
@@ -86,6 +87,7 @@ mod tests {
                         ("nginx restart".to_string(), 0.85, 1.0),
                     ],
                     temporal: Some((150, 201, 3)),
+                snippet: None,
                 },
             ],
             total_clusters: 2,
@@ -144,6 +146,7 @@ mod tests {
                 seed_phrase: "simple fact".to_string(),
                 neighbors: vec![],
                 temporal: None,
+                snippet: None,
             }],
             total_clusters: 1,
             traversal_time_ms: 0.5,

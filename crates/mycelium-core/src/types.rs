@@ -320,6 +320,8 @@ pub struct AtomCluster {
     pub neighbors: Vec<(String, f64, f64)>,
     /// Temporal data: (first_seen, last_seen, total_mentions)
     pub temporal: Option<(i64, i64, i64)>,
+    /// Pre-written context snippet (write-time synthesis, no LLM call needed)
+    pub snippet: Option<String>,
 }
 
 /// Full result from graph traversal engine.

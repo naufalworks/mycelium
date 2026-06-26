@@ -16,6 +16,27 @@ use crate::context_synthesizer::build_fallback_context;
 use crate::query_parser::call_query_parser;
 use crate::cortex;
 
+/// Build a <mycelium-context> block from write-time snippets (pre-stored during consolidation).
+fn build_snippet_context(result: &mycelium_core::RecallResult) -> String {
+    let mut ctx = String::new();
+    for cluster in &result.clusters {
+        if let Some(ref snippet) = cluster.snippet {
+            if ctx.is_empty() {
+                ctx.push_str("<mycelium-context>
+");
+            }
+            ctx.push_str(&format!("
+[{}]
+  {}
+", cluster.seed_phrase, snippet));
+        }
+    }
+    if !ctx.is_empty() {
+        ctx.push_str("</mycelium-context>");
+    }
+    ctx
+}
+
 /// Find the first text block in an Anthropic content array.
 /// Handles thinking blocks by iterating through all content blocks.
 fn find_text_content(json: &serde_json::Value) -> Option<String> {
@@ -171,19 +192,28 @@ pub async fn run_recall_pipeline(
     // Step 3: Context synthesis — try LLM first, fallback to template
     let elapsed = start.elapsed();
     debug!("  Recall pipeline complete in {:.2}ms — synthesizing context", elapsed.as_secs_f64() * 1000.0);
-    let synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, 10000);
-    let mut context = match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
-        Some(ctx) => {
-            let total_elapsed = start.elapsed();
-            debug!("  ✅ Recall context generated in {:.2}ms (LLM synthesis)", total_elapsed.as_secs_f64() * 1000.0);
-            ctx
-        }
-        None => {
-            let total_elapsed = start.elapsed();
-            debug!("  ⚠️  LLM synthesis failed, using fallback template ({:.2}ms)", total_elapsed.as_secs_f64() * 1000.0);
-            build_fallback_context(&result)
-        }
-    };
+    // Try write-time snippets first (stored during consolidation, zero LLM cost)
+    let mut context = build_snippet_context(&result);
+
+    // Fallback: try LLM synthesis if no snippets available
+    if context.is_empty() {
+        let synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, 10000);
+        context = match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
+            Some(ctx) => {
+                let total_elapsed = start.elapsed();
+                debug!("  ✅ Recall context generated in {:.2}ms (LLM synthesis)", total_elapsed.as_secs_f64() * 1000.0);
+                ctx
+            }
+            None => {
+                let total_elapsed = start.elapsed();
+                debug!("  ⚠️  LLM synthesis failed, using fallback template ({:.2}ms)", total_elapsed.as_secs_f64() * 1000.0);
+                build_fallback_context(&result)
+            }
+        };
+    } else {
+        let total_elapsed = start.elapsed();
+        debug!("  ✅ Recall context from write-time snippets ({:.2}ms)", total_elapsed.as_secs_f64() * 1000.0);
+    }
 
     // Step 4: Cortex — append skill suggestion if matched
     if cortex_enabled && !cortex_skills.is_empty() && !query.atoms.is_empty() {
