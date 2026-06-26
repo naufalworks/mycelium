@@ -13,6 +13,20 @@ use tracing::debug;
 /// Traverse the brain graph for a parsed recall query.
 ///
 /// Steps: seed → temporal filter → cluster expansion → rank → return top N.
+/// Ensure the context_snippets table exists (created lazily on first recall).
+fn ensure_snippets_table(conn: &Connection) {
+    let _ = conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS context_snippets (
+            atom_id INTEGER NOT NULL,
+            snippet TEXT NOT NULL DEFAULT '',
+            turn INTEGER NOT NULL,
+            session TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY (atom_id) REFERENCES atoms(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_snippets_atom ON context_snippets(atom_id, turn DESC);"
+    );
+}
+
 pub fn traverse(
     conn: &Connection,
     query: &RecallQuery,
@@ -20,6 +34,9 @@ pub fn traverse(
     max_neighbors: usize,
 ) -> Result<RecallResult, MyceliumError> {
     let start = Instant::now();
+
+    // Auto-create context_snippets table if needed
+    ensure_snippets_table(conn);
 
     if query.atoms.is_empty() {
         return Ok(RecallResult {
@@ -76,6 +93,11 @@ pub fn traverse(
                     |row| row.get(0),
                 )
                 .ok();
+
+            let snippet_count = snippet.as_ref().map(|s| s.len()).unwrap_or(0);
+            if snippet_count > 0 {
+                debug!("  Snippet for '{}': {} chars", atom.phrase, snippet_count);
+            }
 
             all_clusters.push(AtomCluster {
                 seed_id: atom.id,
