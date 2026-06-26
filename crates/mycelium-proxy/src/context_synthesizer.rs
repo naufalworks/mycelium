@@ -20,20 +20,11 @@ pub fn build_synthesis_prompt(result: &RecallResult, budget: usize) -> String {
     }
 
     format!(
-        r#"You are a memory synthesis system. Given the following atom clusters from a brain graph, produce a clear, readable <mycelium-context> block.
-
-The context block should:
-1. Group related atoms into sections with [bracketed headers]
-2. Use bullet points for each memory item
-3. Include temporal context where available
-4. Be concise — use at most {} tokens
-5. Only include information present in the input data — do not fabricate
-
-Input clusters:
+        r#"Format as <mycelium-context> block. Clusters:
 {}
 
-Output ONLY the <mycelium-context> block, nothing else."#,
-        budget, clusters_text
+Output ONLY XML, nothing else."#,
+        clusters_text
     )
 }
 

@@ -70,7 +70,7 @@ async fn call_synthesizer(
 ) -> Option<String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 512,
+        "max_tokens": 256,
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}]

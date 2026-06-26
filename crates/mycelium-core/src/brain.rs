@@ -823,22 +823,29 @@ pub fn recall(conn: &Connection, phrase: &str, limit: i64) -> rusqlite::Result<V
 
 /// Resolve a list of atom IDs to Atom structs via SQL.
 fn resolved_ids_to_atoms(conn: &Connection, ids: &[i64]) -> rusqlite::Result<Vec<Atom>> {
-    let mut atoms = Vec::with_capacity(ids.len());
-    for id in ids {
-        let atom = conn.query_row(
-            "SELECT id, phrase, first_seen, last_seen, ref_count, importance FROM atoms WHERE id = ?1",
-            params![id],
-            |row| Ok(Atom {
-                id: row.get(0)?,
-                phrase: row.get(1)?,
-                first_seen: row.get(2)?,
-                last_seen: row.get(3)?,
-                ref_count: row.get(4)?,
-                importance: row.get(5)?,
-            }),
-        )?;
-        atoms.push(atom);
+    if ids.is_empty() {
+        return Ok(Vec::new());
     }
+    // Batch: single query with multiple parameters instead of N queries
+    let placeholders: Vec<String> = ids.iter().map(|_| "?".to_string()).collect();
+    let sql = format!(
+        "SELECT id, phrase, first_seen, last_seen, ref_count, importance FROM atoms WHERE id IN ({})",
+        placeholders.join(",")
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let params_refs: Vec<&dyn rusqlite::types::ToSql> = ids.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
+    let atoms = stmt.query_map(params_refs.as_slice(), |row| {
+        Ok(Atom {
+            id: row.get(0)?,
+            phrase: row.get(1)?,
+            first_seen: row.get(2)?,
+            last_seen: row.get(3)?,
+            ref_count: row.get(4)?,
+            importance: row.get(5)?,
+        })
+    })?
+    .filter_map(|r| r.ok())
+    .collect();
     Ok(atoms)
 }
 
