@@ -6,8 +6,6 @@
 use chrono::Utc;
 use moka::sync::Cache;
 use rusqlite::{params, Connection};
-use std::collections::HashMap;
-use std::sync::Mutex;
 use std::sync::OnceLock;
 
 use crate::types::{EntityAnnotation, MemoryAnnotation};
@@ -46,7 +44,7 @@ fn spread_heat(conn: &Connection, atom_id: i64) {
     let cache = heat_cache();
 
     // Get or compute neighbors
-    let neighbors: Vec<(i64, f64)> = if let Some(cached) = cluster_cache().get(&atom_id) {
+    let neighbors: Vec<(i64, f64)> = if let Some(_cached) = cluster_cache().get(&atom_id) {
         // We cached neighbor phrases, but we need IDs here
         // Fall through to SQL for simplicity — cluster_cache stores phrases
         Vec::new()
