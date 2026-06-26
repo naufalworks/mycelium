@@ -3,6 +3,8 @@
 //! Listens on :8443, intercepts /v1/messages, injects memory context,
 //! logs conversations, and forwards to upstream.
 
+pub mod cortex;
+
 use axum::{
     body::Body,
     extract::State,
