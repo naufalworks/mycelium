@@ -671,6 +671,27 @@ pub fn consolidate_entry(
     }
 }
 
+
+/// Reinforce edges between co-occurring atoms in a context block.
+/// Uses LLM attention as implicit training signal — atoms appearing
+/// together in synthesized context get their edge weights boosted.
+pub fn reinforce_cooccurrence(
+    conn: &Connection,
+    atom_ids: &[i64],
+    turn: i64,
+) -> rusqlite::Result<()> {
+    for i in 0..atom_ids.len() {
+        for j in (i + 1)..atom_ids.len() {
+            let a = atom_ids[i];
+            let b = atom_ids[j];
+            if a != b {
+                increment_edge_weighted(conn, a, b, turn, 0.5)?;
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Detect stop words from atom frequency data. Called after 500+ entries.
 /// Any phrase in >70% of entries is flagged as a stop word.
 pub fn detect_stop_words(
