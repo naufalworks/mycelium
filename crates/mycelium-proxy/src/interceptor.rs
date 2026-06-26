@@ -198,7 +198,7 @@ pub async fn run_recall_pipeline(
 
     // Fallback: try LLM synthesis if no snippets available
     if context.is_empty() {
-        let _synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, 10000);
+        let synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, 10000);
         context = match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
             Some(ctx) => {
                 let total_elapsed = start.elapsed();

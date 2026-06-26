@@ -7,7 +7,7 @@
 use mycelium_core::RecallResult;
 
 /// Build a context block prompt for the LLM.
-pub fn build_synthesis_prompt(result: &RecallResult, budget: usize) -> String {
+pub fn build_synthesis_prompt(result: &RecallResult, _budget: usize) -> String {
     let mut clusters_text = String::new();
     for (i, cluster) in result.clusters.iter().enumerate() {
         clusters_text.push_str(&format!("Cluster {}: seed=\"{}\"\n", i + 1, cluster.seed_phrase));
