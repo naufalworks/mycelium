@@ -686,6 +686,8 @@ pub fn consolidate_entry(
     // Pre-formats annotation data so recall doesn't need LLM synthesis
     if let Some(ann) = annotation {
         let snippets = build_atom_snippets(ann);
+        if !snippets.is_empty() {
+        }
         for (phrase, snippet) in &snippets {
             if let Ok(mut stmt) = conn.prepare(
                 "INSERT INTO context_snippets (atom_id, snippet, turn, session)

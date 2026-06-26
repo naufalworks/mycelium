@@ -70,7 +70,7 @@ async fn call_synthesizer(
 ) -> Option<String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 10240,
+        "max_tokens": 512,
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}]
@@ -114,7 +114,7 @@ pub async fn run_recall_pipeline(
     // Step 1: Query parsing — decompose user message into atoms + intent
     let query = match call_query_parser(llm_client, api_url, api_key, model, user_message).await {
         Some(q) => {
-            debug!("  Query parser: {} atoms, intent={:?}", q.atoms.len(), q.intent);
+            debug!("  Query parser: {} atoms, intent={:?} => {:?}", q.atoms.len(), q.intent, q.atoms);
             q
         }
         None => {
@@ -164,8 +164,9 @@ pub async fn run_recall_pipeline(
     };
     let result = match result {
         Ok(r) => {
-            debug!("  Traversal: {} clusters in {:.2}ms",
-                r.total_clusters, r.traversal_time_ms);
+            debug!("  Traversal: {} clusters in {:.2}ms — {:?}", 
+                r.total_clusters, r.traversal_time_ms,
+                r.clusters.iter().map(|c| &c.seed_phrase).collect::<Vec<_>>());
             r
         }
         Err(e) => {
@@ -201,7 +202,8 @@ pub async fn run_recall_pipeline(
         context = match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
             Some(ctx) => {
                 let total_elapsed = start.elapsed();
-                debug!("  ✅ Recall context generated in {:.2}ms (LLM synthesis)", total_elapsed.as_secs_f64() * 1000.0);
+                let preview: String = ctx.chars().take(200).collect();
+                debug!("  ✅ Recall context generated in {:.2}ms (LLM synthesis): {}", total_elapsed.as_secs_f64() * 1000.0, preview);
                 ctx
             }
             None => {
