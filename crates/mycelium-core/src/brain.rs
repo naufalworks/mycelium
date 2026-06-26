@@ -139,6 +139,7 @@ pub fn create_tables(conn: &Connection) -> rusqlite::Result<()> {
             PRIMARY KEY (atom_a, atom_b)
         );
         CREATE INDEX IF NOT EXISTS idx_edges_a ON edges(atom_a, weight DESC);
+        CREATE INDEX IF NOT EXISTS idx_edges_b ON edges(atom_b, weight DESC);
 
         CREATE TABLE IF NOT EXISTS pending_brain_work (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
