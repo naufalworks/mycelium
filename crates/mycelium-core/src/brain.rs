@@ -587,6 +587,42 @@ fn build_atom_snippets(ann: &MemoryAnnotation) -> Vec<(String, String)> {
     snippets
 }
 
+/// Process annotation phrases into atoms and positions.
+fn process_annotation_phrases(
+    conn: &Connection,
+    turn: i64,
+    session: &str,
+    annotation: Option<&MemoryAnnotation>,
+) -> rusqlite::Result<Vec<i64>> {
+    let mut ids = Vec::new();
+    if let Some(ann) = annotation {
+        for item in &ann.phrases {
+            let norm = normalize(&item.text);
+            if norm.is_empty() || norm.len() < 3 { continue; }
+            let id = upsert_atom(conn, &norm, turn, item.importance)?;
+            record_position(conn, id, turn, session)?;
+            ids.push(id);
+        }
+        for item in &ann.actions {
+            let norm = normalize(&item.text);
+            if norm.is_empty() || norm.len() < 3 { continue; }
+            let id = upsert_atom(conn, &norm, turn, item.importance)?;
+            record_position(conn, id, turn, session)?;
+            ids.push(id);
+        }
+        for entity in &ann.entities {
+            upsert_entity(conn, entity)?;
+            let norm = normalize(&entity.name);
+            if !norm.is_empty() && norm.len() >= 3 {
+                let id = upsert_atom(conn, &norm, turn, entity.importance)?;
+                record_position(conn, id, turn, session)?;
+                ids.push(id);
+            }
+        }
+    }
+    Ok(ids)
+}
+
 pub fn consolidate_entry(
     conn: &Connection,
     turn: i64,
