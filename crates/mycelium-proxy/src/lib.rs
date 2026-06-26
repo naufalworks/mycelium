@@ -40,6 +40,8 @@ pub struct ProxyState {
     pub llm_url: String,
     pub model: String,
     pub llm_client: reqwest::Client,
+    pub cortex_enabled: bool,
+    pub cortex_skills: Vec<crate::cortex::Skill>,
 }
 
 /// Start the proxy server.
@@ -65,6 +67,21 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         .timeout(std::time::Duration::from_secs(180))
         .build()?;
 
+    let cortex_enabled = std::env::var("MYCELIUM_CORTEX_ENABLED")
+        .unwrap_or_else(|_| "true".to_string())
+        == "true";
+    let mut cortex_skills = Vec::new();
+    if cortex_enabled {
+        let skills_path = std::env::var("MYCELIUM_CORTEX_SKILLS_PATH")
+            .unwrap_or_else(|_| format!("{}/skills.yaml", config.root_dir.display()));
+        cortex_skills = crate::cortex::load_skills(&std::path::Path::new(&skills_path));
+        if cortex_skills.is_empty() {
+            tracing::warn!("Cortex enabled but no skills loaded from {}", skills_path);
+        } else {
+            tracing::info!("Cortex loaded {} skills", cortex_skills.len());
+        }
+    }
+
     let state = Arc::new(ProxyState {
         storage,
         config: config.clone(),
@@ -80,6 +97,8 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         llm_url,
         model,
         llm_client,
+        cortex_enabled,
+        cortex_skills,
     });
 
     let addr = format!("127.0.0.1:{}", config.proxy_port);
@@ -174,6 +193,8 @@ async fn intercept_and_forward(
                 &state.llm_url,
                 &state.upstream_api_key,
                 &state.model,
+                &state.cortex_skills,
+                state.cortex_enabled,
             )
             .await
         }

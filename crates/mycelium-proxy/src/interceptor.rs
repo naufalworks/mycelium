@@ -14,6 +14,7 @@ use tracing::warn;
 
 use crate::context_synthesizer::build_fallback_context;
 use crate::query_parser::call_query_parser;
+use crate::cortex;
 
 /// Find the first text block in an Anthropic content array.
 /// Handles thinking blocks by iterating through all content blocks.
@@ -83,6 +84,8 @@ pub async fn run_recall_pipeline(
     api_url: &str,
     api_key: &str,
     model: &str,
+    cortex_skills: &[cortex::Skill],
+    cortex_enabled: bool,
 ) -> String {
     debug!("🧠 Recall pipeline: processing \"{}\"", user_message);
     let start = std::time::Instant::now();
@@ -159,7 +162,7 @@ pub async fn run_recall_pipeline(
     let elapsed = start.elapsed();
     debug!("  Recall pipeline complete in {:.2}ms — synthesizing context", elapsed.as_secs_f64() * 1000.0);
     let synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, 10000);
-    match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
+    let mut context = match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
         Some(ctx) => {
             let total_elapsed = start.elapsed();
             debug!("  ✅ Recall context generated in {:.2}ms (LLM synthesis)", total_elapsed.as_secs_f64() * 1000.0);
@@ -170,7 +173,18 @@ pub async fn run_recall_pipeline(
             debug!("  ⚠️  LLM synthesis failed, using fallback template ({:.2}ms)", total_elapsed.as_secs_f64() * 1000.0);
             build_fallback_context(&result)
         }
+    };
+
+    // Step 4: Cortex — append skill suggestion if matched
+    if cortex_enabled && !cortex_skills.is_empty() && !query.atoms.is_empty() {
+        if let Some(matched) = cortex::match_skill(&query.atoms, cortex_skills, 0.3) {
+            context.push_str("\n");
+            context.push_str(&cortex::build_cortex_block(&matched));
+            debug!("  Cortex matched: {} (conf={:.2})", matched.skill.name, matched.confidence);
+        }
     }
+
+    context
 }
 
 /// Process an intercepted request body — inject memory context.
