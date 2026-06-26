@@ -157,6 +157,16 @@ pub async fn run_recall_pipeline(
         debug!("  No matching clusters found — empty context");
         return String::new();
     }
+    // Implicit Attention Graph: reinforce edges between co-occurring atoms
+    // The LLM "attended" these atoms together → boost their connection
+    {
+        let conn_guard = storage.connection();
+        let conn = conn_guard.lock().unwrap();
+        let atom_ids: Vec<i64> = result.clusters.iter().map(|c| c.seed_id).collect();
+        if atom_ids.len() > 1 {
+            let _ = mycelium_core::brain::reinforce_cooccurrence(&conn, &atom_ids, 0);
+        }
+    }
 
     // Step 3: Context synthesis — try LLM first, fallback to template
     let elapsed = start.elapsed();
