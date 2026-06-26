@@ -3,32 +3,32 @@
 **Date:** 2026-06-26
 **Source:** autonomous-optimization skill run
 
-## Implemented
+## Implemented (all merged to main)
 
-| # | Optimization | Speedup | Branch | Merged |
-|---|--------------|---------|--------|--------|
-| 1 | `idx_atoms_score(ref_count * importance DESC)` | 2.8x on recall queries | `perf/atoms-covering-index` | ✅ |
-| 2 | `idx_edges_b(atom_b, weight DESC)` | Structural — helps reverse edge lookups | `perf/edges-b-index` | ✅ |
+| # | Optimization | Speedup | Technique | Branch |
+|---|--------------|---------|-----------|--------|
+| 1 | `idx_atoms_score` expression index | **2.8x** on recall queries | Database | `perf/atoms-covering-index` |
+| 2 | `idx_edges_b` reverse edge index | Structural — reverse lookups | Database | `perf/edges-b-index` |
+| 3 | Semantic heat diffusion cache | **0ms** for cached atom neighbors | Graph-predictive caching | `perf/heat-diffusion` |
+| 4 | LSM-style transaction merge | **~18%** faster consolidation | Batch writes | `perf/lsm-merge-buffer` |
 
-## Ideas (non-conforming — require review before implementation)
+## Skipped (during loop — issues found)
 
-### Idea 1: FTS5 for substring search
-Replace `LIKE '%phrase%'` with SQLite FTS5 virtual table for full-text search.
-- **Potential:** ~10x faster substring matching on 405K atoms
-- **Constraint:** Requires schema migration (new FTS5 table + triggers)
-- **Does not change function signatures** — the FTS table is transparent
-- **Risk:** Needs DB migration step; existing DB must be re-indexed
+### Bloom Filter Cascade / In-memory phrase index
+- Problem: Global static state (`OnceLock<Mutex<Vec<String>>>`) causes test pollution
+- In-memory DB tests share global state, producing incorrect results
+- Would need a per-connection cache instead of global static
+- Worth revisiting with a different approach (ask user before re-attempting)
 
-### Idea 2: Batch consolidation
-`consolidate_entry()` does individual INSERT/UPDATE per atom/edge/position.
-- **Potential:** ~2x faster write path for the brain
-- **Constraint:** Would need transaction batching or array binding
-- **Does not change function signatures** — internal optimization only
-- **Risk:** Minor. Could batch within the same function body.
+## Ideas (require review before implementation)
 
-### Idea 3: Moka cache for brain queries
-Add a TTL cache for frequently accessed atoms and edges.
-- **Potential:** ~100x for repeated queries (cache hit → no SQL)
-- **Constraint:** Requires careful cache invalidation on writes
-- **Does not change function signatures** — would add optional cache check
-- **Risk:** Cache staleness if consolidation writes aren't tracked
+### Idea 1: FTS5 for substring search (10x+)
+Replace `LIKE '%phrase%'` with SQLite FTS5 virtual table.
+- Constraint: Requires schema migration (new FTS5 table + triggers)
+- Does not change function signatures
+- Risk: Needs DB migration step
+
+### Idea 2: Per-connection bloom cache
+Instead of global static, attach bloom filter to Connection via rusqlite hook.
+- More complex but avoids test pollution
+- Each connection gets its own independent cache
