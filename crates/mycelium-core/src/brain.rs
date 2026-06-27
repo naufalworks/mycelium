@@ -587,6 +587,7 @@ fn build_atom_snippets(ann: &MemoryAnnotation) -> Vec<(String, String)> {
     snippets
 }
 
+#[allow(dead_code)]
 /// Process annotation phrases into atoms and positions.
 fn process_annotation_phrases(
     conn: &Connection,
