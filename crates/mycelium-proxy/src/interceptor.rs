@@ -60,6 +60,22 @@ const MEMORY_INSTRUCTION: &str = "\n\nAfter your response, emit a <memory> block
 /// Instruction about recall context block.
 const RECALL_CONTEXT_INSTRUCTION: &str = "\n\nYou have access to Mycelium's permanent memory. When you need to recall information, the system will inject relevant context from the brain graph.";
 
+// ── Constants ──
+/// Number of memory clusters to retrieve per recall query.
+const MAX_RECALL_CLUSTERS: usize = 5;
+const MAX_RECALL_NEIGHBORS: usize = 5;
+/// Maximum tokens for synthesis LLM call (keeps thinking short).
+const SYNTHESIS_MAX_TOKENS: u64 = 256;
+/// Fallback token budget for build_synthesis_prompt.
+const SYNTHESIS_BUDGET: usize = 10000;
+/// Anthropic API version header value.
+const ANTHROPIC_API_VERSION: &str = "2023-06-01";
+/// Minimum confidence for Cortex skill matching.
+const CORTEX_MATCH_THRESHOLD: f64 = 0.3;
+/// Characters to truncate log previews.
+/// Max raw message length before falling back to word extraction.
+/// Threshold for system message detection (skip recall).
+
 /// Find the first text block in an Anthropic content array.
 async fn call_synthesizer(
     client: &reqwest::Client,
@@ -70,7 +86,7 @@ async fn call_synthesizer(
 ) -> Option<String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 256,
+        "max_tokens": SYNTHESIS_MAX_TOKENS,
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}]
@@ -79,7 +95,7 @@ async fn call_synthesizer(
     let resp = client
         .post(api_url)
         .header("x-api-key", api_key)
-        .header("anthropic-version", "2023-06-01")
+        .header("anthropic-version", ANTHROPIC_API_VERSION)
         .json(&body)
         .send()
         .await
@@ -160,7 +176,7 @@ pub async fn run_recall_pipeline(
     let result = {
         let conn = storage.connection();
         let conn_guard = conn.lock().unwrap();
-        traverse(&conn_guard, &query, 5, 5)
+        traverse(&conn_guard, &query, MAX_RECALL_CLUSTERS, MAX_RECALL_NEIGHBORS)
     };
     let result = match result {
         Ok(r) => {
@@ -198,7 +214,7 @@ pub async fn run_recall_pipeline(
 
     // Fallback: try LLM synthesis if no snippets available
     if context.is_empty() {
-        let synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, 10000);
+        let synthesis_prompt = crate::context_synthesizer::build_synthesis_prompt(&result, SYNTHESIS_BUDGET);
         context = match call_synthesizer(llm_client, api_url, api_key, model, &synthesis_prompt).await {
             Some(ctx) => {
                 let total_elapsed = start.elapsed();
@@ -219,7 +235,7 @@ pub async fn run_recall_pipeline(
 
     // Step 4: Cortex — append skill suggestion if matched
     if cortex_enabled && !cortex_skills.is_empty() && !query.atoms.is_empty() {
-        if let Some(matched) = cortex::match_skill(&query.atoms, cortex_skills, 0.3) {
+        if let Some(matched) = cortex::match_skill(&query.atoms, cortex_skills, CORTEX_MATCH_THRESHOLD) {
             context.push_str("\n");
             context.push_str(&cortex::build_cortex_block(&matched));
             debug!("  Cortex matched: {} (conf={:.2})", matched.skill.name, matched.confidence);
