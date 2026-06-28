@@ -22,5 +22,4 @@ uuid.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 tar = "0.4"
 flate2 = "1"
-ctrlc = "3.4"
 dirs = "6"
