@@ -14,6 +14,7 @@ pub mod search;
 pub mod error;
 pub mod brain;
 pub mod recall;
+pub mod hot_graph;
 
 pub use types::*;
 pub use storage::*;
