@@ -9,7 +9,9 @@
 
 use rusqlite::{params, Connection, OpenFlags};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::Mutex;
+use tokio::sync::Notify;
 use tracing::{debug, info};
 
 use crate::error::MyceliumError;
@@ -28,6 +30,8 @@ pub struct Storage {
     cache: MemoryCache,
     /// Full-text search index (tantivy).
     search_index: Option<SearchIndex>,
+    /// Wake signal for the event-driven brain daemon.
+    notify: Arc<Notify>,
 }
 
 impl Storage {
@@ -62,6 +66,7 @@ impl Storage {
             conn: Mutex::new(conn),
             cache: MemoryCache::new(),
             search_index,
+            notify: Arc::new(Notify::new()),
         };
 
         storage.initialize_schema()?;
@@ -237,6 +242,7 @@ impl Storage {
         if let Err(e) = crate::brain::enqueue_brain_work(&conn, entry.turn) {
             tracing::warn!("failed to enqueue brain work: {}", e);
         }
+        self.notify_pending_work();  // wake the brain daemon
 
         // Invalidate caches after write
         self.cache.invalidate_all();
@@ -819,6 +825,18 @@ impl Storage {
         &self.conn
     }
 
+    // ── Event-driven Brain Daemon Integration ──
+
+    /// Signal the brain daemon that new pending work is available.
+    pub fn notify_pending_work(&self) {
+        self.notify.notify_one();
+    }
+
+    /// Get a reference to the notify for the brain daemon to await.
+    pub fn subscribe_pending_work(&self) -> Arc<Notify> {
+        Arc::clone(&self.notify)
+    }
+
     // ── Private Helpers ──
 
     fn row_to_entry(&self, row: &rusqlite::Row) -> rusqlite::Result<Entry> {
@@ -843,5 +861,29 @@ impl Storage {
             verdict: row.get(11)?,
             annotation: row.get(12)?,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_notify_interface_exists() {
+        // Create a unique temp path for the test database
+        let tmp = std::env::temp_dir().join(format!("mycelium_test_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let storage = Storage::open(tmp.join("test.db")).unwrap();
+
+        // subscribe_pending_work should return an Arc<Notify>
+        let _notify: Arc<Notify> = storage.subscribe_pending_work();
+
+        // notify_pending_work should not panic
+        storage.notify_pending_work();
+
+        // Clean up
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
