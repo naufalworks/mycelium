@@ -1,33 +1,42 @@
 //! Background daemon that processes pending brain work.
-//! Polls the `pending_brain_work` queue every 5 seconds,
+//! Waits on `Storage`'s `Notify` signal instead of polling,
 //! consolidates entries into atoms/positions/edges.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
+use tokio::sync::Notify;
 use mycelium_core::Storage;
 use mycelium_core::brain;
 use mycelium_core::types::MemoryAnnotation;
 
 pub struct BrainDaemon {
     storage: Arc<Storage>,
+    notify: Arc<Notify>,
     running: Arc<AtomicBool>,
 }
 
 impl BrainDaemon {
-    pub fn new(storage: Arc<Storage>) -> Self {
-        Self { storage, running: Arc::new(AtomicBool::new(true)) }
+    pub fn new(storage: Arc<Storage>, notify: Arc<Notify>) -> Self {
+        Self { storage, notify, running: Arc::new(AtomicBool::new(true)) }
     }
 
     /// Spawn the daemon loop as a background tokio task.
     pub fn spawn(self) {
         tokio::spawn(async move {
-            tracing::info!("Brain daemon started");
+            tracing::info!("Brain daemon started (event-driven mode)");
             while self.running.load(Ordering::Relaxed) {
+                // Wait for a wake signal, with 60 s safety timeout
+                tokio::select! {
+                    _ = self.notify.notified() => {},
+                    _ = tokio::time::sleep(Duration::from_secs(60)) => {
+                        tracing::trace!("Brain daemon: safety poll after timeout");
+                    },
+                }
+
                 if let Err(e) = self.process_batch() {
                     tracing::warn!("brain daemon error: {}", e);
                 }
-                tokio::time::sleep(Duration::from_secs(5)).await;
             }
             tracing::info!("Brain daemon stopped");
         });
