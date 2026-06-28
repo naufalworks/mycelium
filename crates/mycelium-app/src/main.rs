@@ -178,7 +178,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Findings => cmd_findings(&config).await?,
         Commands::Infer { context } => cmd_infer(&config, context).await?,
         Commands::Read { url } => cmd_read(&config, url).await?,
-        Commands::Daemon => run_daemon(&config),
+        Commands::Daemon => run_daemon(&config).await,
         Commands::DaemonStart => daemon_start(&config),
         Commands::DaemonStop => daemon_stop(&config),
         Commands::DaemonStatus => daemon_status(&config),
@@ -469,8 +469,8 @@ async fn cmd_read(config: &MyceliumConfig, url: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_daemon(config: &MyceliumConfig) {
-    match daemon::run_daemon(config) {
+async fn run_daemon(config: &MyceliumConfig) {
+    match daemon::run_daemon(config).await {
         Ok(()) => info!("Daemon exited normally"),
         Err(e) => error!("Daemon error: {}", e),
     }

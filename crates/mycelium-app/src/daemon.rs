@@ -1,25 +1,21 @@
-//! Mycelium Daemon — robust background process manager.
+//! Mycelium Daemon — async signal-driven process manager.
 //!
 //! Manages the server and proxy as child processes with:
-//! - Auto-restart with exponential backoff
-//! - Health monitoring every 10 seconds
-//! - Graceful shutdown on signals
+//! - tokio::process-based spawning
+//! - Event-driven monitoring via tokio::select! over child.wait()
+//! - Circuit-breaker restart with rate limiting (1s min interval)
+//! - Graceful shutdown with async timeout
 //! - PID file management
 //! - launchd integration
 
 use mycelium_core::MyceliumConfig;
-use std::process::{Child, Command, Stdio};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use tokio::process::{Child, Command};
+use tokio::signal::unix::{signal, SignalKind};
 use tracing::{error, info, warn};
-
-/// Maximum number of restart attempts before giving up.
-const MAX_RETRIES: u32 = 10;
-/// Initial backoff delay (seconds).
-const INITIAL_BACKOFF: u64 = 1;
-/// Maximum backoff delay (seconds).
-const MAX_BACKOFF: u64 = 30;
 
 /// Managed child process with restart tracking.
 struct ManagedProcess {
@@ -63,14 +59,22 @@ impl ManagedProcess {
             .spawn()
             .map_err(|e| format!("spawn {}: {}", self.name, e))?;
 
-        info!("Started {} (PID {})", self.name, child.id());
+        info!("Started {} (PID {})", self.name, child.id().unwrap_or(0));
         self.child = Some(child);
         self.restart_count += 1;
-        let _ = std::fs::write(&self.pid_path, self.child.as_ref().map(|c| c.id()).unwrap_or(0).to_string());
+        let _ = std::fs::write(
+            &self.pid_path,
+            self.child
+                .as_ref()
+                .and_then(|c| c.id())
+                .unwrap_or(0)
+                .to_string(),
+        );
         Ok(())
     }
 
     /// Check if the process is alive.
+    #[allow(dead_code)]
     fn is_alive(&mut self) -> bool {
         if let Some(ref mut child) = self.child {
             match child.try_wait() {
@@ -91,133 +95,174 @@ impl ManagedProcess {
         }
     }
 
-    /// Stop the process gracefully, then force kill.
+    /// Stop the process gracefully (send SIGTERM).
     fn stop(&mut self) {
         if let Some(mut child) = self.child.take() {
-            info!("Stopping {} (PID {})", self.name, child.id());
+            info!("Stopping {} (PID {})", self.name, child.id().unwrap_or(0));
 
-            // Try graceful shutdown
             #[cfg(unix)]
-            {
-                let _ = Command::new("kill").arg(child.id().to_string()).spawn();
+            if let Some(pid) = child.id() {
+                let _ = std::process::Command::new("kill")
+                    .arg(pid.to_string())
+                    .spawn();
             }
 
-            // Wait up to 5 seconds
-            let _ = std::thread::spawn(move || {
-                let _ = child.wait();
-            });
+            // Drop child — try_wait reaps zombie if already exited,
+            // otherwise the kernel will clean up when SIGTERM takes effect.
+            let _ = child.try_wait();
         }
     }
 
-    /// Force kill the process.
+    /// Force kill the process (send SIGKILL).
     fn force_kill(&mut self) {
         if let Some(mut child) = self.child.take() {
             #[cfg(unix)]
-            {
-                let _ = Command::new("kill").args(["-9", &child.id().to_string()]).spawn();
+            if let Some(pid) = child.id() {
+                let _ = std::process::Command::new("kill")
+                    .args(["-9", &pid.to_string()])
+                    .spawn();
             }
-            let _ = child.wait();
+            let _ = child.try_wait();
         }
     }
 }
 
-/// Run the daemon — manages server and proxy processes.
-pub fn run_daemon(config: &MyceliumConfig) -> Result<(), String> {
-    let pid_dir = config.root_dir.join("run");
-    std::fs::create_dir_all(&pid_dir).map_err(|e| format!("create pid dir: {}", e))?;
+/// Run the daemon — async signal-driven server and proxy manager.
+pub async fn run_daemon(config: &MyceliumConfig) -> Result<(), String> {
+    // Validate binary exists
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| format!("current exe: {}", e))?
+        .parent()
+        .ok_or_else(|| "no parent".to_string())?
+        .to_path_buf();
 
-    // Write daemon PID
-    let daemon_pid = pid_dir.join("daemon.pid");
+    for bin in ["mycelium-server", "mycelium-proxy"] {
+        let path = exe_dir.join(bin);
+        if !path.exists() {
+            return Err(format!("{} not found at {:?}", bin, path));
+        }
+    }
+
+    // PID directory
+    let pid_dir = config.root_dir.join("run");
+    std::fs::create_dir_all(&pid_dir).map_err(|e| format!("pid dir: {}", e))?;
+
+    let daemon_pid = pid_dir.join("mycelium.pid");
     std::fs::write(&daemon_pid, std::process::id().to_string())
         .map_err(|e| format!("write daemon pid: {}", e))?;
 
     let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
 
-    // Set up signal handler
-    ctrlc::set_handler(move || {
-        info!("Shutdown signal received");
+    // Signal handling via tokio::signal::unix
+    let r = Arc::clone(&running);
+    let mut term_signal =
+        signal(SignalKind::terminate()).map_err(|e| format!("signal handler: {}", e))?;
+    let mut int_signal =
+        signal(SignalKind::interrupt()).map_err(|e| format!("signal handler: {}", e))?;
+
+    let mut signal_task = tokio::spawn(async move {
+        tokio::select! {
+            _ = term_signal.recv() => {},
+            _ = int_signal.recv() => {},
+        }
         r.store(false, Ordering::SeqCst);
-    })
-    .map_err(|e| format!("signal handler: {}", e))?;
+    });
 
     // Initialize managed processes
     let mut server = ManagedProcess::new("server", "mycelium-server", &pid_dir);
     let mut proxy = ManagedProcess::new("proxy", "mycelium-proxy", &pid_dir);
 
     // Start both processes
-    if let Err(e) = server.start(config) {
-        error!("Failed to start server: {}", e);
-    }
-    if let Err(e) = proxy.start(config) {
-        error!("Failed to start proxy: {}", e);
-    }
+    server.start(config)?;
+    proxy.start(config)?;
 
     info!("Daemon started (PID {})", std::process::id());
-    info!("Server PID: {}", server.child.as_ref().map(|c| c.id()).unwrap_or(0));
-    info!("Proxy PID: {}", proxy.child.as_ref().map(|c| c.id()).unwrap_or(0));
+    info!(
+        "Server PID: {}",
+        server.child.as_ref().and_then(|c| c.id()).unwrap_or(0)
+    );
+    info!(
+        "Proxy PID: {}",
+        proxy.child.as_ref().and_then(|c| c.id()).unwrap_or(0)
+    );
 
-    // Main monitoring loop
+    // Circuit breaker: track restart times
+    let mut server_last_restart = Instant::now();
+    let mut proxy_last_restart = Instant::now();
+    const MIN_RESTART_INTERVAL: Duration = Duration::from_secs(1);
+    const MAX_CONSECUTIVE_FAILURES: u32 = 10;
+
+    // Main event-driven monitoring loop
     while running.load(Ordering::SeqCst) {
-        std::thread::sleep(Duration::from_secs(10));
+        // Collect wait futures for children that exist
+        let server_wait = async {
+            if let Some(child) = server.child.as_mut() {
+                let _ = child.wait().await;
+            }
+            "server"
+        };
+        let proxy_wait = async {
+            if let Some(child) = proxy.child.as_mut() {
+                let _ = child.wait().await;
+            }
+            "proxy"
+        };
 
-        // Check server
-        if !server.is_alive() && running.load(Ordering::SeqCst) {
-            server.consecutive_failures += 1;
-            if server.restart_count < MAX_RETRIES {
-                let backoff = backoff_delay(server.restart_count);
-                info!("Server down, restarting in {}s (attempt {}/{})",
-                    backoff, server.restart_count + 1, MAX_RETRIES);
-                std::thread::sleep(Duration::from_secs(backoff));
+        tokio::select! {
+            _ = &mut signal_task => break,
+            _exited = server_wait => {
+                if !running.load(Ordering::SeqCst) { break; }
+                server.consecutive_failures += 1;
+                if server.consecutive_failures > MAX_CONSECUTIVE_FAILURES {
+                    error!("Server failed {} times consecutively, giving up", MAX_CONSECUTIVE_FAILURES);
+                    break;
+                }
+                let wait = MIN_RESTART_INTERVAL.saturating_sub(server_last_restart.elapsed());
+                if wait > Duration::ZERO {
+                    tokio::time::sleep(wait).await;
+                }
+                info!("Restarting server (failure #{})", server.consecutive_failures);
                 let _ = server.start(config);
-            } else {
-                error!("Server failed {} times, giving up", MAX_RETRIES);
+                server_last_restart = Instant::now();
             }
-        } else {
-            server.consecutive_failures = 0;
-        }
-
-        // Check proxy
-        if !proxy.is_alive() && running.load(Ordering::SeqCst) {
-            proxy.consecutive_failures += 1;
-            if proxy.restart_count < MAX_RETRIES {
-                let backoff = backoff_delay(proxy.restart_count);
-                info!("Proxy down, restarting in {}s (attempt {}/{})",
-                    backoff, proxy.restart_count + 1, MAX_RETRIES);
-                std::thread::sleep(Duration::from_secs(backoff));
+            _exited = proxy_wait => {
+                if !running.load(Ordering::SeqCst) { break; }
+                proxy.consecutive_failures += 1;
+                if proxy.consecutive_failures > MAX_CONSECUTIVE_FAILURES {
+                    error!("Proxy failed {} times consecutively, giving up", MAX_CONSECUTIVE_FAILURES);
+                    break;
+                }
+                let wait = MIN_RESTART_INTERVAL.saturating_sub(proxy_last_restart.elapsed());
+                if wait > Duration::ZERO {
+                    tokio::time::sleep(wait).await;
+                }
+                info!("Restarting proxy (failure #{})", proxy.consecutive_failures);
                 let _ = proxy.start(config);
-            } else {
-                error!("Proxy failed {} times, giving up", MAX_RETRIES);
+                proxy_last_restart = Instant::now();
             }
-        } else {
-            proxy.consecutive_failures = 0;
         }
     }
 
     // Graceful shutdown
     info!("Shutting down...");
-    // Send SIGTERM to children first
+
+    // Send SIGTERM to children
     server.stop();
     proxy.stop();
 
-    // Wait for them to exit
-    std::thread::sleep(Duration::from_secs(3));
-
-    // Force kill any remaining
-    server.force_kill();
-    proxy.force_kill();
+    // Wait up to 3 seconds for graceful exit, then force kill
+    let shutdown = async {
+        tokio::time::sleep(Duration::from_secs(3)).await;
+        server.force_kill();
+        proxy.force_kill();
+    };
+    shutdown.await;
 
     // Cleanup PID file
     let _ = std::fs::remove_file(&daemon_pid);
 
     info!("Daemon stopped");
     Ok(())
-}
-
-/// Calculate exponential backoff delay.
-fn backoff_delay(attempt: u32) -> u64 {
-    let delay = INITIAL_BACKOFF * (2u64.pow(attempt));
-    delay.min(MAX_BACKOFF)
 }
 
 /// Install launchd plist for auto-start on boot.
@@ -273,7 +318,10 @@ pub fn install_launchd(config: &MyceliumConfig) -> Result<(), String> {
         .map_err(|e| format!("write plist: {}", e))?;
 
     info!("launchd plist installed at {}", plist_path.display());
-    info!("Run: launchctl bootstrap gui/$(id -u) {} to activate", plist_path.display());
+    info!(
+        "Run: launchctl bootstrap gui/$(id -u) {} to activate",
+        plist_path.display()
+    );
 
     Ok(())
 }
@@ -288,7 +336,7 @@ pub fn uninstall_launchd() -> Result<(), String> {
         // Unload from launchd
         #[cfg(unix)]
         {
-            let _ = Command::new("launchctl")
+            let _ = std::process::Command::new("launchctl")
                 .args(["bootout", "gui/$(id -u)", &plist_path.to_string_lossy()])
                 .spawn();
         }
@@ -308,14 +356,21 @@ pub fn show_status(config: &MyceliumConfig) -> Result<(), String> {
     println!("🧬 Mycelium Daemon Status");
     println!();
 
-    for (name, file) in [("Daemon", "daemon.pid"), ("Server", "server.pid"), ("Proxy", "proxy.pid")] {
+    for (name, file) in [
+        ("Daemon", "daemon.pid"),
+        ("Server", "server.pid"),
+        ("Proxy", "proxy.pid"),
+    ] {
         let path = pid_dir.join(file);
         if path.exists() {
-            let pid_str = std::fs::read_to_string(&path).map_err(|e| format!("read {}: {}", file, e))?;
+            let pid_str =
+                std::fs::read_to_string(&path).map_err(|e| format!("read {}: {}", file, e))?;
             let pid = pid_str.trim().parse::<u32>().unwrap_or(0);
             let alive = if pid > 0 {
                 // Check if process exists on Unix
-                let status = Command::new("ps").args(["-p", &pid.to_string()]).output();
+                let status = std::process::Command::new("ps")
+                    .args(["-p", &pid.to_string()])
+                    .output();
                 status.map(|o| o.status.success()).unwrap_or(false)
             } else {
                 false
