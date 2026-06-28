@@ -9,9 +9,8 @@
 
 use rusqlite::{params, Connection, OpenFlags};
 use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::Mutex;
-use tokio::sync::Notify;
+use std::sync::{Arc, Mutex};
+use tokio::sync::{Notify, Mutex as AsyncMutex};
 use tracing::{debug, info};
 
 use crate::error::MyceliumError;
@@ -24,8 +23,13 @@ use crate::types::*;
 pub struct Storage {
     /// Path to the mycelium database file.
     path: PathBuf,
-    /// SQLite connection (protected by Mutex for single-writer safety).
+    /// Old single connection (kept for backward compat).
     conn: Mutex<Connection>,
+    /// Write connection (serialized via async mutex) for write operations.
+    write_conn: AsyncMutex<Connection>,
+    /// Read connection (protected by a Mutex for thread-safe access).
+    /// Uses a separate connection so reads don't block writes (and vice versa).
+    read_conn: Mutex<Connection>,
     /// In-memory cache for hot data.
     cache: MemoryCache,
     /// Full-text search index (tantivy).
@@ -57,6 +61,21 @@ impl Storage {
         // Optimize for memory reads
         conn.execute_batch("PRAGMA mmap_size=268435456;")?; // 256MB
 
+        // Open read-only connection for concurrent reads.
+        // Read connection must also enable WAL (WAL readers can proceed during WAL writes).
+        let read_conn = Connection::open_with_flags(
+            &path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        read_conn.execute_batch("PRAGMA journal_mode=WAL;")?;
+
+        // Open second read-write connection for write operations.
+        let write_conn = Connection::open_with_flags(
+            &path,
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        write_conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;")?;
+
         let search_index = SearchIndex::open(
             path.parent().map(|p| p.join("search_index")).unwrap_or_else(|| PathBuf::from("search_index")),
         ).ok();
@@ -64,6 +83,8 @@ impl Storage {
         let storage = Storage {
             path,
             conn: Mutex::new(conn),
+            write_conn: AsyncMutex::new(write_conn),
+            read_conn: Mutex::new(read_conn),
             cache: MemoryCache::new(),
             search_index,
             notify: Arc::new(Notify::new()),
@@ -262,19 +283,48 @@ impl Storage {
             return Ok(Some(entry));
         }
 
-        let conn = self.conn.lock().unwrap();
+        // Use the dedicated read connection.
+        let guard = self.read_conn.lock().unwrap();
+        let result = Self::get_entry_inner(&guard, turn)?;
+
+        if let Some(ref entry) = result {
+            self.cache.put_entry(turn, entry.clone());
+        }
+
+        Ok(result)
+    }
+
+    /// Internal helper that does the actual get_entry query on a given connection.
+    fn get_entry_inner(conn: &Connection, turn: i64) -> Result<Option<Entry>> {
         let mut stmt = conn.prepare(
             "SELECT turn, tier, entry_type, session, ts, user, assistant, entities, prev_hash, hash, finding, verdict, annotation
              FROM entries WHERE turn = ?1",
         )?;
 
         let result = stmt
-            .query_row(params![turn], |row| self.row_to_entry(row))
+            .query_row(params![turn], |row| {
+                let entities_str: String = row.get(7)?;
+                let entities: Vec<String> = serde_json::from_str(&entities_str).unwrap_or_default();
+                let ts_str: String = row.get(4)?;
+                let ts: chrono::DateTime<chrono::Utc> = ts_str.parse().unwrap_or_default();
+                Ok(Entry {
+                    turn: row.get(0)?,
+                    tier: Tier::from_str(&row.get::<_, String>(1)?).unwrap_or(Tier::Ephemeral),
+                    entry_type: EntryType::from_str(&row.get::<_, String>(2)?)
+                        .unwrap_or(EntryType::Conversation),
+                    session: row.get(3)?,
+                    ts,
+                    user: row.get(5)?,
+                    assistant: row.get(6)?,
+                    entities,
+                    prev_hash: row.get(8)?,
+                    hash: row.get(9)?,
+                    finding: row.get(10)?,
+                    verdict: row.get(11)?,
+                    annotation: row.get(12)?,
+                })
+            })
             .ok();
-
-        if let Some(ref entry) = result {
-            self.cache.put_entry(turn, entry.clone());
-        }
 
         Ok(result)
     }
@@ -823,6 +873,25 @@ impl Storage {
     /// Public getter for the SQLite connection (alias for `conn`).
     pub fn connection(&self) -> &Mutex<Connection> {
         &self.conn
+    }
+
+    // ── Async Reader/Writer Accessors ──
+
+    /// Access the write connection (serialized via async mutex).
+    pub async fn write_conn(&self) -> tokio::sync::MutexGuard<'_, Connection> {
+        self.write_conn.lock().await
+    }
+
+    /// Access the read connection (thread-safe, separate from write connection).
+    /// Uses its own Mutex so reads don't block writes (and vice versa).
+    pub fn read_conn(&self) -> std::sync::MutexGuard<'_, Connection> {
+        self.read_conn.lock().unwrap()
+    }
+
+    /// Access the write connection for read-after-write consistency.
+    /// Uses the read connection's Mutex to ensure consistency.
+    pub fn write_read_conn(&self) -> std::sync::MutexGuard<'_, Connection> {
+        self.read_conn.lock().unwrap()
     }
 
     // ── Event-driven Brain Daemon Integration ──
