@@ -50,3 +50,24 @@ skills:
         action: "Run architecture analysis"
       - label: Report
         action: "Present findings and recommendations"
+
+  - name: autonomous-optimization
+    description: "Autonomously optimize Mycelium without changing public function signatures. Loops until no more gains found."
+    triggers: ["optimize", "speed up", "performance", "bottleneck", "slow"]
+    intent: optimization
+    provider: deer-flow
+    steps:
+      - label: "SCAN"
+        action: "Run profiling tools to find top 3 hot paths in mycelium-core and mycelium-proxy"
+      - label: "BRANCH"
+        action: "For each hot path: create branch perf/name. Optimize WITHOUT changing public signatures, return types, or external behavior."
+      - label: "VERIFY"
+        action: "cargo test (no regressions) + benchmark (must be faster). Both must pass."
+      - label: "DECIDE"
+        action: "Pass → merge to main. Fail → keep branch, log failure."
+      - label: "RECORD"
+        action: "Save to Mycelium memory: what was optimized, how much faster, technique used, commit hash."
+      - label: "REPEAT"
+        action: "Re-profile merged code. If hot paths with >5% gain remain, loop back to SCAN. Stop after 10 iterations or no gains."
+      - label: "IDEAS"
+        action: "Log non-conforming improvements to docs/superpowers/notes/optimization-ideas.md"
