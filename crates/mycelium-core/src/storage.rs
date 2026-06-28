@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::sync::{Notify, Mutex as AsyncMutex};
 use tracing::{debug, info};
-use parking_lot::RwLock;
+use parking_lot::Mutex as ParkingMutex;
 
 use crate::error::MyceliumError;
 use crate::cache::MemoryCache;
@@ -28,9 +28,9 @@ pub struct Storage {
     conn: Mutex<Connection>,
     /// Write connection (serialized via async mutex) for write operations.
     write_conn: AsyncMutex<Connection>,
-    /// Read connection (protected by parking_lot RwLock for concurrent readers).
+    /// Read connection (protected by parking_lot Mutex for thread-safe access).
     /// Uses a separate connection so reads don't block writes (and vice versa).
-    read_conn: RwLock<Connection>,
+    read_conn: ParkingMutex<Connection>,
     /// In-memory cache for hot data.
     cache: MemoryCache,
     /// Full-text search index (tantivy).
@@ -85,7 +85,7 @@ impl Storage {
             path,
             conn: Mutex::new(conn),
             write_conn: AsyncMutex::new(write_conn),
-            read_conn: RwLock::new(read_conn),
+            read_conn: ParkingMutex::new(read_conn),
             cache: MemoryCache::new(),
             search_index,
             notify: Arc::new(Notify::new()),
@@ -285,7 +285,7 @@ impl Storage {
         }
 
         // Use the dedicated read connection.
-        let guard = self.read_conn.read();
+        let guard = self.read_conn.lock();
         let result = Self::get_entry_inner(&guard, turn)?;
 
         if let Some(ref entry) = result {
@@ -883,16 +883,17 @@ impl Storage {
         self.write_conn.lock().await
     }
 
-    /// Access the read connection for concurrent reads (parking_lot RwLock).
-    /// Multiple callers can read simultaneously.
-    pub fn read_conn(&self) -> parking_lot::RwLockReadGuard<'_, Connection> {
-        self.read_conn.read()
+    /// Access the read connection for concurrent reads (parking_lot Mutex).
+    #[allow(dead_code)]
+    pub fn read_conn(&self) -> parking_lot::MutexGuard<'_, Connection> {
+        self.read_conn.lock()
     }
 
     /// Access the write connection for read-after-write consistency.
-    /// Uses the read connection's RwLock to ensure consistency.
-    pub fn write_read_conn(&self) -> parking_lot::RwLockReadGuard<'_, Connection> {
-        self.read_conn.read()
+    /// Uses the read connection's Mutex to ensure consistency.
+    #[allow(dead_code)]
+    pub fn write_read_conn(&self) -> parking_lot::MutexGuard<'_, Connection> {
+        self.read_conn.lock()
     }
 
     // ── Event-driven Brain Daemon Integration ──
