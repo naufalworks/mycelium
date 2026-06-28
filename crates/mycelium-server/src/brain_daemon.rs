@@ -65,7 +65,7 @@ impl BrainDaemon {
                     .and_then(|json| serde_json::from_str(json).ok());
                 // Lock again for each consolidation (short-lived).
                 let conn = self.storage.conn().lock().unwrap();
-                brain::consolidate_entry(&conn, entry.turn, &entry.session, &text, annotation.as_ref())?;
+                brain::consolidate_entry(&conn, entry.turn, &entry.session, &text, annotation.as_ref(), Some(self.storage.hot_graph().as_ref()))?;
                 processed.push(item.id);
             }
         }

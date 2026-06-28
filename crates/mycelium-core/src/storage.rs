@@ -17,6 +17,7 @@ use parking_lot::Mutex as ParkingMutex;
 use crate::error::MyceliumError;
 use crate::cache::MemoryCache;
 use crate::error::Result;
+use crate::hot_graph::{HotGraph, RECALL_HIT_HEAT};
 use crate::search::SearchIndex;
 use crate::types::*;
 
@@ -37,6 +38,9 @@ pub struct Storage {
     search_index: Option<SearchIndex>,
     /// Wake signal for the event-driven brain daemon.
     notify: Arc<Notify>,
+    /// Heat-governed in-memory atom graph (L1 cache).
+    /// Always disposable — SQLite is the source of truth.
+    hot_graph: Arc<HotGraph>,
 }
 
 impl Storage {
@@ -89,6 +93,7 @@ impl Storage {
             cache: MemoryCache::new(),
             search_index,
             notify: Arc::new(Notify::new()),
+            hot_graph: Arc::new(HotGraph::new()),
         };
 
         storage.initialize_schema()?;
@@ -616,7 +621,7 @@ impl Storage {
              ORDER BY confidence DESC LIMIT ?2",
         )?;
 
-        let facts = stmt
+        let facts: Vec<MemoryFact> = stmt
             .query_map(params![pattern, limit], |row| {
                 Ok(MemoryFact {
                     id: Some(row.get(0)?),
@@ -632,6 +637,15 @@ impl Storage {
             })?
             .filter_map(|r| r.ok())
             .collect();
+
+        // Bump heat for matched atoms (L1 prediction signal).
+        // Bumping is best-effort: if the atom isn't in the hot graph yet,
+        // `bump` is a no-op — atoms enter L1 only via consolidation seeding
+        // or the SQLite-driven promotion path.
+        for fact in &facts {
+            self.hot_graph.bump(&fact.attribute, RECALL_HIT_HEAT);
+            self.hot_graph.bump(&fact.value, RECALL_HIT_HEAT);
+        }
 
         Ok(facts)
     }
@@ -894,6 +908,15 @@ impl Storage {
     #[allow(dead_code)]
     pub fn write_read_conn(&self) -> parking_lot::MutexGuard<'_, Connection> {
         self.read_conn.lock()
+    }
+
+    /// Access the in-memory hot graph (L1 atom cache).
+    /// The hot graph is heat-governed and disposable — SQLite is the
+    /// source of truth. Pass `&*storage.hot_graph()` into functions
+    /// that need an `&HotGraph`.
+    #[allow(dead_code)]
+    pub fn hot_graph(&self) -> &Arc<HotGraph> {
+        &self.hot_graph
     }
 
     // ── Event-driven Brain Daemon Integration ──

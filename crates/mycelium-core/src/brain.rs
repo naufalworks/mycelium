@@ -9,6 +9,7 @@ use rusqlite::{params, Connection};
 use std::sync::OnceLock;
 
 use crate::types::{EntityAnnotation, MemoryAnnotation};
+use crate::hot_graph::{Edge as HotEdge, HotGraph, Position as HotPosition};
 
 /// Heat cache for frequently accessed atoms.
 /// Key: atom_id, Value: (Atom, heat_score).
@@ -630,6 +631,7 @@ pub fn consolidate_entry(
     session: &str,
     text: &str,
     annotation: Option<&MemoryAnnotation>,
+    hot_graph: Option<&HotGraph>,
 ) -> rusqlite::Result<()> {
     // LSM-style batch: wrap all writes in a single transaction
     conn.execute_batch("BEGIN")?;
@@ -730,6 +732,41 @@ pub fn consolidate_entry(
             ) {
                 let _ = stmt.execute(params![phrase, snippet, turn, session]);
             }
+        }
+    }
+
+    // Seed HotGraph with newly consolidated atoms
+    if let Some(graph) = hot_graph {
+        // Query all atoms for this turn from SQLite (just inserted above)
+        let mut stmt = conn.prepare(
+            "SELECT phrase, importance, ref_count FROM atoms WHERE turn = ?1"
+        )?;
+        let atom_rows: Vec<(String, f64, i64)> = stmt
+            .query_map(params![turn], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        drop(stmt);
+
+        // Load edges for each atom
+        let mut edge_stmt = conn.prepare(
+            "SELECT phrase, neighbor, weight FROM edges WHERE phrase IN (SELECT phrase FROM atoms WHERE turn = ?1)"
+        )?;
+        let edges_by_phrase: std::collections::HashMap<String, Vec<HotEdge>> = std::collections::HashMap::new();
+        let mut edges = edges_by_phrase;
+        let rows = edge_stmt.query_map(params![turn], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, f64>(2)?))
+        })?;
+        for row in rows.flatten() {
+            let (phrase, neighbor, weight) = row;
+            edges.entry(phrase).or_default().push(HotEdge { neighbor, weight });
+        }
+        drop(edge_stmt);
+
+        for (phrase, importance, ref_count) in atom_rows {
+            let atom_edges = edges.remove(&phrase).unwrap_or_default();
+            graph.seed(&phrase, importance, ref_count, Vec::new(), atom_edges);
         }
     }
 
@@ -1196,7 +1233,7 @@ mod tests {
     fn test_consolidate_entry() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "test-session", "discuss hash chain and merkle tree", None)?;
+        consolidate_entry(&conn, 1, "test-session", "discuss hash chain and merkle tree", None, None)?;
         let atom_count: i64 = conn.query_row("SELECT COUNT(*) FROM atoms", [], |row| row.get(0))?;
         // 6 words -> 5 bigrams + 4 trigrams = 9 atoms (all unique)
         assert_eq!(atom_count, 9, "5 bigrams + 4 trigrams from 6-word text");
@@ -1228,9 +1265,9 @@ mod tests {
     fn test_recall_multiple_sessions() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "s1", "build hash chain", None)?;
-        consolidate_entry(&conn, 2, "s2", "fix hash chain bug", None)?;
-        consolidate_entry(&conn, 3, "s1", "test hash chain", None)?;
+        consolidate_entry(&conn, 1, "s1", "build hash chain", None, None)?;
+        consolidate_entry(&conn, 2, "s2", "fix hash chain bug", None, None)?;
+        consolidate_entry(&conn, 3, "s1", "test hash chain", None, None)?;
         let results = recall(&conn, "hash chain", 10)?;
         assert_eq!(results[0].ref_count, 3);
         Ok(())
@@ -1261,9 +1298,9 @@ mod tests {
     fn test_recall_limit() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "s1", "alpha beta", None)?;
-        consolidate_entry(&conn, 2, "s1", "alpha gamma", None)?;
-        consolidate_entry(&conn, 3, "s1", "alpha delta", None)?;
+        consolidate_entry(&conn, 1, "s1", "alpha beta", None, None)?;
+        consolidate_entry(&conn, 2, "s1", "alpha gamma", None, None)?;
+        consolidate_entry(&conn, 3, "s1", "alpha delta", None, None)?;
         let results = recall(&conn, "alpha", 2)?;
         assert_eq!(results.len(), 2);
         Ok(())
@@ -1283,7 +1320,7 @@ mod tests {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
         // "hash chain" co-occurs with "merkle tree" and "data struct"
-        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree data struct", None)?;
+        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree data struct", None, None)?;
         let results = clusters(&conn, "hash chain", 10)?;
         assert!(!results.is_empty(), "should find at least one neighbor");
         // Should contain "merkle tree" as a neighbor (any score)
@@ -1348,7 +1385,7 @@ mod tests {
         assert_eq!(status.edge_count, 0);
         assert_eq!(status.pending_count, 0);
         // Add some data
-        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree", None)?;
+        consolidate_entry(&conn, 1, "s1", "hash chain merkle tree", None, None)?;
         let status = brain_status(&conn)?;
         assert_eq!(status.atom_count, 5); // 4 bigrams + 1 trigram
         assert_eq!(status.position_count, 5);
@@ -1379,8 +1416,8 @@ mod tests {
     fn test_clusters_ranking() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 1, "s1", "hash chain and merkle tree", None)?;
-        consolidate_entry(&conn, 2, "s1", "hash chain verify", None)?;
+        consolidate_entry(&conn, 1, "s1", "hash chain and merkle tree", None, None)?;
+        consolidate_entry(&conn, 2, "s1", "hash chain verify", None, None)?;
         let results = clusters(&conn, "hash chain", 5)?;
         assert!(!results.is_empty());
         // Edges were accumulated
@@ -1391,8 +1428,8 @@ mod tests {
     fn test_when_first_last() -> rusqlite::Result<()> {
         let conn = Connection::open_in_memory()?;
         create_tables(&conn)?;
-        consolidate_entry(&conn, 5, "s1", "discuss hash chain", None)?;
-        consolidate_entry(&conn, 10, "s1", "build hash chain again", None)?;
+        consolidate_entry(&conn, 5, "s1", "discuss hash chain", None, None)?;
+        consolidate_entry(&conn, 10, "s1", "build hash chain again", None, None)?;
         let info = when(&conn, "hash chain")?;
         assert!(info.is_some());
         let (first, last, count) = info.unwrap();
@@ -1456,7 +1493,7 @@ mod tests {
             entities: vec![],
         };
 
-        consolidate_entry(&conn, 1, "test", "", Some(&ann))?;
+        consolidate_entry(&conn, 1, "test", "", Some(&ann), None)?;
 
         // Verify atom was created with importance=5
         let count: i64 = conn.query_row(

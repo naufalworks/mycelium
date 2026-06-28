@@ -832,7 +832,7 @@ fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result
                     serde_json::from_str(ann_json)?;
 
                 mycelium_core::brain::consolidate_entry(
-                    &conn, *turn, session, &text, Some(&annotation),
+                    &conn, *turn, session, &text, Some(&annotation), None,
                 )?;
 
                 let phrase_count = annotation.phrases.len();
