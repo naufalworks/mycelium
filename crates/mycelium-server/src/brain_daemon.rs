@@ -37,6 +37,8 @@ impl BrainDaemon {
                 if let Err(e) = self.process_batch() {
                     tracing::warn!("brain daemon error: {}", e);
                 }
+                // Run decay cycle on every wake — keeps the hot graph fresh
+                self.storage.hot_graph().tick_decay();
             }
             tracing::info!("Brain daemon stopped");
         });

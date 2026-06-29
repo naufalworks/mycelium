@@ -5,6 +5,7 @@
 
 use crate::brain;
 use crate::error::MyceliumError;
+use crate::hot_graph::{HotGraph, RECALL_HIT_HEAT};
 use crate::types::*;
 use rusqlite::{params, Connection};
 use std::time::Instant;
@@ -32,6 +33,7 @@ pub fn traverse(
     query: &RecallQuery,
     max_clusters: usize,
     max_neighbors: usize,
+    hot_graph: Option<&HotGraph>,
 ) -> Result<RecallResult, MyceliumError> {
     let start = Instant::now();
 
@@ -123,6 +125,16 @@ pub fn traverse(
         elapsed.as_secs_f64() * 1000.0
     );
 
+    // Heat bump: mark matched phrases as recently accessed for cache warmth
+    if let Some(graph) = hot_graph {
+        for cluster in &all_clusters {
+            graph.bump(&cluster.seed_phrase, RECALL_HIT_HEAT);
+            for (phrase, _, _) in &cluster.neighbors {
+                graph.bump(phrase, RECALL_HIT_HEAT);
+            }
+        }
+    }
+
     Ok(RecallResult {
         query: query.clone(),
         clusters: all_clusters,
@@ -161,7 +173,7 @@ mod tests {
             intent: RecallIntent::Relational,
             temporal_hint: None,
         };
-        let result = traverse(&conn, &query, 5, 5).unwrap();
+        let result = traverse(&conn, &query, 5, 5, None).unwrap();
         assert!(result.clusters.is_empty());
         assert_eq!(result.total_clusters, 0);
     }
@@ -174,7 +186,7 @@ mod tests {
             intent: RecallIntent::Factual,
             temporal_hint: None,
         };
-        let result = traverse(&conn, &query, 5, 5).unwrap();
+        let result = traverse(&conn, &query, 5, 5, None).unwrap();
         assert!(result.clusters.is_empty());
     }
 
@@ -190,7 +202,7 @@ mod tests {
             intent: RecallIntent::Factual,
             temporal_hint: None,
         };
-        let result = traverse(&conn, &query, 5, 5).unwrap();
+        let result = traverse(&conn, &query, 5, 5, None).unwrap();
         assert_eq!(result.clusters.len(), 1);
         assert_eq!(result.clusters[0].seed_phrase, "test phrase");
     }
@@ -209,7 +221,7 @@ mod tests {
             intent: RecallIntent::Temporal,
             temporal_hint: Some("last night".to_string()),
         };
-        let result = traverse(&conn, &query, 5, 5).unwrap();
+        let result = traverse(&conn, &query, 5, 5, None).unwrap();
         // Only "new thing last night" should survive the temporal filter
         assert!(result.clusters.iter().any(|c| c.seed_phrase.contains("last night")));
     }
@@ -239,7 +251,7 @@ mod tests {
             intent: RecallIntent::Relational,
             temporal_hint: None,
         };
-        let result = traverse(&conn, &query, 5, 5).unwrap();
+        let result = traverse(&conn, &query, 5, 5, None).unwrap();
         assert_eq!(result.clusters.len(), 1, "Should find the 'change secret' cluster");
         assert_eq!(result.clusters[0].seed_phrase, "change secret");
         assert!(

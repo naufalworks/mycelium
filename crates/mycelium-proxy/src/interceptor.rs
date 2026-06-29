@@ -176,7 +176,7 @@ pub async fn run_recall_pipeline(
     let result = {
         let conn = storage.connection();
         let conn_guard = conn.lock().unwrap();
-        traverse(&conn_guard, &query, MAX_RECALL_CLUSTERS, MAX_RECALL_NEIGHBORS)
+        traverse(&conn_guard, &query, MAX_RECALL_CLUSTERS, MAX_RECALL_NEIGHBORS, Some(storage.hot_graph().as_ref()))
     };
     let result = match result {
         Ok(r) => {
