@@ -159,6 +159,7 @@ impl HotGraph {
         let mut atoms = self.atoms.write();
         let entry = atoms.entry(phrase.to_string()).or_insert_with(|| {
             self.metrics.hot_count.fetch_add(1, Ordering::Relaxed);
+            self.metrics.promotions.fetch_add(1, Ordering::Relaxed);
             HotAtom {
                 phrase: phrase.to_string(),
                 heat: 0.0,
@@ -233,10 +234,12 @@ impl HotGraph {
                     *self.metrics.total_heat.lock().unwrap() -= lost;
                 }
 
-                // Spread to neighbors
+                // Spread to neighbors — use importance-based fixed amount,
+                // NOT current heat, to avoid self-amplifying feedback loop.
+                // heat-based spread => each cycle adds MORE than decay removes.
                 if atom.heat > EVICT_THRESHOLD {
                     for edge in &atom.edges {
-                        let spread = atom.heat * SPREAD_FACTOR * edge.weight;
+                        let spread = atom.importance * SPREAD_FACTOR * edge.weight;
                         if spread > SPREAD_MINIMUM {
                             *spread_deltas.entry(edge.neighbor.clone()).or_insert(0.0) += spread;
                             trace!(
@@ -436,11 +439,12 @@ mod tests {
         graph.seed("b", 1.0, 1, vec![], vec![]);
 
         // After seed: a has heat 15.0, b has heat 1.5
-        // Decay a to 14.25, spread 14.25 * 0.5 * 0.5 = 3.5625 to b
+        // Decay a to 14.25, spread a_importance(10) * 0.5 * 0.5 = 2.5 to b
+        // b_heat = 1.5 * 0.95 + 2.5 = 3.925
         graph.tick_decay();
 
         let b_heat_after = graph.get("b").unwrap().heat;
-        let expected_b_heat = 1.5 * DECAY_RATE + 15.0 * DECAY_RATE * SPREAD_FACTOR * 0.5;
+        let expected_b_heat = 1.5 * DECAY_RATE + 10.0 * SPREAD_FACTOR * 0.5;
         assert!(
             (b_heat_after - expected_b_heat).abs() < 0.01,
             "b heat after spread: {} (expected ~{})",

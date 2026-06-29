@@ -279,7 +279,7 @@ impl Default for MyceliumConfig {
             ),
             proxy_port: 8443,
             server_port: 8421,
-            upstream_url: "http://localhost:8080".to_string(),
+            upstream_url: "http://localhost:9099".to_string(),
             max_concurrent: 20,
         }
     }

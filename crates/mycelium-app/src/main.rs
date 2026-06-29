@@ -147,6 +147,12 @@ enum BrainCommands {
     StopWords,
     /// Show heat metrics for the in-memory hot graph
     HeatStatus,
+    /// Add a phrase to the stop words list
+    AddStopWord {
+        phrase: String,
+    },
+    /// Delete atoms and edges that match stop words
+    PurgeStopWords,
 }
 
 #[tokio::main]
@@ -830,15 +836,15 @@ fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result
             println!("Processing {} annotated entries...", entries.len());
             for (turn, session, user_msg, asst_msg, ann_json) in &entries {
                 let text = format!("{} {}", user_msg, asst_msg);
-                let annotation: mycelium_core::types::MemoryAnnotation =
-                    serde_json::from_str(ann_json)?;
+                let annotation =
+                    serde_json::from_str(ann_json).ok();
 
                 mycelium_core::brain::consolidate_entry(
-                    &conn, *turn, session, &text, Some(&annotation), None,
+                    &conn, *turn, session, &text, annotation.as_ref(), None,
                 )?;
 
-                let phrase_count = annotation.phrases.len();
-                let entity_count = annotation.entities.len();
+                let phrase_count = annotation.as_ref().map_or(0, |a| a.phrases.len());
+                let entity_count = annotation.as_ref().map_or(0, |a| a.entities.len());
                 println!("  Turn {}: {} phrases, {} entities — consolidated ✓", turn, phrase_count, entity_count);
             }
 
@@ -918,6 +924,35 @@ fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result
                 }
             }
 
+            Ok(())
+        }
+        BrainCommands::AddStopWord { phrase } => {
+            let db_path = config.root_dir.join("mycelium.db");
+            let conn = rusqlite::Connection::open(&db_path)?;
+            mycelium_core::brain::create_tables(&conn)?;
+            let now = chrono::Utc::now().timestamp();
+            conn.execute(
+                "INSERT OR REPLACE INTO brain_stop_words (phrase, frequency, detected_at) VALUES (?1, 1.0, ?2)",
+                rusqlite::params![phrase, now],
+            )?;
+            println!("Added stop word: '{}'", phrase);
+            Ok(())
+        }
+        BrainCommands::PurgeStopWords => {
+            let db_path = config.root_dir.join("mycelium.db");
+            let conn = rusqlite::Connection::open(&db_path)?;
+            mycelium_core::brain::create_tables(&conn)?;
+            let before: i64 = conn.query_row("SELECT COUNT(*) FROM atoms", [], |row| row.get(0)).unwrap_or(0);
+            conn.execute_batch(
+                "DELETE FROM edges WHERE atom_a IN (SELECT a.id FROM atoms a JOIN brain_stop_words s ON a.phrase = s.phrase);
+                 DELETE FROM edges WHERE atom_b IN (SELECT a.id FROM atoms a JOIN brain_stop_words s ON a.phrase = s.phrase);
+                 DELETE FROM positions WHERE atom_id IN (SELECT a.id FROM atoms a JOIN brain_stop_words s ON a.phrase = s.phrase);
+                 DELETE FROM context_snippets WHERE atom_id IN (SELECT a.id FROM atoms a JOIN brain_stop_words s ON a.phrase = s.phrase);
+                 DELETE FROM atoms WHERE id IN (SELECT a.id FROM atoms a JOIN brain_stop_words s ON a.phrase = s.phrase);"
+            )?;
+            let after: i64 = conn.query_row("SELECT COUNT(*) FROM atoms", [], |row| row.get(0)).unwrap_or(0);
+            let removed = before - after;
+            println!("Purged {} stop-word atoms", removed);
             Ok(())
         }
     }

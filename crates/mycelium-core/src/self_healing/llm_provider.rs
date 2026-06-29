@@ -18,7 +18,7 @@ pub struct LLMConfig {
 impl Default for LLMConfig {
     fn default() -> Self {
         Self {
-            endpoint: "http://127.0.0.1:8080".into(),
+            endpoint: "http://127.0.0.1:9099".into(),
             timeout: Duration::from_secs(60),
             max_retries: 3,
             retry_backoff: Duration::from_secs(2),
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn config_defaults() {
         let cfg = LLMConfig::default();
-        assert_eq!(cfg.endpoint, "http://127.0.0.1:8080");
+        assert_eq!(cfg.endpoint, "http://127.0.0.1:9099");
         assert_eq!(cfg.max_retries, 3);
     }
 }
