@@ -15,6 +15,7 @@ pub mod error;
 pub mod brain;
 pub mod recall;
 pub mod hot_graph;
+pub mod self_healing;
 
 pub use types::*;
 pub use storage::*;
