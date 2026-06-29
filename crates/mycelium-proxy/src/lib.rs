@@ -352,7 +352,7 @@ async fn passthrough(
 /// Returns (Response, response_body_bytes).
 async fn forward_to_upstream(
     state: &ProxyState,
-    _method: Method,
+    method: Method,
     uri: &Uri,
     headers: &HeaderMap,
     body: &[u8],
@@ -363,9 +363,19 @@ async fn forward_to_upstream(
         uri.path_and_query().map(|pq| pq.as_str()).unwrap_or("")
     );
 
-    // Build upstream request
+    // Build upstream request — use the original HTTP method, not hardcoded POST
+    let reqwest_method = match method {
+        Method::GET => reqwest::Method::GET,
+        Method::POST => reqwest::Method::POST,
+        Method::PUT => reqwest::Method::PUT,
+        Method::DELETE => reqwest::Method::DELETE,
+        Method::PATCH => reqwest::Method::PATCH,
+        Method::HEAD => reqwest::Method::HEAD,
+        Method::OPTIONS => reqwest::Method::OPTIONS,
+        _ => reqwest::Method::POST,
+    };
     let mut upstream_req = reqwest::Request::new(
-        reqwest::Method::POST,
+        reqwest_method,
         upstream_url.parse().unwrap(),
     );
 
