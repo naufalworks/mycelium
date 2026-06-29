@@ -9,7 +9,7 @@ use rusqlite::{params, Connection};
 use std::sync::OnceLock;
 
 use crate::types::{EntityAnnotation, MemoryAnnotation};
-use crate::hot_graph::{Edge as HotEdge, HotGraph, Position as HotPosition};
+use crate::hot_graph::{Edge as HotEdge, HotGraph};
 
 /// Heat cache for frequently accessed atoms.
 /// Key: atom_id, Value: (Atom, heat_score).

@@ -23,7 +23,7 @@ fn test_brain_replay_10k_entries() -> rusqlite::Result<()> {
     let batch_size = 500;
     for (i, entry) in entries.iter().enumerate() {
         let text = format!("{} {}", entry.user, entry.assistant);
-        brain::consolidate_entry(&conn, entry.turn, &entry.session, &text, None)?;
+        brain::consolidate_entry(&conn, entry.turn, &entry.session, &text, None, None)?;
 
         if (i + 1) % batch_size == 0 || i + 1 == total {
             let status = brain::brain_status(&conn)?;

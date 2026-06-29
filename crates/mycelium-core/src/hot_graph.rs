@@ -289,19 +289,36 @@ impl HotGraph {
         for row in rows.flatten() {
             let (phrase, importance, ref_count) = row;
             if importance * ref_count as f64 > PROMOTE_THRESHOLD {
-                // Load edges for this atom
-                let mut edge_stmt = conn.prepare(
-                    "SELECT neighbor, weight FROM edges WHERE phrase = ?1",
-                )?;
-                let edges: Vec<Edge> = edge_stmt
-                    .query_map([&phrase], |row| {
-                        Ok(Edge {
-                            neighbor: row.get(0)?,
-                            weight: row.get(1)?,
-                        })
-                    })?
-                    .flatten()
-                    .collect();
+                // Load edges for this atom using the brain's edges table.
+                // The brain stores edges as (atom_a INTEGER, atom_b INTEGER, weight),
+                // so we join through the atoms table to resolve phrase strings.
+                let edges: Vec<Edge> = match conn.prepare(
+                    "SELECT a2.phrase, e.weight
+                     FROM edges e
+                     JOIN atoms a1 ON e.atom_a = a1.id
+                     JOIN atoms a2 ON e.atom_b = a2.id
+                     WHERE a1.phrase = ?1
+                     UNION ALL
+                     SELECT a1.phrase, e.weight
+                     FROM edges e
+                     JOIN atoms a1 ON e.atom_a = a1.id
+                     JOIN atoms a2 ON e.atom_b = a2.id
+                     WHERE a2.phrase = ?1"
+                ) {
+                    Ok(mut stmt) => stmt
+                        .query_map([&phrase], |row| {
+                            Ok(Edge {
+                                neighbor: row.get(0)?,
+                                weight: row.get(1)?,
+                            })
+                        })?
+                        .flatten()
+                        .collect(),
+                    Err(_) => {
+                        // edges table may not exist; degrade gracefully
+                        Vec::new()
+                    }
+                };
 
                 graph.metrics.promotions.fetch_add(1, Ordering::Relaxed);
                 graph.seed(&phrase, importance, ref_count, Vec::new(), edges);

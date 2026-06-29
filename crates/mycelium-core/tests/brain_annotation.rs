@@ -39,6 +39,7 @@ fn test_annotation_round_trip() -> rusqlite::Result<()> {
         "test-session",
         "I fixed the hash chain bug in storage.rs",
         Some(&ann),
+        None,
     )?;
 
     // Verify: atoms were created
@@ -82,6 +83,7 @@ fn test_annotation_round_trip() -> rusqlite::Result<()> {
         "test-session",
         "the path resolution in storage.rs",
         Some(&ann2),
+        None,
     )?;
 
     // Verify: entity ref_count incremented
