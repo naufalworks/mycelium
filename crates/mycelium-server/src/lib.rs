@@ -65,6 +65,7 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         .route("/api/verify", get(verify_chain))
         .route("/api/brain/status", get(crate::brain_handlers::brain_status))
         .route("/api/brain/atoms", get(crate::brain_handlers::brain_atoms))
+        .route("/api/brain/heat", get(crate::brain_handlers::brain_heat))
         .layer(CorsLayer::permissive())
         .with_state(state)
         .fallback_service(ServeDir::new(

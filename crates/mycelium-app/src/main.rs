@@ -145,6 +145,8 @@ enum BrainCommands {
     },
     /// Detect and register stop words from atom frequency data
     StopWords,
+    /// Show heat metrics for the in-memory hot graph
+    HeatStatus,
 }
 
 #[tokio::main]
@@ -877,6 +879,7 @@ fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result
 
             Ok(())
         }
+        BrainCommands::HeatStatus => cmd_heat_status(config)?,
         BrainCommands::StopWords => {
             let db_path = config.root_dir.join("mycelium.db");
             let conn = rusqlite::Connection::open(&db_path)?;
@@ -918,6 +921,32 @@ fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result
             Ok(())
         }
     }
+}
+
+/// Show heat metrics for the in-memory hot graph.
+fn cmd_heat_status(config: &MyceliumConfig) -> anyhow::Result<()> {
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+
+    let metrics = storage.hot_graph().metrics().snapshot();
+    let top = storage.hot_graph().top_atoms(10);
+
+    println!("HotGraph Status:");
+    println!("  Hot atoms:   {}", metrics.hot_count);
+    println!("  Total heat:  {:.1}", metrics.total_heat);
+    println!("  Bumps:       {}", metrics.bumps);
+    println!("  Evictions:   {}", metrics.evictions);
+    println!("  Promotions:  {}", metrics.promotions);
+    println!("  Hit rate:    {:.0}%", {
+        let total = metrics.hits + metrics.misses;
+        if total > 0 { metrics.hits as f64 / total as f64 * 100.0 } else { 0.0 }
+    });
+    println!();
+    println!("  Top atoms:");
+    for atom in &top {
+        println!("    {:<20} heat={:.1} edges={}", atom.phrase, atom.heat, atom.edges.len());
+    }
+    Ok(())
 }
 
 /// Count registered entities in the entity_registry table.

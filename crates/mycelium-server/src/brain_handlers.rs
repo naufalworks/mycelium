@@ -5,6 +5,22 @@ use std::sync::Arc;
 
 use crate::AppState;
 
+/// Response for GET /api/brain/heat
+#[derive(serde::Serialize)]
+pub struct BrainHeatResponse {
+    pub metrics: mycelium_core::hot_graph::HeatMetricsSnapshot,
+    pub top_atoms: Vec<mycelium_core::hot_graph::HotAtomSnapshot>,
+}
+
+/// GET /api/brain/heat — returns heat metrics and top atoms.
+pub async fn brain_heat(
+    State(state): State<Arc<AppState>>,
+) -> Json<BrainHeatResponse> {
+    let metrics = state.storage.hot_graph().metrics().snapshot();
+    let top_atoms = state.storage.hot_graph().top_atoms(10);
+    Json(BrainHeatResponse { metrics, top_atoms })
+}
+
 /// Response for GET /api/brain/status
 #[derive(serde::Serialize)]
 pub struct BrainStatusResponse {
