@@ -84,6 +84,7 @@ async fn call_synthesizer(
     model: &str,
     prompt: &str,
 ) -> Option<String> {
+    debug!("call_synthesizer: api_url={}, model={}", api_url, model);
     let body = serde_json::json!({
         "model": model,
         "max_tokens": SYNTHESIS_MAX_TOKENS,
@@ -101,6 +102,7 @@ async fn call_synthesizer(
         .await
         .ok()?;
     let text = resp.text().await.ok()?;
+    debug!("call_synthesizer: response text len={}, preview={}", text.len(), text.chars().take(200).collect::<String>());
     let json: serde_json::Value = serde_json::from_str(&text).ok()?;
     let content = find_text_content(&json)
         .or_else(|| json.pointer("/choices/0/message/content").and_then(|c| c.as_str()).map(String::from))?;
@@ -464,8 +466,17 @@ pub fn process_openai(body: &[u8], storage: &Storage) -> Option<(Vec<u8>, String
         .map(|s| format!("openai:{}", s))
         .unwrap_or_else(|| format!("openai:{}", user_msg.chars().take(16).collect::<String>()));
 
+    // Check model — skip memory injection for Kimchi models
+    // (kimi/minimax return empty content when system messages are present)
+    let model = req.get("model").and_then(|v| v.as_str()).unwrap_or("");
+    let is_kimchi_model = model.contains("kimi") || model.contains("minimax") || model == "nemotron-3-ultra-fp4";
+
     // Query memory facts
-    let facts = storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
+    let facts = if is_kimchi_model {
+        Vec::new()
+    } else {
+        storage.search_facts(&user_msg, 5).ok().unwrap_or_default()
+    };
 
     // Always inject memory annotation instruction (regardless of facts)
     let mut content = String::new();
