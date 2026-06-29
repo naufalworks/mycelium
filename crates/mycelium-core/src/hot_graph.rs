@@ -225,8 +225,13 @@ impl HotGraph {
         {
             let mut atoms = self.atoms.write();
             for (phrase, atom) in atoms.iter_mut() {
-                // Decay
+                // Decay — record the heat lost so total_heat stays consistent
+                let before = atom.heat;
                 atom.heat *= DECAY_RATE;
+                let lost = before - atom.heat;
+                if lost > 0.0 {
+                    *self.metrics.total_heat.lock().unwrap() -= lost;
+                }
 
                 // Spread to neighbors
                 if atom.heat > EVICT_THRESHOLD {
@@ -268,6 +273,10 @@ impl HotGraph {
                 }
             }
         }
+
+        // Clamp total_heat to prevent floating-point drift below zero
+        let mut total = self.metrics.total_heat.lock().unwrap();
+        *total = total.max(0.0);
     }
 
     /// Rebuild HotGraph from SQLite data (called on restart).
