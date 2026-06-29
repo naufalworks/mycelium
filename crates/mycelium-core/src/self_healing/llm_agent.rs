@@ -53,9 +53,12 @@ impl LLMAgent {
         let start = Instant::now();
 
         // Take a snapshot before any mutations.
-        let conn_guard = self.storage.conn().lock().unwrap();
-        let snapshot_id = self.safety.snapshot(&conn_guard)?;
-        drop(conn_guard);
+        // Guard is scoped in a block so the MutexGuard (which is !Send) is
+        // dropped before any .await — keeping the future Send-safe.
+        let snapshot_id = {
+            let conn_guard = self.storage.conn().lock().unwrap();
+            self.safety.snapshot(&conn_guard)?
+        };
 
         let mut messages: Vec<Value> = Vec::new();
         let mut tool_call_count: usize = 0;
@@ -148,16 +151,18 @@ impl LLMAgent {
 
                 tool_call_count += 1;
 
-                // Dispatch the tool
-                let conn_guard = self.storage.conn().lock().unwrap();
-                let result = tools::dispatch_tool(
-                    fn_name,
-                    &args,
-                    &self.storage,
-                    &conn_guard,
-                    &self.safety,
-                );
-                drop(conn_guard);
+                // Dispatch the tool — guard scoped so MutexGuard (!Send)
+                // is dropped before the next loop iteration's .await.
+                let result = {
+                    let conn_guard = self.storage.conn().lock().unwrap();
+                    tools::dispatch_tool(
+                        fn_name,
+                        &args,
+                        &self.storage,
+                        &conn_guard,
+                        &self.safety,
+                    )
+                };
 
                 let result_json = match result {
                     Ok(v) => {
@@ -188,14 +193,15 @@ impl LLMAgent {
             }
         }
 
-        // Verify entry count invariant
-        let conn_guard = self.storage.conn().lock().unwrap();
-        if let Err(e) = self.safety.verify_entry_count(&conn_guard) {
-            errors.push(format!("entry count invariant violated: {e}"));
+        // Verify entry count invariant — guard scoped in a block.
+        {
+            let conn_guard = self.storage.conn().lock().unwrap();
+            if let Err(e) = self.safety.verify_entry_count(&conn_guard) {
+                errors.push(format!("entry count invariant violated: {e}"));
+            }
         }
 
         // Get final broken count
-        drop(conn_guard);
         let final_failures = self.storage.verify_hash_chain().unwrap_or_default();
         let final_broken_count = final_failures.len();
 

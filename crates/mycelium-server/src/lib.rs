@@ -43,7 +43,7 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
 
     // Start the background brain consolidation daemon.
     let notify = storage.subscribe_pending_work();
-    brain_daemon::BrainDaemon::new(storage, notify).spawn();
+    brain_daemon::BrainDaemon::new(storage, notify, &config.root_dir).spawn();
 
     let app = Router::new()
         .route("/api/health", get(health))
