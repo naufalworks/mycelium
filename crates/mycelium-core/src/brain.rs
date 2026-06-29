@@ -737,36 +737,65 @@ pub fn consolidate_entry(
 
     // Seed HotGraph with newly consolidated atoms
     if let Some(graph) = hot_graph {
-        // Query all atoms for this turn from SQLite (just inserted above)
-        let mut stmt = conn.prepare(
-            "SELECT phrase, importance, ref_count FROM atoms WHERE turn = ?1"
-        )?;
-        let atom_rows: Vec<(String, f64, i64)> = stmt
-            .query_map(params![turn], |row| {
-                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
-            })?
-            .filter_map(|r| r.ok())
-            .collect();
-        drop(stmt);
+        // Query atoms by their IDs (tracked during annotation processing above).
+        // atoms has columns: id, phrase, importance, ref_count — use id which is valid.
+        if !all_ids.is_empty() {
+            let ids_sql = all_ids.iter()
+                .map(|id| id.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
 
-        // Load edges for each atom
-        let mut edge_stmt = conn.prepare(
-            "SELECT phrase, neighbor, weight FROM edges WHERE phrase IN (SELECT phrase FROM atoms WHERE turn = ?1)"
-        )?;
-        let edges_by_phrase: std::collections::HashMap<String, Vec<HotEdge>> = std::collections::HashMap::new();
-        let mut edges = edges_by_phrase;
-        let rows = edge_stmt.query_map(params![turn], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, f64>(2)?))
-        })?;
-        for row in rows.flatten() {
-            let (phrase, neighbor, weight) = row;
-            edges.entry(phrase).or_default().push(HotEdge { neighbor, weight });
-        }
-        drop(edge_stmt);
+            // Fetch atom metadata from SQLite (source of truth)
+            let sql = format!(
+                "SELECT id, phrase, importance, ref_count FROM atoms WHERE id IN ({})",
+                ids_sql
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            let atom_rows: Vec<(i64, String, f64, i64)> = stmt
+                .query_map([], |row| {
+                    Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+                })?
+                .filter_map(|r| r.ok())
+                .collect();
+            drop(stmt);
 
-        for (phrase, importance, ref_count) in atom_rows {
-            let atom_edges = edges.remove(&phrase).unwrap_or_default();
-            graph.seed(&phrase, importance, ref_count, Vec::new(), atom_edges);
+            // Load edges via correct edges table schema:
+            // edges has atom_a (INTEGER), atom_b (INTEGER), weight (REAL)
+            let mut edge_stmt = conn.prepare(
+                &format!(
+                    "SELECT a1.phrase, a2.phrase, e.weight
+                     FROM edges e
+                     JOIN atoms a1 ON e.atom_a = a1.id
+                     JOIN atoms a2 ON e.atom_b = a2.id
+                     WHERE e.atom_a IN ({}) OR e.atom_b IN ({})",
+                    ids_sql, ids_sql
+                )
+            )?;
+            let mut edges_by_phrase: std::collections::HashMap<String, Vec<HotEdge>> =
+                std::collections::HashMap::new();
+            let edge_rows = edge_stmt.query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, f64>(2)?,
+                ))
+            })?;
+            for edge_row in edge_rows.flatten() {
+                let (phrase_a, phrase_b, weight) = edge_row;
+                edges_by_phrase
+                    .entry(phrase_a)
+                    .or_default()
+                    .push(HotEdge {
+                        neighbor: phrase_b,
+                        weight,
+                    });
+            }
+            drop(edge_stmt);
+
+            for (_atom_id, phrase, importance, ref_count) in atom_rows {
+                let atom_edges = edges_by_phrase.remove(&phrase).unwrap_or_default();
+                graph.seed(&phrase, importance, ref_count, Vec::new(), atom_edges);
+            }
         }
     }
 

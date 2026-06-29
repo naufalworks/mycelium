@@ -879,7 +879,7 @@ fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result
 
             Ok(())
         }
-        BrainCommands::HeatStatus => cmd_heat_status(config)?,
+        BrainCommands::HeatStatus => cmd_heat_status(config),
         BrainCommands::StopWords => {
             let db_path = config.root_dir.join("mycelium.db");
             let conn = rusqlite::Connection::open(&db_path)?;
