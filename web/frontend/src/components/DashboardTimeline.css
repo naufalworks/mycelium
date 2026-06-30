@@ -1,0 +1,580 @@
+/* ==========================================================================
+   DashboardTimeline — the live brain dashboard.
+
+   Signature element: a horizontal timeline where each turn becomes a glowing
+   tick. Sessions are lanes. New ticks animate in from the right edge and
+   drift left as time passes, fading as they age.
+
+   Uses design tokens from ../styles/tokens.css.
+   ========================================================================== */
+
+.dt-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header strip ────────────────────────────────────── */
+
+.dt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(180deg, rgba(110, 231, 183, 0.025) 0%, transparent 100%),
+    var(--bg-deep);
+}
+
+.dt-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dt-mark {
+  font-size: 18px;
+  color: var(--accent-teal);
+  text-shadow: 0 0 12px var(--glow-teal);
+  align-self: center;
+}
+
+.dt-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.dt-sub {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  text-transform: lowercase;
+}
+
+.dt-meta {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.dt-meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+
+.dt-meta-num {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dt-meta-lbl {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.dt-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.dt-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.dt-live[data-on="true"] .dt-live-dot {
+  background: var(--accent-teal);
+  box-shadow: 0 0 8px var(--accent-teal);
+  animation: dt-pulse 1.6s ease-in-out infinite;
+}
+
+.dt-live[data-on="true"] {
+  border-color: var(--border-glow);
+  color: var(--accent-teal);
+}
+
+.dt-live[data-on="false"] .dt-live-lbl {
+  color: var(--accent-coral);
+}
+
+@keyframes dt-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.25); }
+}
+
+/* ── Canvas ──────────────────────────────────────────── */
+
+.dt-canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 80% 10%, rgba(110, 231, 183, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 60% at 10% 90%, rgba(167, 139, 250, 0.03) 0%, transparent 70%),
+    var(--bg-deep);
+}
+
+/* ── Time axis ───────────────────────────────────────── */
+
+.dt-axis {
+  position: relative;
+  height: 28px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dt-axis-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.dt-axis-left {
+  left: 12px;
+}
+
+.dt-axis-right {
+  right: 12px;
+  color: var(--accent-teal);
+}
+
+.dt-axis-tick {
+  position: absolute;
+  top: 22px;
+  width: 1px;
+  height: 6px;
+  background: var(--border-subtle);
+  transform: translateX(-0.5px);
+}
+
+/* ── Lanes ───────────────────────────────────────────── */
+
+.dt-lanes {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0 16px;
+}
+
+.dt-lane {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(38, 34, 29, 0.5);
+  transition: background 600ms ease;
+}
+
+.dt-lane[data-active="true"] {
+  background: linear-gradient(90deg,
+    rgba(110, 231, 183, 0.018) 0%,
+    transparent 100%);
+}
+
+.dt-lane-label {
+  flex: 0 0 168px;
+  padding: 0 12px 0 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.dt-lane-id {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dt-lane[data-active="true"] .dt-lane-id {
+  color: var(--text-primary);
+}
+
+.dt-lane-meta {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dt-lane-pulse {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  box-shadow: 0 0 6px var(--accent-teal);
+  animation: dt-pulse 1.4s ease-in-out infinite;
+}
+
+.dt-lane-plot {
+  position: relative;
+  height: 100%;
+  margin-left: 16px;
+}
+
+.dt-lane-baseline {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--border-subtle) 8%,
+    var(--border-subtle) 92%,
+    transparent 100%);
+  transform: translateY(-0.5px);
+}
+
+/* ── Tick marks ──────────────────────────────────────── */
+
+.dt-tick {
+  position: absolute;
+  top: 50%;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  transform: translate(-50%, -50%) scale(1);
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 1200ms linear,
+    left 1200ms linear;
+  outline: none;
+}
+
+.dt-tick:hover {
+  transform: translate(-50%, -50%) scale(1.5);
+}
+
+.dt-tick:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 4px;
+}
+
+.dt-tick[data-new="true"] {
+  animation: dt-arrival 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dt-arrival {
+  0% {
+    transform: translate(80px, -50%) scale(0.3);
+    opacity: 0;
+    filter: blur(4px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: var(--tick-opacity, 1);
+    filter: blur(0);
+  }
+}
+
+/* ── Empty state ─────────────────────────────────────── */
+
+.dt-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-tertiary);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.dt-empty-mark {
+  font-size: 38px;
+  color: var(--text-tertiary);
+  opacity: 0.4;
+}
+
+.dt-empty-text {
+  font-size: 16px;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.dt-empty-sub {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Detail panel ────────────────────────────────────── */
+
+.dt-detail {
+  position: absolute;
+  top: 40px;
+  right: 16px;
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100% - 56px);
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-glow);
+  border-radius: 10px;
+  padding: 18px 18px 14px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.02) inset,
+    0 24px 48px -16px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(110, 231, 183, 0.04);
+  animation: dt-detail-in 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 10;
+}
+
+@keyframes dt-detail-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.dt-detail-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 120ms ease;
+}
+
+.dt-detail-close:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.dt-detail-close:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 2px;
+}
+
+.dt-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dt-detail-tier {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.dt-detail-turn {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.dt-detail-time {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+
+.dt-detail-meta {
+  display: flex;
+  gap: 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  text-transform: lowercase;
+  margin-bottom: 12px;
+}
+
+.dt-detail-meta b {
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.dt-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dt-detail-msg {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.dt-detail-who {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 3px;
+}
+
+.dt-detail-msg--user .dt-detail-who {
+  color: var(--accent-blue);
+}
+
+.dt-detail-msg--asst .dt-detail-who {
+  color: var(--accent-teal);
+}
+
+.dt-detail-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dt-detail-entities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dt-entity {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+}
+
+.dt-detail-hash {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+
+.dt-detail-hash-lbl {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.dt-detail-hash-val {
+  font-size: 11px;
+  color: var(--accent-purple);
+  letter-spacing: -0.01em;
+}
+
+/* ── Reduced motion ──────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-tick[data-new="true"] {
+    animation: none;
+  }
+  .dt-live-dot, .dt-lane-pulse {
+    animation: none;
+  }
+  .dt-tick, .dt-detail {
+    transition: none;
+  }
+}
+
+/* ── Mobile ──────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .dt-header {
+    padding: 14px 16px 10px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .dt-meta {
+    gap: 14px;
+  }
+  .dt-meta-num {
+    font-size: 12px;
+  }
+  .dt-lane-label {
+    flex: 0 0 100px;
+    padding-left: 12px;
+  }
+  .dt-lane-id {
+    font-size: 10px;
+  }
+  .dt-detail {
+    width: calc(100% - 32px);
+  }
+}

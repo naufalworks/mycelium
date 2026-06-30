@@ -95,7 +95,7 @@ export default function App() {
             <div className="loading"><div className="spinner" /> Loading brain...</div>
           ) : (
             <>
-              {view === 'dashboard' && <DashboardView status={status} stream={stream} daemon={daemonHealth} onView={setView} />}
+              {view === 'dashboard' && <DashboardView status={status} stream={stream} daemon={daemonHealth} />}
               {view === 'memory' && <MemoryView searchQuery={searchQuery} />}
               {view === 'graph' && <GraphView />}
               {view === 'findings' && <FindingsView />}
@@ -232,112 +232,13 @@ function TopBar({ view, status, searchQuery, onSearch }: {
 }
 
 // ── Dashboard ───────────────────────────────────────
-function DashboardView({ status, stream, daemon, onView }: {
-  status: BrainStatus | null; stream: StreamItem[]; daemon: any; onView: (v: View) => void
+// Thin wrapper — the live dashboard is now the DashboardTimeline component.
+// All the chrome (header strip, lane labels, ticks, detail panel) lives there.
+import DashboardTimeline from './components/DashboardTimeline'
+function DashboardView({ status, stream, daemon }: {
+  status: BrainStatus | null; stream: StreamItem[]; daemon: any
 }) {
-  const tiers = status?.tiers ?? {}
-  const [proxyActive, setProxyActive] = useState(false)
-  const [activeRun, setActiveRun] = useState<any>(null)
-
-  useEffect(() => {
-    const check = async () => {
-      try { const r = await fetch('http://127.0.0.1:8443/', { signal: AbortSignal.timeout(2000) }); setProxyActive(r.ok || r.status === 404) } catch { setProxyActive(false) }
-      try { const r = await fetch(API+'/api/workflow/runs?limit=1'); const d = await r.json(); const a = (d.runs ?? []).find((r:any) => r.status === 'running'); setActiveRun(a || null) } catch {}
-    }
-    check(); const iv = setInterval(check, 5000); return () => clearInterval(iv)
-  }, [])
-
-  const topStream = stream.slice(0, 12)
-
-  const sections: { key: View; label: string; icon: string; desc: string }[] = [
-    { key: 'memory', label: 'Memory', icon: '⟐', desc: 'Browse all turns, search' },
-    { key: 'graph', label: 'Graph', icon: '◎', desc: 'Entity relationships' },
-    { key: 'findings', label: 'Findings', icon: '⚠', desc: 'Critical insights' },
-    { key: 'artifacts', label: 'Artifacts', icon: '◈', desc: 'Stored outputs' },
-    { key: 'causal', label: 'Causal', icon: '↻', desc: 'Cause-effect traces' },
-    { key: 'negations', label: 'Negations', icon: '⊘', desc: 'Negation tracking' },
-    { key: 'workflows', label: 'Workflows', icon: '⇶', desc: 'Runs & history' },
-    { key: 'settings', label: 'Settings', icon: '⚙', desc: 'MCP, proxy config' },
-  ]
-
-  return (
-    <div className="fade-in">
-      {/* Active Workflow Banner */}
-      {activeRun && (
-        <div className="wf-section">
-          <div className="wf-run-row active" onClick={() => onView('workflows')}>
-            <div className="wf-run-status"><span className="wf-status-running">▶</span></div>
-            <div className="wf-run-info">
-              <div className="wf-run-name">{activeRun.workflow_name}</div>
-              <div className="wf-run-meta">{activeRun.current_step}/{activeRun.total_steps} steps</div>
-            </div>
-            <div className="wf-run-progress">
-              <div className="wf-progress-bar"><div className="wf-progress-fill" style={{width:`${(activeRun.current_step/Math.max(activeRun.total_steps,1))*100}%`}} /></div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stats Cards */}
-      <div className="stats-grid">
-        <div className="stat-card cyan">
-          <div className="label">Turns</div>
-          <div className="value">{status?.total_turns ?? 0}</div>
-          <div className="sub">{status?.total_sessions ?? 0} sessions</div>
-        </div>
-        <div className="stat-card blue">
-          <div className="label">S-Tier</div>
-          <div className="value">{tiers.S ?? 0}</div>
-          <div className="sub">A: {tiers.A ?? 0}  B: {tiers.B ?? 0}</div>
-        </div>
-        <div className="stat-card purple">
-          <div className="label">Storage</div>
-          <div className="value">{status?.storage_bytes ? (status.storage_bytes/1024).toFixed(0) : 0}<small> KB</small></div>
-          <div className="sub">brain size</div>
-        </div>
-        <div className="stat-card amber">
-          <div className="label">Daemon</div>
-          <div className="value">{daemon?.last_assistant_id != null ? '🟢 Online' : '🔴 Offline'}</div>
-          <div className="sub">{daemon?.imports??0} imports</div>
-        </div>
-        <div className="stat-card">
-          <div className="label">Proxy</div>
-          <div className="value">{proxyActive ? '🟢 :8443' : '🔴 Offline'}</div>
-          <div className="sub">meshgate → :8080</div>
-        </div>
-      </div>
-
-      {/* Sections Grid */}
-      <div className="section-heading">Sections</div>
-      <div className="section-grid">
-        {sections.map(s => (
-          <div key={s.key} className="section-card" onClick={() => onView(s.key)}>
-            <div className="section-icon">{s.icon}</div>
-            <div className="section-label">{s.label}</div>
-            <div className="section-desc">{s.desc}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Activity */}
-      <div className="section-heading">Recent Activity</div>
-      <div className="wf-runs">
-        {topStream.map((e, i) => (
-          <div key={i} className="wf-run-row" onClick={() => onView('memory')}>
-            <div className="wf-run-info">
-              <div className="wf-run-name">
-                <span className={`tier-${e.tier}`}>T{e.tier}</span>
-                <span className="wf-run-meta">{e.ts?.slice(11,19)}</span>
-                <span className="tag">{e.type}</span>
-              </div>
-              <div className="user-text">{e.user?.slice(0,120)}</div>
-              <div className="ai-text">{e.assistant?.slice(0,120)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  return <DashboardTimeline status={status} stream={stream} daemon={daemon} />
 }
 
 // ── Memory View ─────────────────────────────────────

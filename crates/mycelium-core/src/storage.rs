@@ -532,6 +532,18 @@ impl Storage {
 
     /// Verify the hash chain integrity for all entries.
     ///
+    /// Update the prev_hash of a specific entry by turn. Returns true if a row was modified.
+    pub fn update_prev_hash(&self, turn: i64, new_prev_hash: &str) -> Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let rows = conn
+            .execute(
+                "UPDATE entries SET prev_hash = ?1 WHERE turn = ?2",
+                rusqlite::params![new_prev_hash, turn],
+            )
+            .map_err(|e| MyceliumError::Storage(e))?;
+        Ok(rows > 0)
+    }
+
     /// Returns a list of entries where the hash chain is broken.
     /// Each entry shows the turn, expected hash, and actual hash.
     pub fn verify_hash_chain(&self) -> Result<Vec<(i64, String, String)>> {

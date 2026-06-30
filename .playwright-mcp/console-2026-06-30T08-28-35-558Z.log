@@ -1,0 +1,2369 @@
+[     183ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5174/node_modules/.vite/deps/chunk-373CG7ZK.js?v=df384c5e:21548
+[ 2984580ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984580ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984583ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984583ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984584ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984584ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984585ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984585ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984586ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984586ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984586ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984586ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984586ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984586ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984586ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984586ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984587ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984587ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984587ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984587ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984587ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984587ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984587ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984587ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984588ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984588ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984589ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984589ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984589ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984589ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984589ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984589ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984589ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984589ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984589ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984589ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984590ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984590ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984590ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984590ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984590ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984590ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984591ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984591ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984591ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984591ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984591ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984591ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984591ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984591ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984591ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984591ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984591ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984592ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984592ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984593ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984593ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984593ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984593ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984593ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984593ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984593ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984593ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984593ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984593ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984593ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984593ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984593ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984593ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984594ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984594ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984595ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984595ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984595ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984595ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984595ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984595ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984595ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984595ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984595ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984595ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984595ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984595ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984595ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984595ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984596ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984596ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984597ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984597ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984597ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984597ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984597ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984597ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984597ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984597ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984597ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984598ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984598ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984599ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984599ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984599ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984599ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984599ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984599ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984599ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984599ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984599ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984599ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984599ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984599ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984599ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984599ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984600ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984600ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984600ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984600ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984600ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984600ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984600ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984600ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984600ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984600ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984601ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984601ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984601ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984601ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984601ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984601ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984601ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984601ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984601ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984601ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984601ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984602ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984602ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984603ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984603ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984603ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984603ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984603ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984603ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984603ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984603ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984603ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984603ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984604ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984604ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984604ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984604ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984604ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984604ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984604ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984604ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984604ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984604ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984604ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984604ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984605ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984605ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984606ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984606ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984606ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984606ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984606ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984606ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984607ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984607ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984607ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984607ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984607ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984607ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984607ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984607ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984608ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984608ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984608ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984608ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984609ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984609ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984609ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984609ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984609ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984609ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984609ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984609ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984610ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984610ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984610ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984610ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984610ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984610ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984610ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984610ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984610ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984610ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984611ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984611ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984611ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984611ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984611ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984611ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984611ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984611ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984611ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984611ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984612ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984612ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984612ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984612ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984612ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984612ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984613ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984613ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984613ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984613ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984613ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984613ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984614ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984614ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984614ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984614ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984614ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984614ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984614ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984614ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984614ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984614ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984615ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984615ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984615ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984615ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984615ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984615ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984615ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984615ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984615ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984615ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984616ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984616ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984616ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984616ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984616ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984616ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984616ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984616ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984616ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984616ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984616ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984616ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984617ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984617ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984617ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984617ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984617ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984617ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984618ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984618ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984618ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984618ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984618ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984618ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984618ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984618ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984618ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984618ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984619ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984619ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984619ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984619ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984619ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984619ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984619ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984619ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984619ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984619ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984619ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984619ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984620ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984620ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984620ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984620ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984621ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984621ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984621ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984621ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984621ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984621ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984621ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984621ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984621ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984621ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984622ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984622ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984622ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984622ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984622ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984622ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984622ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984622ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984622ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984622ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984622ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984622ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984623ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984623ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984624ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984624ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984625ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984625ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984626ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984626ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984627ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984627ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984628ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984628ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984628ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984628ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984628ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984628ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984628ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984628ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984628ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984628ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984628ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984628ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984628ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984628ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984629ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984629ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984629ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984629ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984629ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984629ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984630ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984630ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984630ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984630ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984631ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984631ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984631ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984631ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984631ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984631ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984631ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984631ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984632ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984632ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984632ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984632ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984632ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984632ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984632ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984632ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984632ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984632ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984633ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984633ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984633ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984633ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984633ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984633ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984633ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984633ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984633ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984633ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984633ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984633ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984634ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984634ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984634ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984634ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984634ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984634ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984634ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984634ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984634ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984634ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984634ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984634ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984635ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984635ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984635ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984635ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984635ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984635ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984635ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984635ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984635ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984635ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984636ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984636ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984636ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984636ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984636ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984636ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984637ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984637ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984637ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984637ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984637ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984637ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984638ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984638ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984639ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984639ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984639ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984639ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984639ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984639ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984639ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984639ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984640ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984640ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984640ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984640ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984640ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984640ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984640ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984640ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984640ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984640ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984640ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984640ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984641ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984641ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984641ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984641ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984641ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984641ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984641ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984641ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984641ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984641ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984641ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984641ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984642ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984642ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984643ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984643ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984643ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984643ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984643ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984643ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984643ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984643ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984643ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984643ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984643ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984643ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984644ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984644ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984644ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984644ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984644ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984644ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984644ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984644ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984644ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984644ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984645ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984645ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984645ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984645ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984645ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984645ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984645ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984645ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984646ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984646ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984647ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984647ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984647ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984647ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984647ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984647ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984647ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984647ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984648ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984648ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984649ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984649ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984649ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984649ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984649ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984649ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984649ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984649ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984649ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984649ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984649ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984649ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984649ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984649ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984650ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984650ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984651ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984651ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984652ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984652ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984652ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984652ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984652ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984652ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984652ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984652ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984652ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984652ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984652ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984652ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984653ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984653ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984653ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984653ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984653ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984653ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984653ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984653ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984653ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984653ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984654ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984654ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984654ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984654ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984654ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984654ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984654ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984654ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984654ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984654ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984654ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984654ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984654ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984654ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984655ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984655ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984655ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984655ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984655ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984655ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984655ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984655ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984655ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984655ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984655ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984655ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984655ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984655ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984656ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984656ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984656ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984656ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984656ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984656ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984656ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984656ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984656ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984656ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984656ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984656ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984657ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984657ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984658ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984658ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984658ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984658ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984658ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984658ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984658ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984658ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984658ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984658ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984659ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984659ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984659ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984659ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984659ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984659ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984659ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984659ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984659ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984659ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984659ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984659ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984659ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984659ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984660ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984660ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984660ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984660ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984660ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984660ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984660ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984660ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984661ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984661ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984661ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984661ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984661ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984661ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984661ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984661ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984661ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984661ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984662ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984662ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984662ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984662ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984662ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984662ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984662ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984662ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984663ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984663ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984663ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984663ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984663ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984663ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984663ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984663ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984663ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984663ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984663ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984663ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984664ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984664ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984664ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984664ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984664ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984664ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984665ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984665ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984665ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984665ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984665ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984665ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984665ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984665ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984665ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984665ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984666ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984666ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984666ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984666ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984666ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984666ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984666ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984666ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984667ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984667ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984667ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984667ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984667ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984667ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984667ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984667ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984667ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984667ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984668ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984668ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984668ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984668ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984668ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984668ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984668ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984668ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984668ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984668ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984668ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984668ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984668ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984668ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984669ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984669ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984670ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984670ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984671ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984671ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984671ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984671ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984671ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984671ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984671ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984671ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984671ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984671ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984671ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984671ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984672ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984672ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984672ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984672ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984672ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984672ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984672ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984672ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984672ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984672ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984672ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984672ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984673ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984673ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984673ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984673ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984674ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984674ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984674ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984674ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984674ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984674ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984675ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984675ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984675ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984675ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984675ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984675ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984675ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984675ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984675ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984675ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984676ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984676ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984676ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984676ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984676ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984676ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984676ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984676ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984676ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984676ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984676ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984676ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984677ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984677ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984678ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984678ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984678ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984678ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984678ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984678ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984678ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984678ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984679ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984679ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984679ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984679ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984679ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984679ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984679ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984679ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984679ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984679ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984680ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984680ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984681ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984681ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984682ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984682ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48
+[ 2984682ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ http://127.0.0.1:8421/api/status:0
+[ 2984682ms] [WARNING] [mycelium] status: TypeError: Failed to fetch
+    at http://127.0.0.1:5174/src/App.tsx:45:23
+    at http://127.0.0.1:5174/src/App.tsx:74:7 @ http://127.0.0.1:5174/src/App.tsx:48

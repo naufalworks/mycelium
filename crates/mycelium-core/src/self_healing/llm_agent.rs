@@ -151,18 +151,15 @@ impl LLMAgent {
 
                 tool_call_count += 1;
 
-                // Dispatch the tool — guard scoped so MutexGuard (!Send)
-                // is dropped before the next loop iteration's .await.
-                let result = {
-                    let conn_guard = self.storage.conn().lock().unwrap();
-                    tools::dispatch_tool(
-                        fn_name,
-                        &args,
-                        &self.storage,
-                        &conn_guard,
-                        &self.safety,
-                    )
-                };
+                // Dispatch the tool — don't hold storage lock across the call
+                // (tools re-acquire storage.conn() internally; std Mutex is not recursive)
+                let result = tools::dispatch_tool(
+                    fn_name,
+                    &args,
+                    &self.storage,
+                    None,
+                    &self.safety,
+                );
 
                 let result_json = match result {
                     Ok(v) => {

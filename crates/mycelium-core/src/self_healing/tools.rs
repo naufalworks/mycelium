@@ -118,19 +118,21 @@ pub fn tool_definitions() -> Vec<Value> {
 }
 
 /// Dispatch a tool call by name. Returns the tool result as JSON.
+/// `conn` is only needed by `set_prev_hash` — other tools acquire their own
+/// connections internally to avoid lock contention with the caller.
 pub fn dispatch_tool(
     name: &str,
     args: &Value,
     storage: &Storage,
-    conn: &Connection,
-    _safety: &SafetyHarness,
+    _conn: Option<&Connection>,
+    safety: &SafetyHarness,
 ) -> Result<Value, String> {
     match name {
         "list_broken_segments" => list_broken_segments(storage),
         "get_entry" => get_entry(args, storage),
         "get_entry_content" => get_entry_content(args, storage),
         "verify_chain" => verify_chain(storage),
-        "set_prev_hash" => set_prev_hash(args, conn),
+        "set_prev_hash" => set_prev_hash(args, storage),
         "commit_repair" => commit_repair(storage),
         _ => Err(format!("unknown tool: {name}")),
     }
@@ -222,7 +224,7 @@ fn verify_chain(storage: &Storage) -> Result<Value, String> {
 }
 
 /// Update prev_hash for a turn. Validates hash format via Policy::validate_hash_format.
-fn set_prev_hash(args: &Value, conn: &Connection) -> Result<Value, String> {
+fn set_prev_hash(args: &Value, storage: &Storage) -> Result<Value, String> {
     let turn = args
         .get("turn")
         .and_then(|v| v.as_i64())
@@ -235,18 +237,15 @@ fn set_prev_hash(args: &Value, conn: &Connection) -> Result<Value, String> {
 
     Policy::validate_hash_format(hash).map_err(|e| format!("invalid hash: {e}"))?;
 
-    let rows = conn
-        .execute(
-            "UPDATE entries SET prev_hash = ?1 WHERE turn = ?2",
-            rusqlite::params![hash, turn],
-        )
+    let updated = storage
+        .update_prev_hash(turn, hash)
         .map_err(|e| format!("UPDATE failed: {e}"))?;
 
-    if rows == 0 {
+    if !updated {
         return Err(format!("no entry found at turn {turn}"));
     }
 
-    Ok(json!({ "ok": true, "turn": turn, "updated": rows }))
+    Ok(json!({ "ok": true, "turn": turn, "updated": updated }))
 }
 
 /// Finalize repair — verify the chain and return status.

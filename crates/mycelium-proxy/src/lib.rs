@@ -276,8 +276,8 @@ async fn intercept_and_forward(
     // Forward to upstream, capture response
     let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &req_body).await;
 
-    // Extract assistant message
-    let (assistant_msg, annotation) = interceptor::extract_openai_response(&resp_body);
+    // Extract assistant message — /v1/messages returns Anthropic format
+    let (assistant_msg, annotation) = interceptor::extract_assistant_response(&resp_body);
 
     // Log the conversation if we have both user and assistant messages
     log_conversation(&state, &session, &user_msg, &assistant_msg, annotation);

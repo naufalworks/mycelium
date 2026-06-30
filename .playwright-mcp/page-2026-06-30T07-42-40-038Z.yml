@@ -1,0 +1,50 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - text: 🍄 mycelium
+      - generic [ref=e6]: permanent brain
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Core
+        - button "◉ Dashboard" [ref=e10] [cursor=pointer]:
+          - generic [ref=e11]: ◉
+          - generic [ref=e12]: Dashboard
+        - button "⟐ Memory" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: ⟐
+          - generic [ref=e15]: Memory
+        - button "◎ Graph" [ref=e16] [cursor=pointer]:
+          - generic [ref=e17]: ◎
+          - generic [ref=e18]: Graph
+      - generic [ref=e19]:
+        - generic [ref=e20]: Analysis
+        - button "⚠ Findings" [ref=e21] [cursor=pointer]:
+          - generic [ref=e22]: ⚠
+          - generic [ref=e23]: Findings
+        - button "↻ Causal" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: ↻
+          - generic [ref=e26]: Causal
+        - button "⊘ Negations" [ref=e27] [cursor=pointer]:
+          - generic [ref=e28]: ⊘
+          - generic [ref=e29]: Negations
+      - generic [ref=e30]:
+        - generic [ref=e31]: System
+        - button "⇶ Workflows" [ref=e32] [cursor=pointer]:
+          - generic [ref=e33]: ⇶
+          - generic [ref=e34]: Workflows
+        - button "◈ Artifacts" [ref=e35] [cursor=pointer]:
+          - generic [ref=e36]: ◈
+          - generic [ref=e37]: Artifacts
+        - button "⚙ Settings" [ref=e38] [cursor=pointer]:
+          - generic [ref=e39]: ⚙
+          - generic [ref=e40]: Settings
+    - generic [ref=e41]:
+      - generic [ref=e42]: Daemon offline
+      - generic [ref=e43]: "?entries"
+    - button "←" [ref=e44] [cursor=pointer]
+  - generic [ref=e45]:
+    - banner [ref=e46]:
+      - heading "Dashboard" [level=2] [ref=e47]
+      - generic [ref=e48]:
+        - generic [ref=e49]: 🧠
+        - generic [ref=e50]: "0"
+    - generic [ref=e52]: Loading brain...
