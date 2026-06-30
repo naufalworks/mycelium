@@ -153,6 +153,8 @@ enum BrainCommands {
     },
     /// Delete atoms and edges that match stop words
     PurgeStopWords,
+    /// Detect and repair broken hash chains (deterministic, no LLM)
+    RepairChains,
 }
 
 #[tokio::main]
@@ -955,6 +957,7 @@ fn cmd_brain(config: &MyceliumConfig, command: &BrainCommands) -> anyhow::Result
             println!("Purged {} stop-word atoms", removed);
             Ok(())
         }
+        BrainCommands::RepairChains => cmd_repair_chains(&config),
     }
 }
 
@@ -985,6 +988,51 @@ fn cmd_heat_status(config: &MyceliumConfig) -> anyhow::Result<()> {
 }
 
 /// Count registered entities in the entity_registry table.
+
+/// Repair broken hash chains deterministically (no LLM needed).
+fn cmd_repair_chains(config: &MyceliumConfig) -> anyhow::Result<()> {
+    use mycelium_core::types::Entry;
+    let db_path = config.root_dir.join("mycelium.db");
+    let storage = mycelium_core::Storage::open(db_path)?;
+    
+    let failures = storage.verify_hash_chain()?;
+    if failures.is_empty() {
+        println!("Hash chain is valid — 0 broken entries.");
+        return Ok(());
+    }
+    println!("Found {} broken entries. Repairing...", failures.len());
+    
+    let all_entries = storage.all_entries()?;
+    let mut repaired = 0u64;
+    for entry in &all_entries {
+        let expected_prev = if entry.turn == 1 {
+            String::new()
+        } else {
+            match all_entries.iter().find(|e| e.turn == entry.turn - 1) {
+                Some(prev) => prev.hash.clone(),
+                None => {
+                    println!("  Turn {}: predecessor missing, skipping", entry.turn);
+                    continue;
+                }
+            }
+        };
+        if entry.prev_hash != expected_prev {
+            let conn = storage.conn().lock().unwrap();
+            let new_hash = entry.compute_hash(&expected_prev);
+            conn.execute(
+                "UPDATE entries SET prev_hash = ?1, hash = ?2 WHERE turn = ?3",
+                rusqlite::params![expected_prev, new_hash, entry.turn],
+            )?;
+            repaired += 1;
+            if repaired % 1000 == 0 {
+                println!("  Repaired {} entries...", repaired);
+            }
+        }
+    }
+    let remaining = failures.len() as u64 - repaired;
+    println!("Done. Repaired: {} entries. Remaining (gap entries): {}", repaired, remaining);
+    Ok(())
+}
 fn count_entities(conn: &rusqlite::Connection) -> i64 {
     conn.query_row("SELECT COUNT(*) FROM entity_registry", [], |row| row.get(0)).unwrap_or(0)
 }

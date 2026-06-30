@@ -544,35 +544,26 @@ impl Storage {
         Ok(rows > 0)
     }
 
-    /// Returns a list of entries where the hash chain is broken.
-    /// Each entry shows the turn, expected hash, and actual hash.
+    /// Run verify_hash_chain() — returns a list of entries where the hash chain is broken.
+    /// Uses SQL LAG window function — O(N) in database, not application memory.
+    /// Each entry shows the turn, expected prev_hash, and actual prev_hash.
     pub fn verify_hash_chain(&self) -> Result<Vec<(i64, String, String)>> {
-        let entries = self.all_entries()?;
-        let mut failures = Vec::new();
-
-        for entry in &entries {
-            let expected_prev = if entry.turn == 1 {
-                String::new()
-            } else {
-                // Find the previous entry's hash
-                match self.get_entry(entry.turn - 1)? {
-                    Some(prev) => prev.hash,
-                    None => {
-                        failures.push((entry.turn, "prev entry not found".into(), entry.prev_hash.clone()));
-                        continue;
-                    }
-                }
-            };
-
-            if entry.prev_hash != expected_prev {
-                failures.push((
-                    entry.turn,
-                    format!("expected prev_hash: {}", expected_prev),
-                    format!("got: {}", entry.prev_hash),
-                ));
-            }
-        }
-
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT e.turn, COALESCE(LAG(e.hash) OVER (ORDER BY e.turn), ''), e.prev_hash
+             FROM entries e
+             ORDER BY e.turn"
+        )?;
+        let failures: Vec<(i64, String, String)> = stmt
+            .query_map([], |row| {
+                let turn: i64 = row.get(0)?;
+                let expected_prev: String = row.get(1)?;
+                let actual_prev: String = row.get(2)?;
+                Ok((turn, expected_prev, actual_prev))
+            })?
+            .filter_map(|r| r.ok())
+            .filter(|(_, expected, actual)| expected != actual)
+            .collect();
         Ok(failures)
     }
 
