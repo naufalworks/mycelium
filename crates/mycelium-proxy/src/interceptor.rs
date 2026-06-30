@@ -58,8 +58,6 @@ const FACTS_BLOCK_HEADER: &str = "\n<mycelium-facts>\nVerified facts from perman
 const MEMORY_INSTRUCTION: &str = "\n\nAfter your response, emit a <memory> block containing JSON with: phrases (canonical noun phrases to remember, each with text and importance 1-5), actions (key actions taken/fixed/explained, each with text and importance 1-5), entities (named things mentioned, each with name, type, aliases, and importance 1-5). Keep the block under 200 tokens.";
 
 /// Instruction about recall context block.
-const RECALL_CONTEXT_INSTRUCTION: &str = "\n\nYou have access to Mycelium's permanent memory. When you need to recall information, the system will inject relevant context from the brain graph.";
-
 // ── Constants ──
 /// Number of memory clusters to retrieve per recall query.
 const MAX_RECALL_CLUSTERS: usize = 5;

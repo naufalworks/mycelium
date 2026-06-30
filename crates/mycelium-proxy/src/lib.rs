@@ -24,8 +24,6 @@ pub mod interceptor;
 pub mod query_parser;
 pub mod context_synthesizer;
 
-const CONTEXT_HEADER: &str = "\n<mycelium-memory>\nRecent memory context:\n";
-
 /// Shared proxy state.
 pub struct ProxyState {
     pub storage: Storage,
