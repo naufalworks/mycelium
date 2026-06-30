@@ -18,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio::sync::Semaphore;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 pub mod interceptor;
 pub mod query_parser;
@@ -62,8 +62,9 @@ pub async fn serve(config: MyceliumConfig) -> anyhow::Result<()> {
         std::env::var("MYCELIUM_UPSTREAM_API_KEY").unwrap_or_else(|_| String::new());
     let model = std::env::var("MYCELIUM_MODEL")
         .unwrap_or_else(|_| "claude-sonnet-4-20250514".to_string());
-    let llm_url = std::env::var("MYCELIUM_LLM_URL")
-        .unwrap_or_else(|_| format!("{}/v1/messages", config.upstream_url));
+    // Always use the configured upstream URL for the query parser LLM
+    // Ignore MYCELIUM_LLM_URL env var — it was causing stale URLs after config changes
+    let llm_url = format!("{}/v1/messages", config.upstream_url);
     let llm_client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(180))
         .build()?;
@@ -133,14 +134,47 @@ async fn proxy_router(
     headers: HeaderMap,
     body: Body,
 ) -> Response {
-    let path = uri.path();
-    if path.ends_with("/v1/messages") {
+    let raw_path = uri.path();
+    let user_agent = headers.get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("unknown");
+    let request_id = uuid::Uuid::new_v4().to_string();
+
+    // Normalize path: strip duplicate /v1 prefix
+    // Claude Code sends /v1/v1/messages when base URL is http://host:8443/v1
+    let path = if raw_path.starts_with("/v1/v1/") {
+        &raw_path[3..]  // Strip first "/v1" → "/v1/messages"
+    } else {
+        raw_path
+    };
+
+    tracing::info!(
+        request_id = %request_id,
+        method = %method,
+        path = %path,
+        raw_path = %raw_path,
+        user_agent = %user_agent,
+        "incoming request"
+    );
+
+    let response = if path.ends_with("/v1/messages") {
+        tracing::debug!(request_id = %request_id, "routing to intercept_and_forward (Anthropic format)");
         intercept_and_forward(State(state), method, uri, headers, body).await
     } else if path.ends_with("/v1/chat/completions") {
+        tracing::debug!(request_id = %request_id, "routing to handle_openai (OpenAI format)");
         handle_openai(State(state), method, uri, headers, body).await
     } else {
+        tracing::debug!(request_id = %request_id, "routing to passthrough");
         passthrough(State(state), method, uri, headers, body).await
-    }
+    };
+
+    tracing::info!(
+        request_id = %request_id,
+        status = %response.status().as_u16(),
+        "response sent"
+    );
+
+    response
 }
 
 /// Intercepts POST /v1/messages — injects memory context, logs exchanges.
@@ -151,10 +185,13 @@ async fn intercept_and_forward(
     headers: HeaderMap,
     body: Body,
 ) -> Response {
+    let request_id = uuid::Uuid::new_v4().to_string();
+    tracing::info!(request_id = %request_id, "intercept_and_forward: starting");
+
     let _permit = match state.semaphore.try_acquire() {
         Ok(permit) => permit,
         Err(_) => {
-            warn!("Too many concurrent requests — returning 503");
+            warn!(request_id = %request_id, "Too many concurrent requests — returning 503");
             return (StatusCode::SERVICE_UNAVAILABLE, "too many requests").into_response();
         }
     };
@@ -164,44 +201,45 @@ async fn intercept_and_forward(
     let body_bytes = match axum::body::to_bytes(body, 10 * 1024 * 1024).await {
         Ok(b) => b,
         Err(e) => {
-            error!("Failed to read request body: {}", e);
+            error!(request_id = %request_id, "Failed to read request body: {}", e);
             return (StatusCode::BAD_REQUEST, "failed to read body").into_response();
         }
     };
 
-    // Try to intercept: parse, inject memory context
-    let context_block = match state.recall_mode {
-        RecallMode::Legacy => {
-            let user_msg = match interceptor::extract_user_message(
-                &serde_json::from_slice::<serde_json::Value>(&body_bytes).unwrap_or_default(),
-            ) {
-                Some(m) => m,
-                None => String::new(),
-            };
-            let facts = state.storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
-            interceptor::build_facts_block(&facts)
+    // Log request details
+    if let Ok(req_json) = serde_json::from_slice::<serde_json::Value>(&body_bytes) {
+        let model = req_json.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let max_tokens = req_json.get("max_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+        let messages = req_json.get("messages").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
+        tracing::info!(
+            request_id = %request_id,
+            model = %model,
+            max_tokens = max_tokens,
+            message_count = messages,
+            body_size = body_bytes.len(),
+            "request parsed"
+        );
+
+        // Log first user message
+        if let Some(msgs) = req_json.get("messages").and_then(|v| v.as_array()) {
+            for msg in msgs {
+                if let (Some(role), Some(content)) = (msg.get("role").and_then(|v| v.as_str()), msg.get("content").and_then(|v| v.as_str())) {
+                    if role == "user" {
+                        tracing::debug!(request_id = %request_id, "user message: {}", content.chars().take(200).collect::<String>());
+                        break;
+                    }
+                }
+            }
         }
-        RecallMode::GraphTraversal => {
-            let user_msg = match interceptor::extract_user_message(
-                &serde_json::from_slice::<serde_json::Value>(&body_bytes).unwrap_or_default(),
-            ) {
-                Some(m) => m,
-                None => String::new(),
-            };
-            interceptor::run_recall_pipeline(
-                &user_msg,
-                &state.storage,
-                &state.llm_client,
-                &state.llm_url,
-                &state.upstream_api_key,
-                &state.model,
-                &state.cortex_skills,
-                state.cortex_enabled,
-            )
-            .await
-        }
-    };
-    let (mut req_body, session, user_msg) = match interceptor::process_request(&body_bytes, &state.storage, &context_block) {
+    }
+
+    // Extract user message + session via JSON parsing (no LLM needed)
+    let context_block = String::new();
+    let (mut req_body, session, user_msg) = match interceptor::process_request(
+        &body_bytes,
+        &state.storage,
+        &context_block,
+    ) {
         Some(result) => result,
         None => {
             let (result, _) = forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await;
@@ -209,31 +247,29 @@ async fn intercept_and_forward(
         }
     };
 
-    // A1/A2: Session context injection
-    {
-        let mut is_loaded = state.session_loaded.lock().unwrap();
-        let loaded = is_loaded.entry(session.clone()).or_insert(false);
-        if !*loaded {
-            let context_entries = state.storage
-                .entries_for_session(&session, 5)
-                .ok()
-                .unwrap_or_default();
-            if !context_entries.is_empty() {
-                let mut ctx_lines = String::from(CONTEXT_HEADER);
-                for entry in &context_entries {
-                    let preview: String = entry.user.chars().take(100).collect();
-                    ctx_lines.push_str(&format!("  [#{}] {}: {}\n", entry.turn, entry.session, preview));
+    // Search memory facts via SQLite and inject if found
+    if !user_msg.is_empty() {
+        let facts = state.storage.search_facts(&user_msg, 5).ok().unwrap_or_default();
+        if !facts.is_empty() {
+            info!(request_id = %request_id, "Found {} memory facts for: {}", facts.len(), user_msg.chars().take(60).collect::<String>());
+
+            let fact_block = interceptor::build_facts_block(&facts);
+            if let Ok(mut json) = serde_json::from_slice::<serde_json::Value>(&req_body) {
+                let injection = format!("\n\n{}", fact_block);
+                match json.get_mut("system") {
+                    Some(serde_json::Value::String(s)) => {
+                        *s = format!("{}{}", s, injection);
+                    }
+                    Some(serde_json::Value::Array(blocks)) => {
+                        blocks.push(serde_json::json!({"type": "text", "text": injection.trim()}));
+                    }
+                    _ => {}
                 }
-                ctx_lines.push_str("</mycelium-memory>");
-                if let Ok(mut json) = serde_json::from_slice::<serde_json::Value>(&req_body) {
-                    let existing = json.get("system").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                    json["system"] = serde_json::Value::String(format!("{}\n\n{}", existing, ctx_lines));
-                    req_body = serde_json::to_vec(&json).unwrap_or(req_body);
-                    let mut injected = state.injected_turns.lock().unwrap();
-                    for entry in &context_entries { injected.insert(entry.turn); }
-                }
+                let modified = serde_json::to_vec(&json).unwrap_or(req_body);
+                req_body = modified;
             }
-            *loaded = true;
+        } else {
+            debug!(request_id = %request_id, "No memory facts found for: {}", user_msg.chars().take(60).collect::<String>());
         }
     }
 
@@ -241,7 +277,7 @@ async fn intercept_and_forward(
     let (upstream_resp, resp_body) = forward_to_upstream(&state, method, &uri, &headers, &req_body).await;
 
     // Extract assistant message
-    let (assistant_msg, annotation) = interceptor::extract_assistant_response(&resp_body);
+    let (assistant_msg, annotation) = interceptor::extract_openai_response(&resp_body);
 
     // Log the conversation if we have both user and assistant messages
     log_conversation(&state, &session, &user_msg, &assistant_msg, annotation);
@@ -289,9 +325,13 @@ async fn handle_openai(
     headers: HeaderMap,
     body: Body,
 ) -> Response {
+    let request_id = uuid::Uuid::new_v4().to_string();
+    tracing::info!(request_id = %request_id, "handle_openai: starting");
+
     let _permit = match state.semaphore.try_acquire() {
         Ok(permit) => permit,
         Err(_) => {
+            tracing::warn!(request_id = %request_id, "handle_openai: too many concurrent requests");
             return (StatusCode::SERVICE_UNAVAILABLE, "too many requests").into_response();
         }
     };
@@ -299,15 +339,32 @@ async fn handle_openai(
     let body_bytes = match axum::body::to_bytes(body, 10 * 1024 * 1024).await {
         Ok(b) => b,
         Err(e) => {
-            error!("Failed to read request body: {}", e);
+            error!(request_id = %request_id, "Failed to read request body: {}", e);
             return (StatusCode::BAD_REQUEST, "failed to read body").into_response();
         }
     };
 
+    // Log request
+    if let Ok(req_json) = serde_json::from_slice::<serde_json::Value>(&body_bytes) {
+        let model = req_json.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let messages = req_json.get("messages").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
+        tracing::info!(
+            request_id = %request_id,
+            model = %model,
+            messages = messages,
+            body_size = body_bytes.len(),
+            "handle_openai: request parsed"
+        );
+    }
+
     // Intercept with OpenAI handler
     let (req_body, session, user_msg) = match interceptor::process_openai(&body_bytes, &state.storage) {
-        Some(result) => result,
+        Some(result) => {
+            tracing::debug!(request_id = %request_id, "handle_openai: intercepted and injected memory context");
+            result
+        },
         None => {
+            tracing::debug!(request_id = %request_id, "handle_openai: no interception, forwarding raw");
             let (result, _) = forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await;
             return result;
         }
@@ -318,6 +375,13 @@ async fn handle_openai(
 
     // Extract assistant message
     let (assistant_msg, annotation) = interceptor::extract_openai_response(&resp_body);
+
+    tracing::info!(
+        request_id = %request_id,
+        assistant_msg_len = assistant_msg.len(),
+        has_annotation = annotation.is_some(),
+        "handle_openai: response extracted"
+    );
 
     // Log conversation
     log_conversation(&state, &session, &user_msg, &assistant_msg, annotation);
@@ -333,18 +397,26 @@ async fn passthrough(
     headers: HeaderMap,
     body: Body,
 ) -> Response {
+    let request_id = uuid::Uuid::new_v4().to_string();
+    tracing::info!(request_id = %request_id, method = %method, path = %uri.path(), "passthrough: starting");
+
     let _permit = match state.semaphore.try_acquire() {
         Ok(permit) => permit,
         Err(_) => {
+            tracing::warn!(request_id = %request_id, "passthrough: too many concurrent requests");
             return (StatusCode::SERVICE_UNAVAILABLE, "too many requests").into_response();
         }
     };
 
     let body_bytes = match axum::body::to_bytes(body, 10 * 1024 * 1024).await {
         Ok(b) => b.to_vec(),
-        Err(_) => return (StatusCode::BAD_REQUEST).into_response(),
+        Err(_) => {
+            tracing::error!(request_id = %request_id, "passthrough: failed to read body");
+            return (StatusCode::BAD_REQUEST).into_response();
+        }
     };
 
+    tracing::debug!(request_id = %request_id, body_size = body_bytes.len(), "passthrough: forwarding raw request");
     forward_to_upstream(&state, method, &uri, &headers, &body_bytes).await.0
 }
 
@@ -357,11 +429,28 @@ async fn forward_to_upstream(
     headers: &HeaderMap,
     body: &[u8],
 ) -> (Response, Vec<u8>) {
-    let upstream_url = format!(
-        "{}{}",
-        state.config.upstream_url,
-        uri.path_and_query().map(|pq| pq.as_str()).unwrap_or("")
+    // Normalize path: strip duplicate /v1 prefix
+    // Claude Code sends /v1/v1/messages when base URL is http://host:8443/v1
+    let raw_path = uri.path_and_query().map(|pq| pq.as_str()).unwrap_or("");
+    let normalized_path = if raw_path.starts_with("/v1/v1/") {
+        &raw_path[3..]  // Strip first "/v1" → "/v1/messages"
+    } else {
+        raw_path
+    };
+    let upstream_url = format!("{}{}", state.config.upstream_url, normalized_path);
+
+    tracing::debug!(
+        upstream_url = %upstream_url,
+        method = %method,
+        body_size = body.len(),
+        "forward_to_upstream: preparing request"
     );
+
+    // Log model from request body if present
+    if let Ok(req_json) = serde_json::from_slice::<serde_json::Value>(body) {
+        let model = req_json.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
+        tracing::info!("forward_to_upstream: model={}, upstream={}", model, upstream_url);
+    }
 
     // Build upstream request — use the original HTTP method, not hardcoded POST
     let reqwest_method = match method {
@@ -388,15 +477,56 @@ async fn forward_to_upstream(
 
     *upstream_req.body_mut() = Some(body.to_vec().into());
 
+    tracing::debug!("forward_to_upstream: sending request to {}", upstream_url);
+    let start = std::time::Instant::now();
+
     match state.http_client.execute(upstream_req).await {
         Ok(resp) => {
             let status = resp.status();
+            let elapsed = start.elapsed();
             let resp_headers = resp.headers().clone();
             let resp_body = resp.bytes().await.unwrap_or_default();
             let mut body_vec = resp_body.to_vec();
 
+            tracing::info!(
+                upstream_url = %upstream_url,
+                status = %status.as_u16(),
+                elapsed_ms = elapsed.as_millis(),
+                response_size = body_vec.len(),
+                "forward_to_upstream: response received"
+            );
+
+            // Log error responses
+            if !status.is_success() {
+                let body_str = String::from_utf8_lossy(&body_vec);
+                tracing::warn!(
+                    upstream_url = %upstream_url,
+                    status = %status.as_u16(),
+                    "upstream error: {}",
+                    body_str.chars().take(500).collect::<String>()
+                );
+            }
+
+            // Log model from response
+            if let Ok(resp_json) = serde_json::from_slice::<serde_json::Value>(&body_vec) {
+                let model = resp_json.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
+                let content = resp_json.pointer("/choices/0/message/content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let finish_reason = resp_json.pointer("/choices/0/finish_reason")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                tracing::info!(
+                    upstream_url = %upstream_url,
+                    response_model = %model,
+                    finish_reason = %finish_reason,
+                    content_length = content.len(),
+                    content_preview = %content.chars().take(50).collect::<String>(),
+                    "forward_to_upstream: response content"
+                );
+            }
+
             // Filter response — strips thinking blocks if header or env var is set
-            // Filter response — strips thinking blocks on filtered port
             body_vec = interceptor::filter_response(&body_vec);
 
             let mut response = Response::builder().status(status);
@@ -412,7 +542,14 @@ async fn forward_to_upstream(
             (response, body_vec)
         }
         Err(e) => {
-            error!("Upstream request failed: {}", e);
+            let elapsed = start.elapsed();
+            error!(
+                upstream_url = %upstream_url,
+                elapsed_ms = elapsed.as_millis(),
+                error = %e,
+                error_debug = ?e,
+                "forward_to_upstream: request FAILED"
+            );
             let body = format!("upstream error: {}", e).into_bytes();
             let response = (StatusCode::BAD_GATEWAY, format!("upstream error: {}", e)).into_response();
             (response, body)

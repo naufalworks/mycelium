@@ -279,32 +279,27 @@ pub fn process_request(
         });
 
     // Build the injection string from the pre-computed context block
-    let mut injection = String::new();
+    // If no context block, return body unchanged — use original body, not re-serialized
     if context_block.is_empty() {
-        injection.push_str(MEMORY_INSTRUCTION);
+        return Some((body.to_vec(), session, user_msg));
     } else {
-        injection.push_str(&format!("\n\n{}", context_block));
-        injection.push_str(RECALL_CONTEXT_INSTRUCTION);
-        injection.push_str(MEMORY_INSTRUCTION);
-    }
-
-    if let Some(system) = req.get_mut("system") {
-        match system {
-            Value::String(s) => {
-                // Legacy string format: append to system prompt
-                *system = Value::String(format!("{}{}", s, injection));
+        let injection = format!("\n\n{}", context_block);
+        if let Some(system) = req.get_mut("system") {
+            match system {
+                Value::String(s) => {
+                    *system = Value::String(format!("{}{}", s, injection));
+                }
+                Value::Array(blocks) => {
+                    blocks.push(serde_json::json!({
+                        "type": "text",
+                        "text": injection.trim().to_string()
+                    }));
+                }
+                _ => {}
             }
-            Value::Array(blocks) => {
-                // Modern array format: add a text block with the injection
-                blocks.push(serde_json::json!({
-                    "type": "text",
-                    "text": injection.trim().to_string()
-                }));
-            }
-            _ => {}
+        } else {
+            req["system"] = Value::String(injection.trim_start().to_string());
         }
-    } else {
-        req["system"] = Value::String(injection.trim_start().to_string());
     }
 
     let modified_body = serde_json::to_vec(&req).unwrap_or_else(|_| body.to_vec());
